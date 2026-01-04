@@ -1,0 +1,85 @@
+# Xcode
+.build/
+DerivedData/
+*.swiftpm/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Swift Package Manager
+Packages/
+Package.resolved
+.swiftpm/
+
+# Build artifacts
+build/
+*.o
+*.swn
+*.swo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# IDE
+.idea/
+*.sublime-workspace
+*.sublime-project
+.vscode/
+
+# Environment and secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Archives and builds
+*.app
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Code signing
+*.mobileprovision
+*.provisionprofile
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Development tools (Claude Code specific)
+.claude/
+.specify/
+CLAUDE.md
+
+# Generated images (not part of source)
+Gemini_Generated_Image_*.png
+
+# Old project files
+edashot.xcodeproj/
+edashot/
