@@ -17,8 +17,10 @@
 ## Features
 
 - **Instant Capture** - Full screen or region selection with global hotkeys
-- **Annotation Tools** - Rectangles, arrows, freehand drawing, and text
+- **Annotation Tools** - Rectangles (filled/outline), arrows, freehand drawing, and text
 - **Multi-Monitor Support** - Works seamlessly across all connected displays
+- **Flexible Export** - PNG, JPEG, and HEIC formats with quality control
+- **Crop & Edit** - Crop screenshots after capture with pixel-perfect precision
 - **Quick Export** - Save to disk or copy to clipboard instantly
 - **Lightweight** - Runs quietly in your menu bar with minimal resources
 
@@ -59,15 +61,16 @@ open ScreenCapture.xcodeproj
 
 | Shortcut | Action |
 |----------|--------|
-| `Enter` / `Cmd+S` | Save screenshot |
+| `Enter` / `Cmd+S` | Save screenshot (or apply crop in crop mode) |
 | `Cmd+C` | Copy to clipboard |
-| `Escape` | Dismiss |
+| `Escape` | Dismiss / Cancel crop / Deselect tool |
 | `R` / `1` | Rectangle tool |
 | `D` / `2` | Freehand tool |
 | `A` / `3` | Arrow tool |
 | `T` / `4` | Text tool |
 | `C` | Crop mode |
 | `Cmd+Z` | Undo |
+| `Cmd+Shift+Z` | Redo |
 
 ## Documentation
 

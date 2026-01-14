@@ -63,8 +63,8 @@ final class PreviewWindow: NSPanel {
         titlebarAppearsTransparent = false
         titleVisibility = .visible
 
-        // Size constraints
-        minSize = NSSize(width: 400, height: 300)
+        // Size constraints - minimum width accommodates toolbar UI
+        minSize = NSSize(width: 700, height: 400)
         maxSize = NSSize(width: 4000, height: 3000)
 
         // Collection behavior for proper window management
@@ -157,7 +157,8 @@ final class PreviewWindow: NSPanel {
         let windowWidth = imageSize.width * scale
         let windowHeight = imageSize.height * scale + 60 // Extra height for info bar
 
-        return NSSize(width: max(windowWidth, 400), height: max(windowHeight, 300))
+        // Minimum size must accommodate toolbar UI elements
+        return NSSize(width: max(windowWidth, 700), height: max(windowHeight, 400))
     }
 
     /// Calculates a centered rect for the window.
@@ -207,10 +208,14 @@ final class PreviewWindow: NSPanel {
             return
         }
 
-        // Check for Enter/Return key to save
+        // Check for Enter/Return key - apply crop if in crop mode, otherwise save
         if event.keyCode == 36 || event.keyCode == 76 { // Return or Enter (numpad)
             Task { @MainActor in
-                viewModel.saveScreenshot()
+                if viewModel.isCropMode && viewModel.cropRect != nil {
+                    viewModel.applyCrop()
+                } else {
+                    viewModel.saveScreenshot()
+                }
             }
             return
         }

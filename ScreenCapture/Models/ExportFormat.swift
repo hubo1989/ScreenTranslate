@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 enum ExportFormat: String, CaseIterable, Codable, Sendable {
     case png
     case jpeg
+    case heic
 
     /// The Uniform Type Identifier for this format
     var uti: UTType {
@@ -13,6 +14,8 @@ enum ExportFormat: String, CaseIterable, Codable, Sendable {
             return .png
         case .jpeg:
             return .jpeg
+        case .heic:
+            return .heic
         }
     }
 
@@ -28,6 +31,8 @@ enum ExportFormat: String, CaseIterable, Codable, Sendable {
             return "PNG"
         case .jpeg:
             return "JPEG"
+        case .heic:
+            return "HEIC"
         }
     }
 
@@ -38,6 +43,8 @@ enum ExportFormat: String, CaseIterable, Codable, Sendable {
             return "image/png"
         case .jpeg:
             return "image/jpeg"
+        case .heic:
+            return "image/heic"
         }
     }
 
@@ -45,12 +52,25 @@ enum ExportFormat: String, CaseIterable, Codable, Sendable {
     /// These are realistic estimates for compressed output files.
     /// PNG: ~1.5 bytes per pixel (lossless, but compressed - desktop screenshots compress well)
     /// JPEG: ~0.3 bytes per pixel at 90% quality
+    /// HEIC: ~0.2 bytes per pixel (better compression than JPEG)
     var estimatedBytesPerPixel: Double {
         switch self {
         case .png:
             return 1.5  // Compressed PNG, not raw RGBA
         case .jpeg:
             return 0.3  // Typical JPEG at high quality
+        case .heic:
+            return 0.2  // HEIC has better compression than JPEG
+        }
+    }
+
+    /// Whether this format supports quality adjustment
+    var supportsQuality: Bool {
+        switch self {
+        case .png:
+            return false
+        case .jpeg, .heic:
+            return true
         }
     }
 }

@@ -860,7 +860,15 @@ final class PreviewViewModel {
 
         let directory = settings.saveLocation
         let format = settings.defaultFormat
-        let quality = settings.jpegQuality
+        let quality: Double
+        switch format {
+        case .jpeg:
+            quality = settings.jpegQuality
+        case .heic:
+            quality = settings.heicQuality
+        case .png:
+            quality = 1.0  // PNG doesn't use quality, but we need a value
+        }
 
         // Generate file URL
         let fileURL = imageExporter.generateFileURL(in: directory, format: format)

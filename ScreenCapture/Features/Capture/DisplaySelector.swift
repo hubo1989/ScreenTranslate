@@ -3,8 +3,7 @@ import Foundation
 
 /// Manages display selection UI when multiple displays are connected.
 /// Provides a popup menu for the user to select which display to capture.
-@MainActor
-final class DisplaySelector {
+final class DisplaySelector: NSObject, NSMenuDelegate {
     // MARK: - Types
 
     /// Result of display selection
@@ -21,25 +20,36 @@ final class DisplaySelector {
     /// Currently displayed menu
     private var selectionMenu: NSMenu?
 
-    /// Menu delegate (retained to prevent deallocation)
-    private var menuDelegate: DisplaySelectorMenuDelegate?
+    /// Currently available displays (stored for lookup by tag)
+    private var currentDisplays: [DisplayInfo] = []
+
+    /// The display that was selected (set when menu item is clicked)
+    private var selectedDisplay: DisplayInfo?
 
     // MARK: - Public API
 
     /// Shows a display selection menu if multiple displays are available.
     /// - Parameter displays: Array of available displays
     /// - Returns: The selected display or nil if cancelled
+    @MainActor
     func selectDisplay(from displays: [DisplayInfo]) async -> DisplayInfo? {
         // If only one display, return it immediately
         guard displays.count > 1 else {
             return displays.first
         }
 
+        // Store displays for lookup
+        currentDisplays = displays
+        selectedDisplay = nil
+
         // Show selection menu and wait for result
         let result = await withCheckedContinuation { continuation in
             self.selectionContinuation = continuation
             self.showSelectionMenu(for: displays)
         }
+
+        // Clear stored displays
+        currentDisplays = []
 
         switch result {
         case .selected(let display):
@@ -55,6 +65,7 @@ final class DisplaySelector {
     /// - Parameter displays: Available displays to choose from
     private func showSelectionMenu(for displays: [DisplayInfo]) {
         let menu = NSMenu(title: NSLocalizedString("display.selector.title", comment: "Select Display"))
+        menu.delegate = self
 
         // Add header item (disabled, for context)
         let headerItem = NSMenuItem(
@@ -67,11 +78,45 @@ final class DisplaySelector {
 
         menu.addItem(NSMenuItem.separator())
 
-        // Add display items
-        for display in displays {
-            let item = DisplayMenuItem(display: display)
+        // Add display items with tags for identification
+        for (index, display) in displays.enumerated() {
+            let item = NSMenuItem(
+                title: display.name,
+                action: #selector(displayItemClicked(_:)),
+                keyEquivalent: ""
+            )
             item.target = self
-            item.action = #selector(displaySelected(_:))
+            item.tag = index
+
+            // Add resolution info via attributed title
+            let attributedTitle = NSMutableAttributedString(string: display.name)
+            attributedTitle.append(NSAttributedString(
+                string: "  \(display.resolution)",
+                attributes: [
+                    .foregroundColor: NSColor.secondaryLabelColor,
+                    .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+                ]
+            ))
+
+            // Add primary indicator
+            if display.isPrimary {
+                attributedTitle.append(NSAttributedString(
+                    string: "  ★",
+                    attributes: [
+                        .foregroundColor: NSColor.systemYellow,
+                        .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+                    ]
+                ))
+            }
+
+            item.attributedTitle = attributedTitle
+
+            // Add display icon
+            if let icon = NSImage(systemSymbolName: "display", accessibilityDescription: nil) {
+                icon.isTemplate = true
+                item.image = icon
+            }
+
             menu.addItem(item)
         }
 
@@ -80,114 +125,69 @@ final class DisplaySelector {
         // Add cancel option
         let cancelItem = NSMenuItem(
             title: NSLocalizedString("display.selector.cancel", comment: "Cancel"),
-            action: #selector(selectionCancelled),
+            action: #selector(cancelItemClicked(_:)),
             keyEquivalent: "\u{1B}" // Escape key
         )
         cancelItem.target = self
+        cancelItem.tag = -1
         menu.addItem(cancelItem)
-
-        // Set up menu delegate to handle dismissal
-        menuDelegate = DisplaySelectorMenuDelegate(selector: self)
-        menu.delegate = menuDelegate
 
         selectionMenu = menu
 
-        // Show menu at current mouse location
-        let mouseLocation = NSEvent.mouseLocation
-        menu.popUp(positioning: nil, at: mouseLocation, in: nil)
+        // Show menu at mouse location on the main screen
+        if let screen = NSScreen.main {
+            let mouseLocation = NSEvent.mouseLocation
+            // Convert to screen coordinates for the menu
+            menu.popUp(positioning: nil, at: mouseLocation, in: nil)
+        }
     }
 
-    /// Called when a display is selected from the menu.
-    /// - Parameter sender: The selected menu item
-    @objc private func displaySelected(_ sender: NSMenuItem) {
-        guard let displayItem = sender as? DisplayMenuItem else { return }
-        completeSelection(with: .selected(displayItem.display))
+    /// Called when a display item is clicked
+    @objc func displayItemClicked(_ sender: NSMenuItem) {
+        let index = sender.tag
+        if index >= 0 && index < currentDisplays.count {
+            selectedDisplay = currentDisplays[index]
+            #if DEBUG
+            print("Display item clicked: \(selectedDisplay?.name ?? "nil")")
+            #endif
+        }
     }
 
-    /// Called when selection is cancelled.
-    @objc private func selectionCancelled() {
-        completeSelection(with: .cancelled)
+    /// Called when cancel item is clicked
+    @objc func cancelItemClicked(_ sender: NSMenuItem) {
+        selectedDisplay = nil
+        #if DEBUG
+        print("Cancel item clicked")
+        #endif
     }
 
-    /// Called when the menu is dismissed without selection.
-    fileprivate func menuDidClose() {
-        // If continuation is still pending, treat as cancellation
-        if selectionContinuation != nil {
-            completeSelection(with: .cancelled)
+    // MARK: - NSMenuDelegate
+
+    func menuDidClose(_ menu: NSMenu) {
+        // The action fires AFTER menuDidClose, so we need to delay completion
+        // to give the action a chance to set selectedDisplay
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+
+            #if DEBUG
+            print("Menu did close (delayed), selectedDisplay: \(self.selectedDisplay?.name ?? "nil")")
+            #endif
+
+            // Complete the selection based on what was selected
+            if let display = self.selectedDisplay {
+                self.completeSelection(with: .selected(display))
+            } else {
+                self.completeSelection(with: .cancelled)
+            }
         }
     }
 
     /// Completes the selection with the given result.
-    /// - Parameter result: The selection result
     private func completeSelection(with result: SelectionResult) {
+        selectionMenu?.delegate = nil
         selectionMenu = nil
-        menuDelegate = nil
+        selectedDisplay = nil
         selectionContinuation?.resume(returning: result)
         selectionContinuation = nil
-    }
-}
-
-// MARK: - Display Menu Item
-
-/// Custom menu item that holds a reference to a display.
-private final class DisplayMenuItem: NSMenuItem {
-    let display: DisplayInfo
-
-    init(display: DisplayInfo) {
-        self.display = display
-        super.init(
-            title: display.name,
-            action: nil,
-            keyEquivalent: ""
-        )
-
-        // Add resolution info
-        let attributedTitle = NSMutableAttributedString(string: display.name)
-        attributedTitle.append(NSAttributedString(
-            string: "  \(display.resolution)",
-            attributes: [
-                .foregroundColor: NSColor.secondaryLabelColor,
-                .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-            ]
-        ))
-
-        // Add primary indicator
-        if display.isPrimary {
-            attributedTitle.append(NSAttributedString(
-                string: "  ★",
-                attributes: [
-                    .foregroundColor: NSColor.systemYellow,
-                    .font: NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-                ]
-            ))
-        }
-
-        self.attributedTitle = attributedTitle
-
-        // Add display icon
-        if let icon = NSImage(systemSymbolName: "display", accessibilityDescription: nil) {
-            icon.isTemplate = true
-            self.image = icon
-        }
-    }
-
-    @available(*, unavailable)
-    required init(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-}
-
-// MARK: - Menu Delegate
-
-/// Delegate to handle menu dismissal.
-private final class DisplaySelectorMenuDelegate: NSObject, NSMenuDelegate {
-    weak var selector: DisplaySelector?
-
-    init(selector: DisplaySelector) {
-        self.selector = selector
-    }
-
-    func menuDidClose(_ menu: NSMenu) {
-        selector?.menuDidClose()
     }
 }

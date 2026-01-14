@@ -72,7 +72,7 @@ struct ImageExporter: Sendable {
 
         // Configure export options
         var options: [CFString: Any] = [:]
-        if format == .jpeg {
+        if format == .jpeg || format == .heic {
             options[kCGImageDestinationLossyCompressionQuality] = quality
         }
 
@@ -133,6 +133,11 @@ struct ImageExporter: Sendable {
             // JPEG size varies with quality and content
             // At quality 0.9, roughly 0.5-1.0 bytes per pixel
             let bytesPerPixel = 0.5 + (0.5 * quality)
+            return Int(Double(pixelCount) * bytesPerPixel)
+        case .heic:
+            // HEIC has better compression than JPEG
+            // At quality 0.9, roughly 0.3-0.6 bytes per pixel
+            let bytesPerPixel = 0.3 + (0.3 * quality)
             return Int(Double(pixelCount) * bytesPerPixel)
         }
     }
@@ -222,9 +227,16 @@ struct ImageExporter: Sendable {
             height: annotation.rect.height
         )
 
-        context.setStrokeColor(annotation.style.color.cgColor)
-        context.setLineWidth(annotation.style.lineWidth)
-        context.stroke(rect)
+        if annotation.isFilled {
+            // Filled rectangle - solid color to hide underlying content
+            context.setFillColor(annotation.style.color.cgColor)
+            context.fill(rect)
+        } else {
+            // Hollow rectangle - outline only
+            context.setStrokeColor(annotation.style.color.cgColor)
+            context.setLineWidth(annotation.style.lineWidth)
+            context.stroke(rect)
+        }
     }
 
     /// Renders a freehand annotation.

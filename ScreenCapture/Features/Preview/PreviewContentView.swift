@@ -178,7 +178,18 @@ struct PreviewContentView: View {
     ) -> (displaySize: CGSize, scale: CGFloat) {
         let widthScale = containerSize.width / imageSize.width
         let heightScale = containerSize.height / imageSize.height
-        let scale = min(widthScale, heightScale, 1.0) // Don't scale up
+
+        // For large images, scale down to fit. For small images, scale up to fill
+        // at least 50% of the container (but cap at 4x to avoid excessive pixelation)
+        let fitScale = min(widthScale, heightScale)
+        let scale: CGFloat
+        if fitScale > 1.0 {
+            // Image is smaller than container - scale up but cap at 4x
+            scale = min(fitScale, 4.0)
+        } else {
+            // Image is larger than container - scale down to fit
+            scale = fitScale
+        }
 
         let displaySize = CGSize(
             width: imageSize.width * scale,
@@ -477,57 +488,42 @@ struct PreviewContentView: View {
 
     /// The info bar at the bottom showing dimensions and file size
     private var infoBar: some View {
-        HStack(spacing: 16) {
-            // Dimensions
-            Label {
+        HStack(spacing: 12) {
+            // Left side: Image info (compact)
+            HStack(spacing: 8) {
                 Text(viewModel.dimensionsText)
-                    .font(.system(.body, design: .monospaced))
-            } icon: {
-                Image(systemName: "aspectratio")
-            }
-            .foregroundStyle(.secondary)
-            .help("Image dimensions in pixels")
-            .accessibilityLabel(Text("Dimensions: \(viewModel.dimensionsText)"))
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .help("Image dimensions")
 
-            Divider()
-                .frame(height: 16)
-                .accessibilityHidden(true)
+                Text("•")
+                    .foregroundStyle(.tertiary)
 
-            // Estimated file size
-            Label {
                 Text(viewModel.fileSizeText)
-                    .font(.system(.body, design: .monospaced))
-            } icon: {
-                Image(systemName: "doc")
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .help("Estimated file size")
             }
-            .foregroundStyle(.secondary)
-            .help("Estimated file size")
-            .accessibilityLabel(Text("File size: \(viewModel.fileSizeText)"))
+            .fixedSize()
 
             Divider()
                 .frame(height: 16)
-                .accessibilityHidden(true)
 
-            // Display source
-            Label {
-                Text(viewModel.displayName)
-                    .lineLimit(1)
-            } icon: {
-                Image(systemName: "display")
+            // Center: Scrollable toolbar
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    toolBar
+                }
+                .padding(.horizontal, 4)
             }
-            .foregroundStyle(.secondary)
-            .help("Source display")
-            .accessibilityLabel(Text("Source display: \(viewModel.displayName)"))
+            .frame(minWidth: 100)
 
-            Spacer()
+            Divider()
+                .frame(height: 16)
 
-            // Tool buttons (for future annotation support)
-            toolBar
-
-            Spacer()
-
-            // Action buttons
+            // Right side: Action buttons (fixed)
             actionButtons
+                .fixedSize()
         }
     }
 
@@ -765,9 +761,9 @@ struct PreviewContentView: View {
         }
     }
 
-    /// Preset colors for quick selection
+    /// Preset colors for quick selection (reduced set to save space)
     private var presetColors: [Color] {
-        [.red, .orange, .yellow, .green, .blue, .purple, .white, .black]
+        [.red, .yellow, .green, .blue, .black]
     }
 
     /// Compare colors approximately

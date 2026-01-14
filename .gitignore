@@ -83,3 +83,6 @@ Gemini_Generated_Image_*.png
 # Old project files
 edashot.xcodeproj/
 edashot/
+
+# Release builds
+release/

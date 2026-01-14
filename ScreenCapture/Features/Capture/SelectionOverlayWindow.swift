@@ -440,15 +440,16 @@ final class SelectionOverlayView: NSView {
             #endif
 
             // Now compute display-relative coordinates (both in Quartz coordinate system)
+            // Round to whole points to minimize fractional pixel issues when scaled
             let relativeRect = CGRect(
-                x: screenRect.origin.x - displayFrame.origin.x,
-                y: quartzY - displayFrame.origin.y,
-                width: screenRect.width,
-                height: screenRect.height
+                x: round(screenRect.origin.x - displayFrame.origin.x),
+                y: round(quartzY - displayFrame.origin.y),
+                width: round(screenRect.width),
+                height: round(screenRect.height)
             )
 
             #if DEBUG
-            print("[10] FINAL relativeRect: \(relativeRect)")
+            print("[10] FINAL relativeRect (rounded): \(relativeRect)")
             print("[11] Normalized would be: x=\(relativeRect.origin.x / displayFrame.width), y=\(relativeRect.origin.y / displayFrame.height)")
             print("=== END COORDINATE DEBUG ===")
             #endif

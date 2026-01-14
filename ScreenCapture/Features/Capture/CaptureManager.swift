@@ -205,11 +205,18 @@ actor CaptureManager {
         // Set source rect for region capture
         // sourceRect must be in PIXEL coordinates (not normalized!)
         // The rect is in points from SelectionOverlayWindow, convert to pixels
+        // IMPORTANT: Round to integers to avoid fractional pixel boundaries
+        // which cause ScreenCaptureKit to apply anti-aliasing/interpolation
+        let pixelX = round(rect.origin.x * display.scaleFactor)
+        let pixelY = round(rect.origin.y * display.scaleFactor)
+        let pixelWidth = round(rect.width * display.scaleFactor)
+        let pixelHeight = round(rect.height * display.scaleFactor)
+
         let sourceRect = CGRect(
-            x: rect.origin.x * display.scaleFactor,
-            y: rect.origin.y * display.scaleFactor,
-            width: rect.width * display.scaleFactor,
-            height: rect.height * display.scaleFactor
+            x: pixelX,
+            y: pixelY,
+            width: pixelWidth,
+            height: pixelHeight
         )
 
         #if DEBUG
@@ -217,15 +224,15 @@ actor CaptureManager {
         print("[CAP-1] Input rect (points): \(rect)")
         print("[CAP-2] display.frame (points): \(display.frame)")
         print("[CAP-3] display.scaleFactor: \(display.scaleFactor)")
-        print("[CAP-4] sourceRect (pixels): \(sourceRect)")
+        print("[CAP-4] sourceRect (pixels, rounded): \(sourceRect)")
         print("=== END CAPTURE MANAGER DEBUG ===")
         #endif
 
         config.sourceRect = sourceRect
 
-        // Adjust output size to match the region
-        config.width = Int(rect.width * display.scaleFactor)
-        config.height = Int(rect.height * display.scaleFactor)
+        // Adjust output size to match the region (use same rounded values)
+        config.width = Int(pixelWidth)
+        config.height = Int(pixelHeight)
 
         // Perform capture with signpost for profiling
         os_signpost(.begin, log: Self.performanceLog, name: "RegionCapture", signpostID: Self.signpostID)

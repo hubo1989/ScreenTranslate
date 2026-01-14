@@ -18,6 +18,7 @@ final class AppSettings {
         static let saveLocation = prefix + "saveLocation"
         static let defaultFormat = prefix + "defaultFormat"
         static let jpegQuality = prefix + "jpegQuality"
+        static let heicQuality = prefix + "heicQuality"
         static let fullScreenShortcut = prefix + "fullScreenShortcut"
         static let selectionShortcut = prefix + "selectionShortcut"
         static let strokeColor = prefix + "strokeColor"
@@ -42,6 +43,11 @@ final class AppSettings {
     /// JPEG compression quality (0.0-1.0)
     var jpegQuality: Double {
         didSet { save(jpegQuality, forKey: Keys.jpegQuality) }
+    }
+
+    /// HEIC compression quality (0.0-1.0)
+    var heicQuality: Double {
+        didSet { save(heicQuality, forKey: Keys.heicQuality) }
     }
 
     /// Global hotkey for full screen capture
@@ -108,6 +114,9 @@ final class AppSettings {
         // Load JPEG quality
         jpegQuality = defaults.object(forKey: Keys.jpegQuality) as? Double ?? 0.9
 
+        // Load HEIC quality
+        heicQuality = defaults.object(forKey: Keys.heicQuality) as? Double ?? 0.9
+
         // Load shortcuts
         fullScreenShortcut = Self.loadShortcut(forKey: Keys.fullScreenShortcut)
             ?? KeyboardShortcut.fullScreenDefault
@@ -161,6 +170,7 @@ final class AppSettings {
             ?? URL(fileURLWithPath: NSHomeDirectory())
         defaultFormat = .png
         jpegQuality = 0.9
+        heicQuality = 0.9
         fullScreenShortcut = .fullScreenDefault
         selectionShortcut = .selectionDefault
         strokeColor = .red

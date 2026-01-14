@@ -70,6 +70,18 @@ final class SettingsViewModel {
         set { jpegQuality = newValue / 100 }
     }
 
+    /// HEIC quality (0.0-1.0)
+    var heicQuality: Double {
+        get { settings.heicQuality }
+        set { settings.heicQuality = newValue }
+    }
+
+    /// HEIC quality as percentage (0-100)
+    var heicQualityPercentage: Double {
+        get { heicQuality * 100 }
+        set { heicQuality = newValue / 100 }
+    }
+
     /// Full screen capture shortcut
     var fullScreenShortcut: KeyboardShortcut {
         get { settings.fullScreenShortcut }
@@ -116,6 +128,9 @@ final class SettingsViewModel {
 
     /// Valid range for JPEG quality
     static let jpegQualityRange: ClosedRange<Double> = 0.1...1.0
+
+    /// Valid range for HEIC quality
+    static let heicQualityRange: ClosedRange<Double> = 0.1...1.0
 
     // MARK: - Initialization
 

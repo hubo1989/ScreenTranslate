@@ -27,6 +27,8 @@ struct SettingsView: View {
                 ExportFormatPicker(viewModel: viewModel)
                 if viewModel.defaultFormat == .jpeg {
                     JPEGQualitySlider(viewModel: viewModel)
+                } else if viewModel.defaultFormat == .heic {
+                    HEICQualitySlider(viewModel: viewModel)
                 }
             } header: {
                 Label("Export", systemImage: "square.and.arrow.up")
@@ -239,6 +241,7 @@ private struct ExportFormatPicker: View {
         Picker("Default Format", selection: $viewModel.defaultFormat) {
             Text("PNG").tag(ExportFormat.png)
             Text("JPEG").tag(ExportFormat.jpeg)
+            Text("HEIC").tag(ExportFormat.heic)
         }
         .pickerStyle(.segmented)
         .accessibilityLabel(Text("Export Format"))
@@ -277,6 +280,44 @@ private struct JPEGQualitySlider: View {
             .accessibilityValue(Text("\(Int(viewModel.jpegQualityPercentage)) percent"))
 
             Text("Higher quality results in larger file sizes")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+// MARK: - HEIC Quality Slider
+
+/// Slider for adjusting HEIC compression quality.
+private struct HEICQualitySlider: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("HEIC Quality")
+                Spacer()
+                Text("\(Int(viewModel.heicQualityPercentage))%")
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+
+            Slider(
+                value: $viewModel.heicQuality,
+                in: SettingsViewModel.heicQualityRange,
+                step: 0.05
+            ) {
+                Text("HEIC Quality")
+            } minimumValueLabel: {
+                Text("10%")
+                    .font(.caption)
+            } maximumValueLabel: {
+                Text("100%")
+                    .font(.caption)
+            }
+            .accessibilityValue(Text("\(Int(viewModel.heicQualityPercentage)) percent"))
+
+            Text("HEIC offers better compression than JPEG at similar quality")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
