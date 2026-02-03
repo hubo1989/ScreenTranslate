@@ -87,6 +87,18 @@ final class MenuBarController {
 
         menu.addItem(NSMenuItem.separator())
 
+        // Translation History
+        let historyItem = NSMenuItem(
+            title: NSLocalizedString("menu.translation.history", comment: "Translation History"),
+            action: #selector(AppDelegate.openHistory),
+            keyEquivalent: "h"
+        )
+        historyItem.keyEquivalentModifierMask = [.command, .shift]
+        historyItem.target = appDelegate
+        menu.addItem(historyItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         // Settings
         let settingsItem = NSMenuItem(
             title: NSLocalizedString("menu.settings", comment: "Settings..."),

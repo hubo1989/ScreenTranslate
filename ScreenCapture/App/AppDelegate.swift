@@ -338,6 +338,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TranslationPopoverDele
             print("Translation completed: \(translations.count) results")
             #endif
 
+            // Save translations to history
+            if let combinedResult = TranslationResult.combine(translations) {
+                HistoryWindowController.shared.addTranslation(
+                    result: combinedResult,
+                    image: screenshot.image
+                )
+            }
+
             // Show translation popover below the selection
             await MainActor.run {
                 // Convert selection rect to screen coordinates for the popover anchor
@@ -404,6 +412,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TranslationPopoverDele
         #endif
 
         SettingsWindowController.shared.showSettings(appDelegate: self)
+    }
+
+    /// Opens the translation history window
+    @objc func openHistory() {
+        #if DEBUG
+        print("Opening translation history window")
+        #endif
+
+        HistoryWindowController.shared.showHistory()
     }
 
     // MARK: - Error Handling
