@@ -1,11 +1,11 @@
 <p align="center">
-  <img src=".github/images/app-icon.png" alt="ScreenCapture" width="128" height="128">
+  <img src=".github/images/app-icon.png" alt="ScreenTranslate" width="128" height="128">
 </p>
 
-<h1 align="center">ScreenCapture</h1>
+<h1 align="center">ScreenTranslate</h1>
 
 <p align="center">
-  A fast, lightweight macOS menu bar app for capturing and annotating screenshots.
+  A fast, lightweight macOS menu bar app for capturing screenshots and translating text.
 </p>
 
 <p align="center">
@@ -17,11 +17,11 @@
 ## Features
 
 - **Instant Capture** - Full screen or region selection with global hotkeys
-- **Annotation Tools** - Rectangles (filled/outline), arrows, freehand drawing, and text
+- **OCR & Translation** - Extract and translate text from any screen region
 - **Multi-Monitor Support** - Works seamlessly across all connected displays
 - **Flexible Export** - PNG, JPEG, and HEIC formats with quality control
-- **Crop & Edit** - Crop screenshots after capture with pixel-perfect precision
-- **Quick Export** - Save to disk or copy to clipboard instantly
+- **Text Recognition** - Accurate OCR with multiple engine support
+- **Quick Translation** - Real-time translation to multiple languages
 - **Lightweight** - Runs quietly in your menu bar with minimal resources
 
 ## Installation
@@ -39,11 +39,11 @@ Download the latest release from the [Releases](../../releases) page.
 
 ```bash
 # Clone the repository
-git clone https://github.com/sadopc/ScreenCapture.git
-cd ScreenCapture
+git clone https://github.com/sadopc/ScreenTranslate.git
+cd ScreenTranslate
 
 # Open in Xcode
-open ScreenCapture.xcodeproj
+open ScreenTranslate.xcodeproj
 
 # Build and run (Cmd+R)
 ```
@@ -103,10 +103,10 @@ Contributions are welcome! Please read our contributing guidelines:
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_FORK/ScreenCapture.git
+git clone https://github.com/YOUR_FORK/ScreenTranslate.git
 
 # Open in Xcode
-open ScreenCapture.xcodeproj
+open ScreenTranslate.xcodeproj
 
 # Grant Screen Recording permission when prompted
 ```

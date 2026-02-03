@@ -3,10 +3,10 @@
   "sessionId": "e212cf84-248d-4cf4-a620-9e96be290d84",
   "status": "running",
   "startedAt": "2026-02-03T05:59:17.851Z",
-  "updatedAt": "2026-02-03T09:14:55.159Z",
-  "currentIteration": 8,
+  "updatedAt": "2026-02-03T09:26:49.999Z",
+  "currentIteration": 9,
   "maxIterations": 10,
-  "tasksCompleted": 8,
+  "tasksCompleted": 9,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -71,8 +71,8 @@
       {
         "id": "US-010",
         "title": "翻译历史记录",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-011",
@@ -162,6 +162,16 @@
       "durationMs": 896967,
       "startedAt": "2026-02-03T08:27:36.802Z",
       "endedAt": "2026-02-03T08:42:33.769Z"
+    },
+    {
+      "iteration": 9,
+      "status": "completed",
+      "taskId": "US-010",
+      "taskTitle": "翻译历史记录",
+      "taskCompleted": true,
+      "durationMs": 1940300,
+      "startedAt": "2026-02-03T08:42:34.856Z",
+      "endedAt": "2026-02-03T09:14:55.156Z"
     }
   ],
   "skippedTaskIds": [],
