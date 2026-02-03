@@ -22,6 +22,15 @@ struct SettingsView: View {
                 Label("General", systemImage: "gearshape")
             }
 
+            // Engine Settings Section
+            Section {
+                OCREnginePicker(viewModel: viewModel)
+                TranslationEnginePicker(viewModel: viewModel)
+                TranslationModePicker(viewModel: viewModel)
+            } header: {
+                Label("Engines", systemImage: "engine.combustion")
+            }
+
             // Export Settings Section
             Section {
                 ExportFormatPicker(viewModel: viewModel)
@@ -521,6 +530,74 @@ private struct TextSizeSlider: View {
                     .frame(width: 40)
             }
         }
+    }
+}
+
+// MARK: - OCR Engine Picker
+
+/// Picker for selecting the OCR engine.
+private struct OCREnginePicker: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        Picker("OCR Engine", selection: $viewModel.ocrEngine) {
+            ForEach(OCREngineType.allCases, id: \.self) { engine in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(engine.localizedName)
+                    Text(engine.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .tag(engine)
+            }
+        }
+        .pickerStyle(.inline)
+        .disabled(!OCREngineType.paddleOCR.isAvailable)
+    }
+}
+
+// MARK: - Translation Engine Picker
+
+/// Picker for selecting the translation engine.
+private struct TranslationEnginePicker: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        Picker("Translation Engine", selection: $viewModel.translationEngine) {
+            ForEach(TranslationEngineType.allCases, id: \.self) { engine in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(engine.localizedName)
+                    Text(engine.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .tag(engine)
+            }
+        }
+        .pickerStyle(.inline)
+        .disabled(!TranslationEngineType.mtranServer.isAvailable)
+    }
+}
+
+// MARK: - Translation Mode Picker
+
+/// Picker for selecting the translation display mode.
+private struct TranslationModePicker: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        Picker("Translation Mode", selection: $viewModel.translationMode) {
+            ForEach(TranslationMode.allCases, id: \.self) { mode in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(mode.localizedName)
+                    Text(mode.description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .tag(mode)
+            }
+        }
+        .pickerStyle(.inline)
     }
 }
 

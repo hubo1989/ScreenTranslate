@@ -118,6 +118,24 @@ final class SettingsViewModel {
         set { settings.textSize = newValue }
     }
 
+    /// OCR engine type
+    var ocrEngine: OCREngineType {
+        get { settings.ocrEngine }
+        set { settings.ocrEngine = newValue }
+    }
+
+    /// Translation engine type
+    var translationEngine: TranslationEngineType {
+        get { settings.translationEngine }
+        set { settings.translationEngine = newValue }
+    }
+
+    /// Translation display mode
+    var translationMode: TranslationMode {
+        get { settings.translationMode }
+        set { settings.translationMode = newValue }
+    }
+
     // MARK: - Validation Ranges
 
     /// Valid range for stroke width

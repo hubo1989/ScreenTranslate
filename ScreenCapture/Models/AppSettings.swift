@@ -28,6 +28,9 @@ final class AppSettings {
         static let recentCaptures = prefix + "recentCaptures"
         static let translationTargetLanguage = prefix + "translationTargetLanguage"
         static let translationAutoDetect = prefix + "translationAutoDetect"
+        static let ocrEngine = prefix + "ocrEngine"
+        static let translationEngine = prefix + "translationEngine"
+        static let translationMode = prefix + "translationMode"
     }
 
     // MARK: - Properties
@@ -103,6 +106,21 @@ final class AppSettings {
         didSet { save(translationAutoDetect, forKey: Keys.translationAutoDetect) }
     }
 
+    /// OCR engine type
+    var ocrEngine: OCREngineType {
+        didSet { save(ocrEngine.rawValue, forKey: Keys.ocrEngine) }
+    }
+
+    /// Translation engine type
+    var translationEngine: TranslationEngineType {
+        didSet { save(translationEngine.rawValue, forKey: Keys.translationEngine) }
+    }
+
+    /// Translation display mode
+    var translationMode: TranslationMode {
+        didSet { save(translationMode.rawValue, forKey: Keys.translationMode) }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -155,6 +173,14 @@ final class AppSettings {
             .flatMap { TranslationLanguage(rawValue: $0) }
         translationAutoDetect = defaults.object(forKey: Keys.translationAutoDetect) as? Bool ?? true
 
+        // Load engine settings
+        ocrEngine = defaults.string(forKey: Keys.ocrEngine)
+            .flatMap { OCREngineType(rawValue: $0) } ?? .vision
+        translationEngine = defaults.string(forKey: Keys.translationEngine)
+            .flatMap { TranslationEngineType(rawValue: $0) } ?? .apple
+        translationMode = defaults.string(forKey: Keys.translationMode)
+            .flatMap { TranslationMode(rawValue: $0) } ?? .below
+
         print("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
 
@@ -203,6 +229,9 @@ final class AppSettings {
         recentCaptures = []
         translationTargetLanguage = nil
         translationAutoDetect = true
+        ocrEngine = .vision
+        translationEngine = .apple
+        translationMode = .below
     }
 
     // MARK: - Private Persistence Helpers
