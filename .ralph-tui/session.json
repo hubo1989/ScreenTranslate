@@ -3,10 +3,10 @@
   "sessionId": "e212cf84-248d-4cf4-a620-9e96be290d84",
   "status": "running",
   "startedAt": "2026-02-03T05:59:17.851Z",
-  "updatedAt": "2026-02-03T07:39:59.145Z",
-  "currentIteration": 4,
+  "updatedAt": "2026-02-03T07:55:33.814Z",
+  "currentIteration": 5,
   "maxIterations": 10,
-  "tasksCompleted": 4,
+  "tasksCompleted": 5,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -47,8 +47,8 @@
       {
         "id": "US-006",
         "title": "设置面板 - 引擎选择与基础配置",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-007",
@@ -122,6 +122,16 @@
       "durationMs": 1137205,
       "startedAt": "2026-02-03T07:13:51.888Z",
       "endedAt": "2026-02-03T07:32:49.093Z"
+    },
+    {
+      "iteration": 5,
+      "status": "completed",
+      "taskId": "US-006",
+      "taskTitle": "设置面板 - 引擎选择与基础配置",
+      "taskCompleted": true,
+      "durationMs": 428977,
+      "startedAt": "2026-02-03T07:32:50.165Z",
+      "endedAt": "2026-02-03T07:39:59.142Z"
     }
   ],
   "skippedTaskIds": [],
