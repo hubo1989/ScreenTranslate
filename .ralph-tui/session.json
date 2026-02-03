@@ -3,10 +3,10 @@
   "sessionId": "e212cf84-248d-4cf4-a620-9e96be290d84",
   "status": "running",
   "startedAt": "2026-02-03T05:59:17.851Z",
-  "updatedAt": "2026-02-03T08:27:35.716Z",
-  "currentIteration": 6,
+  "updatedAt": "2026-02-03T08:42:33.772Z",
+  "currentIteration": 7,
   "maxIterations": 10,
-  "tasksCompleted": 6,
+  "tasksCompleted": 7,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -59,8 +59,8 @@
       {
         "id": "US-008",
         "title": "可选 OCR 引擎 - PaddleOCR 集成",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-009",
@@ -142,6 +142,16 @@
       "durationMs": 933592,
       "startedAt": "2026-02-03T07:40:00.220Z",
       "endedAt": "2026-02-03T07:55:33.812Z"
+    },
+    {
+      "iteration": 7,
+      "status": "completed",
+      "taskId": "US-008",
+      "taskTitle": "可选 OCR 引擎 - PaddleOCR 集成",
+      "taskCompleted": true,
+      "durationMs": 1920830,
+      "startedAt": "2026-02-03T07:55:34.883Z",
+      "endedAt": "2026-02-03T08:27:35.713Z"
     }
   ],
   "skippedTaskIds": [],
