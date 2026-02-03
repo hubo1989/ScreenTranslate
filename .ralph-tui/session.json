@@ -3,10 +3,10 @@
   "sessionId": "e212cf84-248d-4cf4-a620-9e96be290d84",
   "status": "running",
   "startedAt": "2026-02-03T05:59:17.851Z",
-  "updatedAt": "2026-02-03T06:46:23.860Z",
-  "currentIteration": 1,
+  "updatedAt": "2026-02-03T07:13:50.812Z",
+  "currentIteration": 2,
   "maxIterations": 10,
-  "tasksCompleted": 1,
+  "tasksCompleted": 2,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -29,8 +29,8 @@
       {
         "id": "US-003",
         "title": "本地翻译引擎 - Apple Translation API",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-004",
@@ -92,6 +92,16 @@
       "durationMs": 1313664,
       "startedAt": "2026-02-03T05:59:21.717Z",
       "endedAt": "2026-02-03T06:21:15.381Z"
+    },
+    {
+      "iteration": 2,
+      "status": "completed",
+      "taskId": "US-003",
+      "taskTitle": "本地翻译引擎 - Apple Translation API",
+      "taskCompleted": true,
+      "durationMs": 1507389,
+      "startedAt": "2026-02-03T06:21:16.468Z",
+      "endedAt": "2026-02-03T06:46:23.857Z"
     }
   ],
   "skippedTaskIds": [],
