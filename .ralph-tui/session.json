@@ -3,10 +3,10 @@
   "sessionId": "e212cf84-248d-4cf4-a620-9e96be290d84",
   "status": "running",
   "startedAt": "2026-02-03T05:59:17.851Z",
-  "updatedAt": "2026-02-03T07:55:33.814Z",
-  "currentIteration": 5,
+  "updatedAt": "2026-02-03T08:27:35.716Z",
+  "currentIteration": 6,
   "maxIterations": 10,
-  "tasksCompleted": 5,
+  "tasksCompleted": 6,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -53,8 +53,8 @@
       {
         "id": "US-007",
         "title": "设置面板 - 语言配置",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-008",
@@ -132,6 +132,16 @@
       "durationMs": 428977,
       "startedAt": "2026-02-03T07:32:50.165Z",
       "endedAt": "2026-02-03T07:39:59.142Z"
+    },
+    {
+      "iteration": 6,
+      "status": "completed",
+      "taskId": "US-007",
+      "taskTitle": "设置面板 - 语言配置",
+      "taskCompleted": true,
+      "durationMs": 933592,
+      "startedAt": "2026-02-03T07:40:00.220Z",
+      "endedAt": "2026-02-03T07:55:33.812Z"
     }
   ],
   "skippedTaskIds": [],
