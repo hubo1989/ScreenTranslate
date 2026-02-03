@@ -136,6 +136,34 @@ final class SettingsViewModel {
         set { settings.translationMode = newValue }
     }
 
+    /// Translation source language
+    var translationSourceLanguage: TranslationLanguage {
+        get { settings.translationSourceLanguage }
+        set { settings.translationSourceLanguage = newValue }
+    }
+
+    /// Translation target language
+    var translationTargetLanguage: TranslationLanguage? {
+        get { settings.translationTargetLanguage }
+        set { settings.translationTargetLanguage = newValue }
+    }
+
+    /// Whether to automatically detect source language
+    var translationAutoDetect: Bool {
+        get { settings.translationAutoDetect }
+        set { settings.translationAutoDetect = newValue }
+    }
+
+    /// Available languages for the current translation engine
+    var availableSourceLanguages: [TranslationLanguage] {
+        TranslationLanguage.allCases
+    }
+
+    /// Available target languages for the current translation engine
+    var availableTargetLanguages: [TranslationLanguage] {
+        TranslationLanguage.allCases.filter { $0 != .auto }
+    }
+
     // MARK: - Validation Ranges
 
     /// Valid range for stroke width

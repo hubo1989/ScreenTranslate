@@ -123,3 +123,36 @@
 "permission.prompt.message" = "ScreenCapture needs permission to capture your screen. This is required to take screenshots.\n\nAfter clicking Continue, macOS will ask you to grant Screen Recording permission. You can grant it in System Settings > Privacy & Security > Screen Recording.";
 "permission.prompt.continue" = "Continue";
 "permission.prompt.later" = "Later";
+
+/* Translation Settings */
+"translation.auto" = "Auto Detect";
+"translation.auto.detected" = "Auto Detected";
+"translation.language.follow.system" = "Follow System";
+"translation.language.source" = "Source Language";
+"translation.language.target" = "Target Language";
+"translation.language.source.hint" = "The language of the text you want to translate";
+"translation.language.target.hint" = "The language to translate the text into";
+
+/* Translation Engines */
+"translation.engine.apple" = "Apple Translation";
+"translation.engine.apple.description" = "Built-in macOS translation, no setup required";
+"translation.engine.mtran" = "MTranServer";
+"translation.engine.mtran.description" = "Self-hosted translation server";
+
+/* Translation Modes */
+"translation.mode.inline" = "In-place Replacement";
+"translation.mode.inline.description" = "Replace original text with translation";
+"translation.mode.below" = "Below Original";
+"translation.mode.below.description" = "Show translation below original text";
+
+/* Translation Errors */
+"error.translation.in.progress" = "A translation is already in progress";
+"error.translation.in.progress.recovery" = "Please wait for the current translation to complete";
+"error.translation.empty.input" = "No text to translate";
+"error.translation.empty.input.recovery" = "Please select some text first";
+"error.translation.timeout" = "Translation timed out";
+"error.translation.timeout.recovery" = "Please try again";
+"error.translation.unsupported.pair" = "Translation from %@ to %@ is not supported";
+"error.translation.unsupported.pair.recovery" = "Please select different languages";
+"error.translation.failed" = "Translation failed";
+"error.translation.failed.recovery" = "Please try again";

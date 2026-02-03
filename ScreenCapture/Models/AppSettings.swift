@@ -27,6 +27,7 @@ final class AppSettings {
         static let rectangleFilled = prefix + "rectangleFilled"
         static let recentCaptures = prefix + "recentCaptures"
         static let translationTargetLanguage = prefix + "translationTargetLanguage"
+        static let translationSourceLanguage = prefix + "translationSourceLanguage"
         static let translationAutoDetect = prefix + "translationAutoDetect"
         static let ocrEngine = prefix + "ocrEngine"
         static let translationEngine = prefix + "translationEngine"
@@ -101,6 +102,11 @@ final class AppSettings {
         }
     }
 
+    /// Translation source language (.auto for automatic detection)
+    var translationSourceLanguage: TranslationLanguage {
+        didSet { save(translationSourceLanguage.rawValue, forKey: Keys.translationSourceLanguage) }
+    }
+
     /// Whether to automatically detect source language
     var translationAutoDetect: Bool {
         didSet { save(translationAutoDetect, forKey: Keys.translationAutoDetect) }
@@ -171,6 +177,8 @@ final class AppSettings {
         // Load translation settings
         translationTargetLanguage = defaults.string(forKey: Keys.translationTargetLanguage)
             .flatMap { TranslationLanguage(rawValue: $0) }
+        translationSourceLanguage = defaults.string(forKey: Keys.translationSourceLanguage)
+            .flatMap { TranslationLanguage(rawValue: $0) } ?? .auto
         translationAutoDetect = defaults.object(forKey: Keys.translationAutoDetect) as? Bool ?? true
 
         // Load engine settings
@@ -228,6 +236,7 @@ final class AppSettings {
         rectangleFilled = false
         recentCaptures = []
         translationTargetLanguage = nil
+        translationSourceLanguage = .auto
         translationAutoDetect = true
         ocrEngine = .vision
         translationEngine = .apple

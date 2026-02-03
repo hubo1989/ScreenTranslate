@@ -31,6 +31,14 @@ struct SettingsView: View {
                 Label("Engines", systemImage: "engine.combustion")
             }
 
+            // Language Settings Section
+            Section {
+                SourceLanguagePicker(viewModel: viewModel)
+                TargetLanguagePicker(viewModel: viewModel)
+            } header: {
+                Label("Languages", systemImage: "globe")
+            }
+
             // Export Settings Section
             Section {
                 ExportFormatPicker(viewModel: viewModel)
@@ -598,6 +606,88 @@ private struct TranslationModePicker: View {
             }
         }
         .pickerStyle(.inline)
+    }
+}
+
+// MARK: - Source Language Picker
+
+/// Picker for selecting the source language for translation.
+private struct SourceLanguagePicker: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        Picker("Source Language", selection: $viewModel.translationSourceLanguage) {
+            ForEach(viewModel.availableSourceLanguages, id: \.rawValue) { language in
+                Text(language.localizedName)
+                    .tag(language)
+            }
+        }
+        .pickerStyle(.menu)
+        .help("The language of the text you want to translate")
+    }
+}
+
+// MARK: - Target Language Picker
+
+/// Picker for selecting the target language for translation.
+private struct TargetLanguagePicker: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        HStack {
+            Text("Target Language")
+
+            Spacer()
+
+            Menu {
+                Button {
+                    viewModel.translationTargetLanguage = nil
+                } label: {
+                    HStack {
+                        Text("Follow System")
+                        if viewModel.translationTargetLanguage == nil {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+
+                Divider()
+
+                ForEach(viewModel.availableTargetLanguages, id: \.rawValue) { language in
+                    Button {
+                        viewModel.translationTargetLanguage = language
+                    } label: {
+                        HStack {
+                            Text(language.localizedName)
+                            if viewModel.translationTargetLanguage == language {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(targetLanguageDisplay)
+                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.down")
+                        .font(.caption)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.secondary.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+        .help("The language to translate the text into")
+    }
+
+    private var targetLanguageDisplay: String {
+        if let targetLanguage = viewModel.translationTargetLanguage {
+            return targetLanguage.localizedName
+        }
+        return NSLocalizedString("translation.language.follow.system", comment: "Follow System")
     }
 }
 
