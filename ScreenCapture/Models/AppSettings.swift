@@ -26,6 +26,8 @@ final class AppSettings {
         static let textSize = prefix + "textSize"
         static let rectangleFilled = prefix + "rectangleFilled"
         static let recentCaptures = prefix + "recentCaptures"
+        static let translationTargetLanguage = prefix + "translationTargetLanguage"
+        static let translationAutoDetect = prefix + "translationAutoDetect"
     }
 
     // MARK: - Properties
@@ -85,6 +87,22 @@ final class AppSettings {
         didSet { saveRecentCaptures() }
     }
 
+    /// Translation target language (nil = use system default)
+    var translationTargetLanguage: TranslationLanguage? {
+        didSet {
+            if let language = translationTargetLanguage {
+                save(language.rawValue, forKey: Keys.translationTargetLanguage)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Keys.translationTargetLanguage)
+            }
+        }
+    }
+
+    /// Whether to automatically detect source language
+    var translationAutoDetect: Bool {
+        didSet { save(translationAutoDetect, forKey: Keys.translationAutoDetect) }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -132,6 +150,11 @@ final class AppSettings {
         // Load recent captures
         recentCaptures = Self.loadRecentCaptures()
 
+        // Load translation settings
+        translationTargetLanguage = defaults.string(forKey: Keys.translationTargetLanguage)
+            .flatMap { TranslationLanguage(rawValue: $0) }
+        translationAutoDetect = defaults.object(forKey: Keys.translationAutoDetect) as? Bool ?? true
+
         print("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
 
@@ -178,6 +201,8 @@ final class AppSettings {
         textSize = 14.0
         rectangleFilled = false
         recentCaptures = []
+        translationTargetLanguage = nil
+        translationAutoDetect = true
     }
 
     // MARK: - Private Persistence Helpers
