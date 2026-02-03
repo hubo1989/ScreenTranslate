@@ -3,10 +3,10 @@
   "sessionId": "e212cf84-248d-4cf4-a620-9e96be290d84",
   "status": "running",
   "startedAt": "2026-02-03T05:59:17.851Z",
-  "updatedAt": "2026-02-03T08:42:33.772Z",
-  "currentIteration": 7,
+  "updatedAt": "2026-02-03T09:14:55.159Z",
+  "currentIteration": 8,
   "maxIterations": 10,
-  "tasksCompleted": 7,
+  "tasksCompleted": 8,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -65,8 +65,8 @@
       {
         "id": "US-009",
         "title": "可选翻译引擎 - MTranServer 集成",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-010",
@@ -152,6 +152,16 @@
       "durationMs": 1920830,
       "startedAt": "2026-02-03T07:55:34.883Z",
       "endedAt": "2026-02-03T08:27:35.713Z"
+    },
+    {
+      "iteration": 8,
+      "status": "completed",
+      "taskId": "US-009",
+      "taskTitle": "可选翻译引擎 - MTranServer 集成",
+      "taskCompleted": true,
+      "durationMs": 896967,
+      "startedAt": "2026-02-03T08:27:36.802Z",
+      "endedAt": "2026-02-03T08:42:33.769Z"
     }
   ],
   "skippedTaskIds": [],
