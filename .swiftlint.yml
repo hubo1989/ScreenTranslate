@@ -1,0 +1,153 @@
+# SwiftLint 配置
+# 基于 Airbnb Swift 风格指南和项目最佳实践
+
+# 禁用规则
+disabled_rules:
+  - trailing_whitespace  # 行尾空格会在编辑时自动处理
+  - todo  # 允许使用 TODO 标记
+
+# 选择性启用规则
+opt_in_rules:
+  - empty_count  # 使用 isEmpty 而非 count == 0
+  - empty_string  # 使用 isEmpty 而非 string == ""
+  - explicit_init  # 禁止显式调用 .init()
+  - first_where  # 使用 .first(where:) 而非 .filter { }.first
+  - fatal_error_message  # fatalError 必须包含消息
+  - force_unwrapping  # 禁止强制解包（部分情况）
+  - implicitly_unwrapped_optional  # 标记隐式解包可选类型
+  - joined_default_parameter  # 使用 joined() 而非 joined(separator: ",")
+  - multiline_arguments  # 多行参数对齐
+  - operator_usage_whitespace  # 运算符空格规则
+  - overridden_super_call  # 重写方法应调用 super
+  - prohibited_interface_builder  # 禁用 IB 设计able
+  - redundant_nil_coalescing  # 冗余的 ?? 操作
+  - sorted_first_last  # 使用 min()/max() 而非 sorted().first
+  - vertical_parameter_alignment_on_call  # 垂直参数对齐
+  - closure_spacing  # 闭包空格规则
+  - collection_alignment  # 集合对齐
+
+# 排除路径
+excluded:
+  - Pods
+  - .build
+  - DerivedData
+  - ScreenCapture.xcodeproj
+  - ScreenCaptureTests
+  - Carthage
+  - .swiftpm
+
+# 行长度
+line_length:
+  warning: 120
+  error: 200
+  ignores_function_declarations: true
+  ignores_comments: true
+  ignores_urls: true
+
+# 文件长度
+file_length:
+  warning: 400
+  error: 600
+  ignore_comment_only_lines: true
+
+# 函数体长度
+function_body_length:
+  warning: 60
+  error: 100
+
+# 函数参数长度
+function_parameter_count:
+  warning: 6
+  error: 8
+
+# 类型体长度
+type_body_length:
+  warning: 350
+  error: 500
+
+# 类型名称
+type_name:
+  min_length: 3
+  max_length: 40
+  excluded:
+    - ID
+    - URL
+    - T
+    - U
+    - V
+
+# 标识符名称
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 40
+    error: 50
+  excluded:
+    - id
+    - x
+    - y
+    - dx
+    - dy
+    - url
+    - db
+    - vc
+    - to
+    - in
+    - at
+    - on
+    - ok
+    - vs
+    - zg
+    - zh
+    - ns
+
+# 大型元组
+large_tuple:
+  warning: 3
+  error: 4
+
+# 嵌套类型层级
+nesting:
+  type_level:
+    warning: 3
+    error: 5
+
+# 强制类型转换警告（部分允许）
+force_cast: warning  # 允许在测试中使用
+
+# 强制 try
+force_try:
+  severity: warning
+
+# 强制解包（在测试中允许）
+# force_unwrapping 已在 opt_in_rules 中启用
+
+# 自定义规则
+custom_rules:
+  # 禁止使用 print（应使用日志系统）
+  no_print:
+    name: "No Print Statements"
+    regex: "\\bprint\\("
+    match_kinds:
+      - identifier
+    message: "Use os.log instead of print()"
+    severity: warning
+
+  # 禁止强制解包（除了 @IBOutlets）
+  no_force_unwrap:
+    name: "No Force Unwrap"
+    regex: "!\\s*[\\)\\}\\],\\.;]"
+    message: "Avoid force unwrapping, use guard let or if let instead"
+    severity: warning
+
+# 排除某些文件使用特定规则
+# 标记为 @MainActor 的属性不需要 unsafe_sendable 警告
+analyzer_rules:
+  - explicit_self
+  - unused_import
+  - unused_declaration
+
+# 报告格式
+reporter: "xcode"

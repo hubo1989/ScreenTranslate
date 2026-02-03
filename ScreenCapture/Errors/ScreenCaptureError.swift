@@ -42,6 +42,20 @@ enum ScreenCaptureError: LocalizedError, Sendable {
     /// The keyboard shortcut conflicts with another application
     case hotkeyConflict(existingApp: String?)
 
+    // MARK: - OCR Errors
+
+    /// OCR operation is currently in progress
+    case ocrOperationInProgress
+
+    /// The image provided for OCR is invalid
+    case ocrInvalidImage
+
+    /// Text recognition failed
+    case ocrRecognitionFailed
+
+    /// No text was found in the image
+    case ocrNoTextFound
+
     // MARK: - LocalizedError Conformance
 
     var errorDescription: String? {
@@ -66,6 +80,14 @@ enum ScreenCaptureError: LocalizedError, Sendable {
             return NSLocalizedString("error.hotkey.registration.failed", comment: "")
         case .hotkeyConflict:
             return NSLocalizedString("error.hotkey.conflict", comment: "")
+        case .ocrOperationInProgress:
+            return NSLocalizedString("error.ocr.in.progress", comment: "")
+        case .ocrInvalidImage:
+            return NSLocalizedString("error.ocr.invalid.image", comment: "")
+        case .ocrRecognitionFailed:
+            return NSLocalizedString("error.ocr.recognition.failed", comment: "")
+        case .ocrNoTextFound:
+            return NSLocalizedString("error.ocr.no.text.found", comment: "")
         }
     }
 
@@ -91,6 +113,14 @@ enum ScreenCaptureError: LocalizedError, Sendable {
             return NSLocalizedString("error.hotkey.registration.failed.recovery", comment: "")
         case .hotkeyConflict:
             return NSLocalizedString("error.hotkey.conflict.recovery", comment: "")
+        case .ocrOperationInProgress:
+            return NSLocalizedString("error.ocr.in.progress.recovery", comment: "")
+        case .ocrInvalidImage:
+            return NSLocalizedString("error.ocr.invalid.image.recovery", comment: "")
+        case .ocrRecognitionFailed:
+            return NSLocalizedString("error.ocr.recognition.failed.recovery", comment: "")
+        case .ocrNoTextFound:
+            return NSLocalizedString("error.ocr.no.text.found.recovery", comment: "")
         }
     }
 }
