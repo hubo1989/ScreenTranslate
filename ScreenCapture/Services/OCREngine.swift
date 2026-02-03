@@ -299,6 +299,9 @@ enum OCREngineError: LocalizedError, Sendable {
     /// No languages are available for recognition
     case noLanguagesAvailable
 
+    /// The selected OCR engine is not available
+    case engineNotAvailable
+
     var errorDescription: String? {
         switch self {
         case .operationInProgress:
@@ -309,6 +312,8 @@ enum OCREngineError: LocalizedError, Sendable {
             return NSLocalizedString("error.ocr.recognition.failed", comment: "")
         case .noLanguagesAvailable:
             return NSLocalizedString("error.ocr.no.languages", comment: "")
+        case .engineNotAvailable:
+            return NSLocalizedString("error.ocr.engine.not.available", comment: "")
         }
     }
 
@@ -322,6 +327,8 @@ enum OCREngineError: LocalizedError, Sendable {
             return NSLocalizedString("error.ocr.recognition.failed.recovery", comment: "")
         case .noLanguagesAvailable:
             return NSLocalizedString("error.ocr.no.languages.recovery", comment: "")
+        case .engineNotAvailable:
+            return NSLocalizedString("error.ocr.engine.not.available.recovery", comment: "")
         }
     }
 }

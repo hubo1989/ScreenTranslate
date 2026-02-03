@@ -304,8 +304,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TranslationPopoverDele
             #endif
 
             // Perform OCR on the captured image
-            let ocrEngine = OCREngine.shared
-            let ocrResult = try await ocrEngine.recognize(
+            let ocrService = OCRService.shared
+            let ocrResult = try await ocrService.recognize(
                 screenshot.image,
                 languages: [.english, .chineseSimplified]
             )

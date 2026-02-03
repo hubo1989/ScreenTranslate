@@ -551,16 +551,48 @@ private struct OCREnginePicker: View {
         Picker("OCR Engine", selection: $viewModel.ocrEngine) {
             ForEach(OCREngineType.allCases, id: \.self) { engine in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(engine.localizedName)
+                    HStack {
+                        Text(engine.localizedName)
+                        if !engine.isAvailable && engine == .paddleOCR {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundStyle(.orange)
+                                .font(.caption)
+                        }
+                    }
                     Text(engine.description)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 .tag(engine)
+                .if(!engine.isAvailable && engine == .paddleOCR) { view in
+                    view.foregroundStyle(.secondary)
+                }
             }
         }
         .pickerStyle(.inline)
-        .disabled(!OCREngineType.paddleOCR.isAvailable)
+        .onChange(of: viewModel.ocrEngine) { _, newValue in
+            // If user selects an unavailable engine, show warning and revert to Vision
+            if !newValue.isAvailable {
+                viewModel.ocrEngine = .vision
+            }
+        }
+    }
+}
+
+// MARK: - View Conditional Modifier
+
+extension View {
+    /// Applies a transform to the view conditionally
+    @ViewBuilder
+    func `if`<Content: View>(
+        _ condition: Bool,
+        transform: (Self) -> Content
+    ) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
     }
 }
 
