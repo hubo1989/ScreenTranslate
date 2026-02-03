@@ -1,0 +1,15 @@
+{
+  "id": "e212cf84-248d-4cf4-a620-9e96be290d84",
+  "status": "interrupted",
+  "startedAt": "2026-02-03T05:59:17.631Z",
+  "updatedAt": "2026-02-03T09:26:50.008Z",
+  "agentPlugin": "claude",
+  "trackerPlugin": "json",
+  "prdPath": "./tasks/prd.json",
+  "currentIteration": 9,
+  "maxIterations": 10,
+  "totalTasks": 0,
+  "tasksCompleted": 9,
+  "cwd": "/Users/hubo/.supacode/repos/screentranslate/lively-ant-014",
+  "endedAt": "2026-02-03T09:26:50.008Z"
+}

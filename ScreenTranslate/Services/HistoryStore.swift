@@ -1,0 +1,248 @@
+import Foundation
+import AppKit
+import CoreGraphics
+
+/// Manages the translation history with thumbnail generation and persistence.
+/// Runs on the main actor for UI integration.
+@MainActor
+final class HistoryStore: ObservableObject {
+    // MARK: - Constants
+
+    /// Maximum number of history entries to store
+    private static let maxHistoryEntries = 50
+
+    /// Maximum thumbnail dimension in pixels
+    private static let maxThumbnailSize: CGFloat = 128
+
+    /// Maximum thumbnail data size in bytes (10KB)
+    private static let maxThumbnailDataSize = 10 * 1024
+
+    /// JPEG quality for thumbnail compression
+    private static let thumbnailQuality: CGFloat = 0.7
+
+    /// UserDefaults key for history data
+    private static let historyKey = "ScreenCapture.translationHistory"
+
+    // MARK: - Properties
+
+    /// The list of translation history entries (newest first)
+    @Published private(set) var entries: [TranslationHistory] = []
+
+    /// The current search query
+    @Published private(set) var searchQuery: String = ""
+
+    /// Filtered entries based on search query
+    @Published private(set) var filteredEntries: [TranslationHistory] = []
+
+    /// Whether more entries can be loaded
+    @Published private(set) var hasMoreEntries: Bool = false
+
+    /// Number of entries currently displayed
+    @Published private(set) var displayedCount: Int = 50
+
+    // MARK: - Initialization
+
+    init() {
+        loadHistory()
+        updateFilteredEntries()
+    }
+
+    // MARK: - Public API
+
+    /// Adds a new translation result to the history.
+    /// - Parameters:
+    ///   - result: The translation result to save
+    ///   - image: Optional screenshot image for thumbnail generation
+    func add(result: TranslationResult, image: CGImage? = nil) {
+        let thumbnailData = image.flatMap { generateThumbnail(from: $0) }
+
+        let entry = TranslationHistory.from(result: result, thumbnailData: thumbnailData)
+
+        // Remove existing entry with same content to avoid duplicates
+        entries.removeAll { existing in
+            existing.sourceText == result.sourceText &&
+            existing.translatedText == result.translatedText
+        }
+
+        // Add new entry at the beginning
+        entries.insert(entry, at: 0)
+
+        // Enforce maximum count
+        if entries.count > Self.maxHistoryEntries {
+            entries = Array(entries.prefix(Self.maxHistoryEntries))
+        }
+
+        saveHistory()
+        updateFilteredEntries()
+    }
+
+    /// Removes a history entry.
+    /// - Parameter entry: The entry to remove
+    func remove(_ entry: TranslationHistory) {
+        entries.removeAll { $0.id == entry.id }
+        saveHistory()
+        updateFilteredEntries()
+    }
+
+    /// Removes the entry at the specified index.
+    /// - Parameter index: The index of the entry to remove
+    func remove(at index: Int) {
+        guard index >= 0 && index < filteredEntries.count else { return }
+        let entry = filteredEntries[index]
+        remove(entry)
+    }
+
+    /// Clears all history entries.
+    func clear() {
+        entries.removeAll()
+        saveHistory()
+        updateFilteredEntries()
+    }
+
+    /// Sets the search query and updates filtered entries.
+    /// - Parameter query: The search string
+    func search(_ query: String) {
+        searchQuery = query
+        updateFilteredEntries()
+    }
+
+    /// Loads more entries for scrolling.
+    func loadMore() {
+        displayedCount += 50
+        updateFilteredEntries()
+    }
+
+    /// Copies the translated text to clipboard.
+    /// - Parameter entry: The history entry whose translation to copy
+    func copyTranslation(_ entry: TranslationHistory) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(entry.translatedText, forType: .string)
+    }
+
+    /// Copies the source text to clipboard.
+    /// - Parameter entry: The history entry whose source to copy
+    func copySource(_ entry: TranslationHistory) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(entry.sourceText, forType: .string)
+    }
+
+    /// Copies both source and translation to clipboard.
+    /// - Parameter entry: The history entry to copy
+    func copyBoth(_ entry: TranslationHistory) {
+        let text = "\(entry.sourceText)\n\n--- \(entry.description) ---\n\n\(entry.translatedText)"
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    // MARK: - Persistence
+
+    /// Loads history from UserDefaults
+    private func loadHistory() {
+        guard let data = UserDefaults.standard.data(forKey: Self.historyKey) else {
+            entries = []
+            return
+        }
+
+        if let decoded = try? JSONDecoder().decode([TranslationHistory].self, from: data) {
+            entries = decoded
+        } else {
+            entries = []
+        }
+    }
+
+    /// Saves history to UserDefaults
+    private func saveHistory() {
+        if let data = try? JSONEncoder().encode(entries) {
+            UserDefaults.standard.set(data, forKey: Self.historyKey)
+        }
+    }
+
+    // MARK: - Filter Management
+
+    /// Updates filtered entries based on search query
+    private func updateFilteredEntries() {
+        if searchQuery.isEmpty {
+            let count = min(displayedCount, entries.count)
+            filteredEntries = Array(entries.prefix(count))
+        } else {
+            let matched = entries.filter { $0.matches(searchQuery) }
+            let count = min(displayedCount, matched.count)
+            filteredEntries = Array(matched.prefix(count))
+        }
+
+        hasMoreEntries = filteredEntries.count < entries.count && searchQuery.isEmpty
+    }
+
+    // MARK: - Thumbnail Generation
+
+    /// Generates a JPEG thumbnail from a CGImage.
+    /// - Parameter image: The source image
+    /// - Returns: JPEG data for the thumbnail, or nil if generation fails
+    private func generateThumbnail(from image: CGImage) -> Data? {
+        let width = CGFloat(image.width)
+        let height = CGFloat(image.height)
+
+        // Calculate scaled size maintaining aspect ratio
+        let scale: CGFloat
+        if width > height {
+            scale = Self.maxThumbnailSize / width
+        } else {
+            scale = Self.maxThumbnailSize / height
+        }
+
+        // Only scale down, not up
+        let finalScale = min(scale, 1.0)
+        let newWidth = Int(width * finalScale)
+        let newHeight = Int(height * finalScale)
+
+        // Create thumbnail context
+        guard let context = CGContext(
+            data: nil,
+            width: newWidth,
+            height: newHeight,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+
+        // Draw scaled image
+        context.interpolationQuality = .high
+        context.draw(image, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+
+        // Get thumbnail image
+        guard let thumbnailImage = context.makeImage() else {
+            return nil
+        }
+
+        // Convert to JPEG data
+        let nsImage = NSImage(
+            cgImage: thumbnailImage,
+            size: NSSize(width: newWidth, height: newHeight)
+        )
+        guard let tiffData = nsImage.tiffRepresentation,
+              let bitmap = NSBitmapImageRep(data: tiffData),
+              let jpegData = bitmap.representation(
+                using: .jpeg,
+                properties: [.compressionFactor: Self.thumbnailQuality]
+              ) else {
+            return nil
+        }
+
+        // Check size and reduce quality if needed
+        if jpegData.count > Self.maxThumbnailDataSize {
+            // Try with lower quality
+            let lowerQuality: CGFloat = 0.5
+            if let reducedData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: lowerQuality]),
+               reducedData.count <= Self.maxThumbnailDataSize {
+                return reducedData
+            }
+            // If still too large, return nil
+            return nil
+        }
+
+        return jpegData
+    }
+}

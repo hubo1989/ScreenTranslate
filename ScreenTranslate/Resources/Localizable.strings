@@ -1,0 +1,212 @@
+/* Error Messages */
+"error.permission.denied" = "Screen recording permission is required to capture screenshots.";
+"error.permission.denied.recovery" = "Open System Settings to grant permission.";
+
+"error.display.not.found" = "The selected display is no longer available.";
+"error.display.not.found.recovery" = "Please select a different display.";
+
+"error.display.disconnected" = "The display '%@' was disconnected during capture.";
+"error.display.disconnected.recovery" = "Please reconnect the display and try again.";
+
+"error.capture.failed" = "Failed to capture the screen.";
+"error.capture.failed.recovery" = "Please try again.";
+
+"error.save.location.invalid" = "The save location is not accessible.";
+"error.save.location.invalid.recovery" = "Choose a different save location in Settings.";
+
+"error.disk.full" = "There is not enough disk space to save the screenshot.";
+"error.disk.full.recovery" = "Free up disk space and try again.";
+
+"error.export.encoding.failed" = "Failed to encode the image.";
+"error.export.encoding.failed.recovery" = "Try a different format in Settings.";
+"error.export.encoding.failed.detail" = "Failed to encode the image as %@.";
+
+"error.save.location.invalid.detail" = "Cannot save to %@. The location is not accessible.";
+"error.save.unknown" = "An unexpected error occurred while saving.";
+
+"error.clipboard.write.failed" = "Failed to copy the screenshot to clipboard.";
+"error.clipboard.write.failed.recovery" = "Please try again.";
+
+"error.hotkey.registration.failed" = "Failed to register the keyboard shortcut.";
+"error.hotkey.registration.failed.recovery" = "The shortcut may conflict with another app. Try a different shortcut.";
+
+"error.hotkey.conflict" = "This keyboard shortcut conflicts with another application.";
+"error.hotkey.conflict.recovery" = "Choose a different keyboard shortcut.";
+
+/* Menu Items */
+"menu.capture.full.screen" = "Capture Full Screen";
+"menu.capture.fullscreen" = "Capture Full Screen";
+"menu.capture.selection" = "Capture Selection";
+"menu.recent.captures" = "Recent Captures";
+"menu.recent.captures.empty" = "No Recent Captures";
+"menu.recent.captures.clear" = "Clear Recent";
+"menu.settings" = "Settings...";
+"menu.quit" = "Quit ScreenCapture";
+
+/* Preview Window */
+"preview.title" = "Screenshot Preview";
+"preview.dimensions" = "%d x %d pixels";
+"preview.file.size" = "~%@ %@";
+
+/* Annotation Tools */
+"tool.rectangle" = "Rectangle";
+"tool.freehand" = "Freehand";
+"tool.text" = "Text";
+
+/* Settings Window */
+"settings.window.title" = "ScreenCapture Settings";
+"settings.title" = "ScreenCapture Settings";
+
+/* Settings Sections */
+"settings.section.general" = "General";
+"settings.section.export" = "Export";
+"settings.section.shortcuts" = "Keyboard Shortcuts";
+"settings.section.annotations" = "Annotations";
+
+/* Save Location */
+"settings.save.location" = "Save Location";
+"settings.save.location.choose" = "Choose...";
+"settings.save.location.select" = "Select";
+"settings.save.location.message" = "Choose the default location for saving screenshots";
+"settings.save.location.reveal" = "Show in Finder";
+
+/* Export Format */
+"settings.format" = "Default Format";
+"settings.jpeg.quality" = "JPEG Quality";
+"settings.jpeg.quality.hint" = "Higher quality results in larger file sizes";
+
+/* Keyboard Shortcuts */
+"settings.shortcuts" = "Keyboard Shortcuts";
+"settings.shortcut.fullscreen" = "Full Screen Capture";
+"settings.shortcut.selection" = "Selection Capture";
+"settings.shortcut.recording" = "Press keys...";
+"settings.shortcut.reset" = "Reset to default";
+"settings.shortcut.error.no.modifier" = "Shortcuts must include Command, Control, or Option";
+"settings.shortcut.error.conflict" = "This shortcut is already in use";
+
+/* Annotations */
+"settings.annotations" = "Annotation Defaults";
+"settings.stroke.color" = "Stroke Color";
+"settings.stroke.width" = "Stroke Width";
+"settings.text.size" = "Text Size";
+
+/* Reset */
+"settings.reset.all" = "Reset All to Defaults";
+
+/* Errors */
+"settings.error.title" = "Error";
+"settings.error.ok" = "OK";
+
+/* Actions */
+"action.save" = "Save";
+"action.copy" = "Copy";
+"action.cancel" = "Cancel";
+"action.undo" = "Undo";
+"action.redo" = "Redo";
+
+/* Display Selector */
+"display.selector.title" = "Select Display";
+"display.selector.header" = "Choose display to capture:";
+"display.selector.cancel" = "Cancel";
+
+/* Preview Window */
+"preview.window.title" = "Screenshot Preview";
+
+/* Error Buttons */
+"error.permission.open.settings" = "Open System Settings";
+"error.dismiss" = "Dismiss";
+"error.ok" = "OK";
+"error.retry.capture" = "Retry";
+
+/* Permission Prompt */
+"permission.prompt.title" = "Screen Recording Permission Required";
+"permission.prompt.message" = "ScreenCapture needs permission to capture your screen. This is required to take screenshots.\n\nAfter clicking Continue, macOS will ask you to grant Screen Recording permission. You can grant it in System Settings > Privacy & Security > Screen Recording.";
+"permission.prompt.continue" = "Continue";
+"permission.prompt.later" = "Later";
+
+/* Translation Settings */
+"translation.auto" = "Auto Detect";
+"translation.auto.detected" = "Auto Detected";
+"translation.language.follow.system" = "Follow System";
+"translation.language.source" = "Source Language";
+"translation.language.target" = "Target Language";
+"translation.language.source.hint" = "The language of the text you want to translate";
+"translation.language.target.hint" = "The language to translate the text into";
+
+/* Translation Engines */
+"translation.engine.apple" = "Apple Translation";
+"translation.engine.apple.description" = "Built-in macOS translation, no setup required";
+"translation.engine.mtran" = "MTranServer";
+"translation.engine.mtran.description" = "Self-hosted translation server";
+
+/* Translation Modes */
+"translation.mode.inline" = "In-place Replacement";
+"translation.mode.inline.description" = "Replace original text with translation";
+"translation.mode.below" = "Below Original";
+"translation.mode.below.description" = "Show translation below original text";
+
+/* Translation Errors */
+"error.translation.in.progress" = "A translation is already in progress";
+"error.translation.in.progress.recovery" = "Please wait for the current translation to complete";
+"error.translation.empty.input" = "No text to translate";
+"error.translation.empty.input.recovery" = "Please select some text first";
+"error.translation.timeout" = "Translation timed out";
+"error.translation.timeout.recovery" = "Please try again";
+"error.translation.unsupported.pair" = "Translation from %@ to %@ is not supported";
+"error.translation.unsupported.pair.recovery" = "Please select different languages";
+"error.translation.failed" = "Translation failed";
+"error.translation.failed.recovery" = "Please try again";
+
+/* Onboarding */
+"onboarding.window.title" = "Welcome to ScreenCapture";
+
+/* Onboarding - Welcome Step */
+"onboarding.welcome.title" = "Welcome to ScreenCapture";
+"onboarding.welcome.message" = "Let's get you set up with screen capture and translation features. This will only take a minute.";
+
+"onboarding.feature.local.ocr.title" = "Local OCR";
+"onboarding.feature.local.ocr.description" = "macOS Vision framework for fast, private text recognition";
+"onboarding.feature.local.translation.title" = "Local Translation";
+"onboarding.feature.local.translation.description" = "Apple Translation for instant, offline translation";
+"onboarding.feature.shortcuts.title" = "Global Shortcuts";
+"onboarding.feature.shortcuts.description" = "Capture and translate from anywhere with keyboard shortcuts";
+
+/* Onboarding - Permissions Step */
+"onboarding.permissions.title" = "Permissions";
+"onboarding.permissions.message" = "ScreenCapture needs a few permissions to work properly. Please grant the following permissions:";
+"onboarding.permissions.hint" = "After granting permissions, the status will update automatically.";
+
+"onboarding.permission.screen.recording" = "Screen Recording";
+"onboarding.permission.accessibility" = "Accessibility";
+"onboarding.permission.granted" = "Granted";
+"onboarding.permission.not.granted" = "Not Granted";
+"onboarding.permission.grant" = "Grant Permission";
+
+/* Onboarding - Configuration Step */
+"onboarding.configuration.title" = "Optional Configuration";
+"onboarding.configuration.message" = "Your local OCR and translation features are already enabled. Optionally configure external services:";
+"onboarding.configuration.paddleocr" = "PaddleOCR Server Address";
+"onboarding.configuration.paddleocr.hint" = "Leave empty to use macOS Vision OCR";
+"onboarding.configuration.mtran" = "MTranServer Address";
+"onboarding.configuration.mtran.hint" = "Leave empty to use Apple Translation";
+"onboarding.configuration.placeholder" = "http://localhost:8080";
+"onboarding.configuration.placeholder.address" = "localhost";
+"onboarding.configuration.test" = "Test Translation";
+"onboarding.configuration.test.button" = "Test Translation";
+"onboarding.configuration.testing" = "Testing...";
+"onboarding.test.success" = "Translation test successful: \"%@\" → \"%@\"";
+"onboarding.test.failed" = "Translation test failed: %@";
+
+/* Onboarding - Complete Step */
+"onboarding.complete.title" = "You're All Set!";
+"onboarding.complete.message" = "ScreenCapture is now ready to use. Here's how to get started:";
+"onboarding.complete.shortcuts" = "Use ⌘⇧F to capture the full screen";
+"onboarding.complete.selection" = "Use ⌘⇧A to capture a selection and translate";
+"onboarding.complete.settings" = "Open Settings from the menu bar to customize options";
+"onboarding.complete.start" = "Start Using ScreenCapture";
+
+/* Onboarding - Navigation */
+"onboarding.back" = "Back";
+"onboarding.continue" = "Continue";
+"onboarding.next" = "Next";
+"onboarding.skip" = "Skip";
