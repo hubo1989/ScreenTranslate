@@ -41,7 +41,66 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable {
             return true
         case .mtranServer:
             // MTranServer requires external setup
+            return MTranServerChecker.isAvailable
+        }
+    }
+}
+
+// MARK: - MTranServer Availability Checker
+
+/// Helper to check if MTranServer is available on the system
+enum MTranServerChecker {
+    /// Cached availability status (nonisolated(unsafe) for singleton cache)
+    private nonisolated(unsafe) static var _isAvailable: Bool?
+
+    /// Check if MTranServer is available
+    static var isAvailable: Bool {
+        if let cached = _isAvailable {
+            return cached
+        }
+
+        let result = checkMTranServer()
+        _isAvailable = result
+        return result
+    }
+
+    /// Perform actual check for MTranServer availability
+    private static func checkMTranServer() -> Bool {
+        var components = URLComponents()
+        components.scheme = "http"
+        components.host = "localhost"
+        components.port = 8989
+        components.path = "/health"
+
+        guard let url = components.url else {
             return false
         }
+
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 2.0
+        request.httpMethod = "GET"
+
+        let semaphore = DispatchSemaphore(value: 0)
+        let isSuccessBox = UnsafeMutablePointer<Bool>.allocate(capacity: 1)
+        isSuccessBox.initialize(to: false)
+
+        let task = URLSession.shared.dataTask(with: request) { _, response, _ in
+            if let httpResponse = response as? HTTPURLResponse {
+                isSuccessBox.pointee = httpResponse.statusCode == 200
+            }
+            semaphore.signal()
+        }
+
+        task.resume()
+        _ = semaphore.wait(timeout: .now() + 2.5)
+
+        let result = isSuccessBox.pointee
+        isSuccessBox.deallocate()
+        return result
+    }
+
+    /// Reset the cached availability check
+    static func resetCache() {
+        _isAvailable = nil
     }
 }

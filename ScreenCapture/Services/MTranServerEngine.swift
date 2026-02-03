@@ -1,0 +1,321 @@
+import Foundation
+import os.log
+
+/// MTranServer engine implementation.
+/// Communicates with self-hosted MTranServer for translation.
+actor MTranServerEngine {
+    // MARK: - Properties
+
+    /// Shared instance for MTranServer operations
+    static let shared = MTranServerEngine()
+
+    /// Whether MTranServer is available
+    var isAvailable: Bool { MTranServerChecker.isAvailable }
+
+    /// Maximum concurrent operations
+    private var isProcessing = false
+
+    // MARK: - Configuration
+
+    /// MTranServer configuration options
+    struct Configuration: Sendable {
+        /// Server address (e.g., "localhost" or "192.168.1.100")
+        var serverAddress: String
+
+        /// Server port (default 8989)
+        var serverPort: Int
+
+        /// Request timeout in seconds
+        var timeout: TimeInterval
+
+        /// Whether to automatically detect source language
+        var autoDetectSourceLanguage: Bool
+
+        static let `default` = Configuration(
+            serverAddress: "localhost",
+            serverPort: 8989,
+            timeout: 10.0,
+            autoDetectSourceLanguage: true
+        )
+    }
+
+    // MARK: - Initialization
+
+    private init() {}
+
+    // MARK: - Public API
+
+    /// Translates text using MTranServer.
+    /// - Parameters:
+    ///   - text: The text to translate
+    ///   - sourceLanguage: Source language code (e.g., "en", "zh")
+    ///   - targetLanguage: Target language code (e.g., "en", "zh")
+    ///   - config: Translation configuration (uses default if not specified)
+    /// - Returns: TranslationResult containing translated text
+    /// - Throws: MTranServerError if translation fails
+    func translate(
+        _ text: String,
+        from sourceLanguage: String? = nil,
+        to targetLanguage: String,
+        config: Configuration = .default
+    ) async throws -> TranslationResult {
+        // Check availability
+        guard isAvailable else {
+            throw MTranServerError.notAvailable
+        }
+
+        // Prevent concurrent operations
+        guard !isProcessing else {
+            throw MTranServerError.operationInProgress
+        }
+        isProcessing = true
+        defer { isProcessing = false }
+
+        // Validate input
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw MTranServerError.emptyInput
+        }
+
+        let effectiveSourceLanguage = resolveSourceLanguage(
+            sourceLanguage,
+            autoDetect: config.autoDetectSourceLanguage
+        )
+
+        // Build request
+        let url = try buildURL(config: config)
+        let jsonData = try buildRequestBody(text: text, from: effectiveSourceLanguage, to: targetLanguage)
+
+        // Perform request with timeout
+        let result = try await performTranslationRequest(
+            url: url,
+            jsonData: jsonData,
+            timeout: config.timeout
+        )
+
+        return TranslationResult(
+            sourceText: text,
+            translatedText: result.translatedText,
+            sourceLanguage: result.detectedLanguage ?? effectiveSourceLanguage,
+            targetLanguage: targetLanguage
+        )
+    }
+
+    /// Translates text with automatic language detection.
+    /// - Parameters:
+    ///   - text: The text to translate
+    ///   - targetLanguage: Target language code
+    /// - Returns: TranslationResult containing translated text
+    /// - Throws: MTranServerError if translation fails
+    func translate(_ text: String, to targetLanguage: String) async throws -> TranslationResult {
+        try await translate(text, from: nil, to: targetLanguage, config: .default)
+    }
+
+    // MARK: - Private Methods
+
+    /// Resolves the effective source language for translation
+    private func resolveSourceLanguage(_ source: String?, autoDetect: Bool) -> String {
+        if let source = source, !source.isEmpty {
+            return source
+        }
+        return autoDetect ? "auto" : "auto"
+    }
+
+    /// Builds the URL for MTranServer API endpoint
+    private func buildURL(config: Configuration) throws -> URL {
+        let urlString = "http://\(config.serverAddress):\(config.serverPort)/translate"
+        guard let url = URL(string: urlString) else {
+            throw MTranServerError.invalidURL
+        }
+        return url
+    }
+
+    /// Builds the JSON request body for translation
+    private func buildRequestBody(text: String, from: String, to: String) throws -> Data {
+        let requestBody: [String: Any] = [
+            "text": text,
+            "from": from,
+            "to": to
+        ]
+
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            throw MTranServerError.invalidRequest
+        }
+        return jsonData
+    }
+
+    /// Performs the translation request with timeout handling
+    private func performTranslationRequest(
+        url: URL,
+        jsonData: Data,
+        timeout: TimeInterval
+    ) async throws -> TranslationResponse {
+        try await withThrowingTaskGroup(of: Result<TranslationResponse, any Error>.self) { group in
+            // Translation task
+            group.addTask { [jsonData, url] in
+                await self.executeTranslationRequest(url: url, jsonData: jsonData)
+            }
+
+            // Timeout task
+            _ = group.addTaskUnlessCancelled { [timeout] in
+                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                return .failure(MTranServerError.timeout)
+            }
+
+            // Wait for first completed task
+            guard let result = try await group.next() else {
+                throw MTranServerError.timeout
+            }
+            group.cancelAll()
+            return try result.get()
+        }
+    }
+
+    /// Executes the HTTP request to MTranServer
+    private func executeTranslationRequest(
+        url: URL,
+        jsonData: Data
+    ) async -> Result<TranslationResponse, any Error> {
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = jsonData
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return .failure(MTranServerError.invalidResponse)
+            }
+
+            guard httpResponse.statusCode == 200 else {
+                if httpResponse.statusCode == 503 {
+                    return .failure(MTranServerError.serviceUnavailable)
+                }
+                return .failure(MTranServerError.httpError(statusCode: httpResponse.statusCode))
+            }
+
+            let decoded = try JSONDecoder().decode(TranslationResponse.self, from: data)
+            return .success(decoded)
+        } catch let error as MTranServerError {
+            return .failure(error)
+        } catch {
+            return .failure(MTranServerError.requestFailed(underlying: error))
+        }
+    }
+}
+
+// MARK: - Translation Response
+
+/// MTranServer API response structure
+private struct TranslationResponse: Codable, Sendable {
+    let translatedText: String
+    let detectedLanguage: String?
+
+    enum CodingKeys: String, CodingKey {
+        case translatedText = "translated_text"
+        case detectedLanguage = "detected_language"
+    }
+}
+
+// MARK: - MTranServer Errors
+
+/// Errors that can occur during MTranServer operations
+enum MTranServerError: LocalizedError, Sendable {
+    /// MTranServer is not available
+    case notAvailable
+
+    /// Translation operation is already in progress
+    case operationInProgress
+
+    /// The input text is empty
+    case emptyInput
+
+    /// Invalid URL constructed
+    case invalidURL
+
+    /// Invalid request format
+    case invalidRequest
+
+    /// Invalid response from server
+    case invalidResponse
+
+    /// Request timeout
+    case timeout
+
+    /// Service unavailable (HTTP 503)
+    case serviceUnavailable
+
+    /// HTTP error with status code
+    case httpError(statusCode: Int)
+
+    /// Request failed with underlying error
+    case requestFailed(underlying: any Error)
+
+    var errorDescription: String? {
+        switch self {
+        case .notAvailable:
+            return NSLocalizedString("error.mtran.not.available", comment: "")
+        case .operationInProgress:
+            return NSLocalizedString("error.translation.in.progress", comment: "")
+        case .emptyInput:
+            return NSLocalizedString("error.translation.empty.input", comment: "")
+        case .invalidURL:
+            return NSLocalizedString("error.mtran.invalid.url", comment: "")
+        case .invalidRequest:
+            return NSLocalizedString("error.mtran.invalid.request", comment: "")
+        case .invalidResponse:
+            return NSLocalizedString(
+                "error.mtran.invalid.response",
+                comment: ""
+            )
+        case .timeout:
+            return NSLocalizedString("error.translation.timeout", comment: "")
+        case .serviceUnavailable:
+            return NSLocalizedString(
+                "error.mtran.service.unavailable",
+                comment: ""
+            )
+        case .httpError(let code):
+            return String(
+                format: NSLocalizedString("error.mtran.http.error", comment: ""),
+                code
+            )
+        case .requestFailed:
+            return NSLocalizedString("error.translation.failed", comment: "")
+        }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .notAvailable:
+            return NSLocalizedString(
+                "error.mtran.not.available.recovery",
+                comment: ""
+            )
+        case .operationInProgress:
+            return NSLocalizedString("error.translation.in.progress.recovery", comment: "")
+        case .emptyInput:
+            return NSLocalizedString("error.translation.empty.input.recovery", comment: "")
+        case .invalidURL:
+            return NSLocalizedString("error.mtran.invalid.url.recovery", comment: "")
+        case .invalidRequest:
+            return NSLocalizedString("error.mtran.invalid.request.recovery", comment: "")
+        case .invalidResponse:
+            return NSLocalizedString(
+                "error.mtran.invalid.response.recovery",
+                comment: ""
+            )
+        case .timeout:
+            return NSLocalizedString("error.translation.timeout.recovery", comment: "")
+        case .serviceUnavailable:
+            return NSLocalizedString(
+                "error.mtran.service.unavailable.recovery",
+                comment: ""
+            )
+        case .httpError:
+            return NSLocalizedString("error.mtran.http.error.recovery", comment: "")
+        case .requestFailed:
+            return NSLocalizedString("error.translation.failed.recovery", comment: "")
+        }
+    }
+}
