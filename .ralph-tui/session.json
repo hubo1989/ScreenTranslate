@@ -3,10 +3,10 @@
   "sessionId": "e212cf84-248d-4cf4-a620-9e96be290d84",
   "status": "running",
   "startedAt": "2026-02-03T05:59:17.851Z",
-  "updatedAt": "2026-02-03T06:21:15.385Z",
-  "currentIteration": 0,
+  "updatedAt": "2026-02-03T06:46:23.860Z",
+  "currentIteration": 1,
   "maxIterations": 10,
-  "tasksCompleted": 0,
+  "tasksCompleted": 1,
   "isPaused": false,
   "agentPlugin": "claude",
   "trackerState": {
@@ -23,8 +23,8 @@
       {
         "id": "US-002",
         "title": "本地 OCR 引擎 - Vision 框架",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-003",
@@ -82,7 +82,18 @@
       }
     ]
   },
-  "iterations": [],
+  "iterations": [
+    {
+      "iteration": 1,
+      "status": "completed",
+      "taskId": "US-002",
+      "taskTitle": "本地 OCR 引擎 - Vision 框架",
+      "taskCompleted": true,
+      "durationMs": 1313664,
+      "startedAt": "2026-02-03T05:59:21.717Z",
+      "endedAt": "2026-02-03T06:21:15.381Z"
+    }
+  ],
   "skippedTaskIds": [],
   "cwd": "/Users/hubo/.supacode/repos/screentranslate/lively-ant-014",
   "activeTaskIds": [],
