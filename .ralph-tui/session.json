@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "sessionId": "e212cf84-248d-4cf4-a620-9e96be290d84",
+  "status": "running",
+  "startedAt": "2026-02-03T05:59:17.851Z",
+  "updatedAt": "2026-02-03T06:21:15.385Z",
+  "currentIteration": 0,
+  "maxIterations": 10,
+  "tasksCompleted": 0,
+  "isPaused": false,
+  "agentPlugin": "claude",
+  "trackerState": {
+    "plugin": "json",
+    "prdPath": "./tasks/prd.json",
+    "totalTasks": 11,
+    "tasks": [
+      {
+        "id": "US-001",
+        "title": "基础架构 - 菜单栏应用与截图功能",
+        "status": "completed",
+        "completedInSession": false
+      },
+      {
+        "id": "US-002",
+        "title": "本地 OCR 引擎 - Vision 框架",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-003",
+        "title": "本地翻译引擎 - Apple Translation API",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-004",
+        "title": "覆盖层渲染引擎 - 原位替换模式",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-005",
+        "title": "覆盖层渲染引擎 - 原文下方模式",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-006",
+        "title": "设置面板 - 引擎选择与基础配置",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-007",
+        "title": "设置面板 - 语言配置",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-008",
+        "title": "可选 OCR 引擎 - PaddleOCR 集成",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-009",
+        "title": "可选翻译引擎 - MTranServer 集成",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-010",
+        "title": "翻译历史记录",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-011",
+        "title": "首次启动引导",
+        "status": "open",
+        "completedInSession": false
+      }
+    ]
+  },
+  "iterations": [],
+  "skippedTaskIds": [],
+  "cwd": "/Users/hubo/.supacode/repos/screentranslate/lively-ant-014",
+  "activeTaskIds": [],
+  "subagentPanelVisible": true
+}
