@@ -3,10 +3,10 @@
   "sessionId": "a20df592-ec5b-40bd-a063-3eba28eb5847",
   "status": "running",
   "startedAt": "2026-02-04T13:33:39.856Z",
-  "updatedAt": "2026-02-04T14:08:24.992Z",
-  "currentIteration": 4,
+  "updatedAt": "2026-02-04T14:15:46.507Z",
+  "currentIteration": 5,
   "maxIterations": 10,
-  "tasksCompleted": 4,
+  "tasksCompleted": 5,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -35,8 +35,8 @@
       {
         "id": "US-004",
         "title": "覆盖原文模式 - 内容感知填充",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-005",
@@ -122,6 +122,16 @@
       "durationMs": 253883,
       "startedAt": "2026-02-04T14:02:05.116Z",
       "endedAt": "2026-02-04T14:06:18.999Z"
+    },
+    {
+      "iteration": 5,
+      "status": "completed",
+      "taskId": "US-004",
+      "taskTitle": "覆盖原文模式 - 内容感知填充",
+      "taskCompleted": true,
+      "durationMs": 124939,
+      "startedAt": "2026-02-04T14:06:20.052Z",
+      "endedAt": "2026-02-04T14:08:24.991Z"
     }
   ],
   "skippedTaskIds": [],
