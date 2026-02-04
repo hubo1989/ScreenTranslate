@@ -3,10 +3,10 @@
   "sessionId": "a20df592-ec5b-40bd-a063-3eba28eb5847",
   "status": "running",
   "startedAt": "2026-02-04T13:33:39.856Z",
-  "updatedAt": "2026-02-04T14:49:01.024Z",
-  "currentIteration": 8,
+  "updatedAt": "2026-02-04T14:56:20.544Z",
+  "currentIteration": 9,
   "maxIterations": 10,
-  "tasksCompleted": 8,
+  "tasksCompleted": 9,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -59,8 +59,8 @@
       {
         "id": "US-008",
         "title": "保留底部面板作为备用",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-009",
@@ -162,6 +162,16 @@
       "durationMs": 1525261,
       "startedAt": "2026-02-04T14:20:10.058Z",
       "endedAt": "2026-02-04T14:45:35.319Z"
+    },
+    {
+      "iteration": 9,
+      "status": "completed",
+      "taskId": "US-008",
+      "taskTitle": "保留底部面板作为备用",
+      "taskCompleted": true,
+      "durationMs": 204650,
+      "startedAt": "2026-02-04T14:45:36.372Z",
+      "endedAt": "2026-02-04T14:49:01.022Z"
     }
   ],
   "skippedTaskIds": [],
