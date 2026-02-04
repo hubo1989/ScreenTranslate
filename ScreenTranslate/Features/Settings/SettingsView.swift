@@ -1,5 +1,5 @@
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Main settings view with all preference controls.
 /// Organized into sections: General, Export, Keyboard Shortcuts, and Annotations.
@@ -7,97 +7,111 @@ struct SettingsView: View {
     @Bindable var viewModel: SettingsViewModel
     @State private var refreshID = UUID()
 
-    var body: some View {
-        Form {
-            // Permissions Section
-            Section {
-                PermissionRow(viewModel: viewModel)
-            } header: {
-                Label(L("settings.section.permissions"), systemImage: "lock.shield")
-            }
+    enum SettingsTab: String, CaseIterable, Identifiable, Sendable {
+        case general, engines, languages, shortcuts, advanced
+        var id: String { self.rawValue }
 
-            // General Settings Section
-            Section {
-                AppLanguagePicker()
-                SaveLocationPicker(viewModel: viewModel)
-            } header: {
-                Label(L("settings.section.general"), systemImage: "gearshape")
-            }
-
-            // Engine Settings Section
-            Section {
-                OCREnginePicker(viewModel: viewModel)
-                TranslationEnginePicker(viewModel: viewModel)
-                TranslationModePicker(viewModel: viewModel)
-            } header: {
-                Label(L("settings.section.engines"), systemImage: "engine.combustion")
-            }
-
-            // Language Settings Section
-            Section {
-                SourceLanguagePicker(viewModel: viewModel)
-                TargetLanguagePicker(viewModel: viewModel)
-            } header: {
-                Label(L("settings.section.languages"), systemImage: "globe")
-            }
-
-            // Export Settings Section
-            Section {
-                ExportFormatPicker(viewModel: viewModel)
-                if viewModel.defaultFormat == .jpeg {
-                    JPEGQualitySlider(viewModel: viewModel)
-                } else if viewModel.defaultFormat == .heic {
-                    HEICQualitySlider(viewModel: viewModel)
-                }
-            } header: {
-                Label(L("settings.section.export"), systemImage: "square.and.arrow.up")
-            }
-
-            // Keyboard Shortcuts Section
-            Section {
-                ShortcutRecorder(
-                    label: L("settings.shortcut.fullscreen"),
-                    shortcut: viewModel.fullScreenShortcut,
-                    isRecording: viewModel.isRecordingFullScreenShortcut,
-                    onRecord: { viewModel.startRecordingFullScreenShortcut() },
-                    onReset: { viewModel.resetFullScreenShortcut() }
-                )
-
-                ShortcutRecorder(
-                    label: L("settings.shortcut.selection"),
-                    shortcut: viewModel.selectionShortcut,
-                    isRecording: viewModel.isRecordingSelectionShortcut,
-                    onRecord: { viewModel.startRecordingSelectionShortcut() },
-                    onReset: { viewModel.resetSelectionShortcut() }
-                )
-            } header: {
-                Label(L("settings.section.shortcuts"), systemImage: "keyboard")
-            }
-
-            // Annotation Settings Section
-            Section {
-                StrokeColorPicker(viewModel: viewModel)
-                StrokeWidthSlider(viewModel: viewModel)
-                TextSizeSlider(viewModel: viewModel)
-            } header: {
-                Label(L("settings.section.annotations"), systemImage: "pencil.tip.crop.circle")
-            }
-
-            // Reset Section
-            Section {
-                Button(role: .destructive) {
-                    viewModel.resetAllToDefaults()
-                } label: {
-                    Label(L("settings.reset.all"), systemImage: "arrow.counterclockwise")
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(.red)
+        @MainActor
+        var displayName: String {
+            switch self {
+            case .general: return L("settings.section.general")
+            case .engines: return L("settings.section.engines")
+            case .languages: return L("settings.section.languages")
+            case .shortcuts: return L("settings.section.shortcuts")
+            case .advanced: return L("settings.section.annotations")
             }
         }
-        .formStyle(.grouped)
-        .frame(minWidth: 450, minHeight: 500)
+
+        var icon: String {
+            switch self {
+            case .general: return "gearshape"
+            case .engines: return "engine.combustion"
+            case .languages: return "globe"
+            case .shortcuts: return "keyboard"
+            case .advanced: return "pencil.tip.crop.circle"
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .general: return .blue
+            case .engines: return .orange
+            case .languages: return .cyan
+            case .shortcuts: return .purple
+            case .advanced: return .green
+            }
+        }
+    }
+
+    @State private var selectedTab: SettingsTab = .general
+
+    var body: some View {
+        ZStack {
+            // macOS 26 Dynamic Mesh Background - Unified
+            MeshGradientView()
+
+            NavigationSplitView {
+                // Sidebar
+                List(SettingsTab.allCases, selection: $selectedTab) { tab in
+                    NavigationLink(value: tab) {
+                        Label {
+                            Text(tab.displayName)
+                        } icon: {
+                            Image(systemName: tab.icon)
+                                .macos26IconGlow(color: tab.color)
+                        }
+                    }
+                    .listRowBackground(Color.clear)
+                    .padding(.vertical, 4)
+                }
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+                .padding(.top, 40)  // Space for traffic lights
+                .background(
+                    VisualEffectView(material: .sidebar, blendingMode: .withinWindow).opacity(0.5))
+            } detail: {
+                // Detail Area
+                VStack(spacing: 0) {
+                    // Custom Header (Unified with window frame)
+                    HStack {
+                        Text(selectedTab.displayName)
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 44)  // Increased for title bar area and corner radius
+                    .padding(.bottom, 20)
+
+                    ScrollView {
+                        VStack(spacing: 24) {
+                            switch selectedTab {
+                            case .general:
+                                generalSettings
+                            case .engines:
+                                engineSettings
+                            case .languages:
+                                languageSettings
+                            case .shortcuts:
+                                shortcutSettings
+                            case .advanced:
+                                advancedSettings
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 40)
+                    }
+                }
+                .background(
+                    VisualEffectView(material: .windowBackground, blendingMode: .withinWindow)
+                        .opacity(0.3))
+            }
+        }
+        .frame(width: 800, height: 600)
+        // Note: Don't use clipShape or ignoresSafeArea here as they cause layout issues
         .id(refreshID)
-        .onReceive(NotificationCenter.default.publisher(for: LanguageManager.languageDidChangeNotification)) { _ in
+        .onReceive(
+            NotificationCenter.default.publisher(for: LanguageManager.languageDidChangeNotification)
+        ) { _ in
             refreshID = UUID()
         }
         .alert(L("error.title"), isPresented: $viewModel.showErrorAlert) {
@@ -109,6 +123,121 @@ struct SettingsView: View {
                 Text(message)
             }
         }
+    }
+
+    // MARK: - Sections
+
+    @ViewBuilder
+    private var generalSettings: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Label(L("settings.section.permissions"), systemImage: "lock.shield")
+                .font(.headline)
+            PermissionRow(viewModel: viewModel)
+        }
+        .macos26LiquidGlass()
+
+        VStack(alignment: .leading, spacing: 20) {
+            Label(L("settings.save.location"), systemImage: "folder")
+                .font(.headline)
+            SaveLocationPicker(viewModel: viewModel)
+            Divider().opacity(0.1)
+            AppLanguagePicker()
+        }
+        .macos26LiquidGlass()
+    }
+
+    @ViewBuilder
+    private var engineSettings: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 20) {
+                GridRow {
+                    Text(L("settings.ocr.engine"))
+                        .foregroundStyle(.secondary)
+                    OCREnginePicker(viewModel: viewModel)
+                }
+                Divider().opacity(0.1)
+                GridRow {
+                    Text(L("settings.translation.engine"))
+                        .foregroundStyle(.secondary)
+                    TranslationEnginePicker(viewModel: viewModel)
+                }
+                Divider().opacity(0.1)
+                GridRow {
+                    Text(L("settings.translation.mode"))
+                        .foregroundStyle(.secondary)
+                    TranslationModePicker(viewModel: viewModel)
+                }
+            }
+        }
+        .macos26LiquidGlass()
+    }
+
+    @ViewBuilder
+    private var languageSettings: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(spacing: 16) {
+                VStack(alignment: .leading) {
+                    Text(L("translation.language.source"))
+                        .font(.caption).foregroundStyle(.secondary)
+                    SourceLanguagePicker(viewModel: viewModel)
+                }
+                Image(systemName: "arrow.right.circle.fill").font(.title2).foregroundStyle(
+                    .secondary.opacity(0.5))
+                VStack(alignment: .leading) {
+                    Text(L("translation.language.target"))
+                        .font(.caption).foregroundStyle(.secondary)
+                    TargetLanguagePicker(viewModel: viewModel)
+                }
+            }
+        }
+        .macos26LiquidGlass()
+    }
+
+    @ViewBuilder
+    private var shortcutSettings: some View {
+        VStack(spacing: 16) {
+            ShortcutRecorder(
+                label: L("settings.shortcut.fullscreen"),
+                shortcut: viewModel.fullScreenShortcut,
+                isRecording: viewModel.isRecordingFullScreenShortcut,
+                onRecord: { viewModel.startRecordingFullScreenShortcut() },
+                onReset: { viewModel.resetFullScreenShortcut() }
+            )
+            Divider().opacity(0.1)
+            ShortcutRecorder(
+                label: L("settings.shortcut.selection"),
+                shortcut: viewModel.selectionShortcut,
+                isRecording: viewModel.isRecordingSelectionShortcut,
+                onRecord: { viewModel.startRecordingSelectionShortcut() },
+                onReset: { viewModel.resetSelectionShortcut() }
+            )
+        }
+        .macos26LiquidGlass()
+    }
+
+    @ViewBuilder
+    private var advancedSettings: some View {
+        VStack(spacing: 20) {
+            StrokeColorPicker(viewModel: viewModel)
+            Divider().opacity(0.1)
+            StrokeWidthSlider(viewModel: viewModel)
+            Divider().opacity(0.1)
+            TextSizeSlider(viewModel: viewModel)
+        }
+        .macos26LiquidGlass()
+
+        Button(role: .destructive) {
+            viewModel.resetAllToDefaults()
+        } label: {
+            Text(L("settings.reset.all"))
+                .font(.system(.callout, design: .rounded, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(.red.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: DesignSystem.Radii.control))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.red)
     }
 }
 
@@ -209,7 +338,10 @@ private struct PermissionItem: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(title): \(isGranted ? L("settings.permission.granted") : L("settings.permission.not.granted"))"))
+        .accessibilityLabel(
+            Text(
+                "\(title): \(isGranted ? L("settings.permission.granted") : L("settings.permission.not.granted"))"
+            ))
     }
 }
 
@@ -222,8 +354,6 @@ private struct SaveLocationPicker: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(L("settings.save.location"))
-                    .font(.headline)
                 Text(viewModel.saveLocationPath)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -451,9 +581,9 @@ private struct StrokeColorPicker: View {
         guard let colorA = nsA, let colorB = nsB else { return false }
 
         let tolerance: CGFloat = 0.01
-        return abs(colorA.redComponent - colorB.redComponent) < tolerance &&
-               abs(colorA.greenComponent - colorB.greenComponent) < tolerance &&
-               abs(colorA.blueComponent - colorB.blueComponent) < tolerance
+        return abs(colorA.redComponent - colorB.redComponent) < tolerance
+            && abs(colorA.greenComponent - colorB.greenComponent) < tolerance
+            && abs(colorA.blueComponent - colorB.blueComponent) < tolerance
     }
 
     /// Get accessible color name
@@ -799,13 +929,13 @@ private struct TargetLanguagePicker: View {
 private struct AppLanguagePicker: View {
     @State private var selectedLanguage: AppLanguage = .system
     @State private var isInitialized = false
-    
+
     var body: some View {
         HStack {
             Text(L("settings.language"))
-            
+
             Spacer()
-            
+
             Picker("", selection: $selectedLanguage) {
                 ForEach(AppLanguage.allCases) { language in
                     Text(language.displayName)
@@ -832,8 +962,8 @@ private struct AppLanguagePicker: View {
 // MARK: - Preview
 
 #if DEBUG
-#Preview {
-    SettingsView(viewModel: SettingsViewModel())
-        .frame(width: 500, height: 600)
-}
+    #Preview {
+        SettingsView(viewModel: SettingsViewModel())
+            .frame(width: 500, height: 600)
+    }
 #endif
