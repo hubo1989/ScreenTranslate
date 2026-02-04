@@ -24,9 +24,12 @@ struct PreviewContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Main image view with annotation canvas
-            annotatedImageView
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Main image view with annotation canvas in a scrollable container
+            ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                annotatedImageView
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(nsColor: .windowBackgroundColor))
 
             Divider()
 
@@ -59,152 +62,72 @@ struct PreviewContentView: View {
 
     // MARK: - Subviews
 
-    /// The main image display area with annotation overlay
+    /// The main image display area with annotation overlay - displays at 1:1 scale
     @ViewBuilder
     private var annotatedImageView: some View {
-        GeometryReader { geometry in
-            let imageSize = CGSize(
-                width: CGFloat(viewModel.image.width),
-                height: CGFloat(viewModel.image.height)
+        let imageSize = CGSize(
+            width: CGFloat(viewModel.image.width),
+            height: CGFloat(viewModel.image.height)
+        )
+        
+        ZStack(alignment: .topLeading) {
+            // Base image at 1:1 scale (no resizing)
+            Image(viewModel.image, scale: 1.0, label: Text("preview.screenshot"))
+                .accessibilityLabel(Text("Screenshot preview, \(viewModel.dimensionsText), from \(viewModel.displayName)"))
+
+            // Annotation canvas overlay at 1:1 scale
+            AnnotationCanvas(
+                annotations: viewModel.annotations,
+                currentAnnotation: viewModel.currentAnnotation,
+                canvasSize: imageSize,
+                scale: 1.0,
+                selectedIndex: viewModel.selectedAnnotationIndex
             )
-            let displayInfo = calculateDisplayInfo(
-                imageSize: imageSize,
-                containerSize: geometry.size
-            )
+            .frame(width: imageSize.width, height: imageSize.height)
 
-            ZStack {
-                // Background
-                Color(nsColor: .windowBackgroundColor)
-
-                // Image and annotations centered
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-
-                        ZStack(alignment: .topLeading) {
-                            // Base image
-                            Image(viewModel.image, scale: 1.0, label: Text("preview.screenshot"))
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(
-                                    width: displayInfo.displaySize.width,
-                                    height: displayInfo.displaySize.height
-                                )
-                                .accessibilityLabel(Text("Screenshot preview, \(viewModel.dimensionsText), from \(viewModel.displayName)"))
-
-                            // Annotation canvas overlay
-                            AnnotationCanvas(
-                                annotations: viewModel.annotations,
-                                currentAnnotation: viewModel.currentAnnotation,
-                                canvasSize: imageSize,
-                                scale: displayInfo.scale,
-                                selectedIndex: viewModel.selectedAnnotationIndex
-                            )
-                            .frame(
-                                width: displayInfo.displaySize.width,
-                                height: displayInfo.displaySize.height
-                            )
-
-                            // Text input field overlay (when text tool is active)
-                            if viewModel.isWaitingForTextInput,
-                               let inputPosition = viewModel.textInputPosition {
-                                textInputField(
-                                    at: inputPosition,
-                                    scale: displayInfo.scale
-                                )
-                            }
-
-                            // Drawing gesture overlay
-                            if viewModel.selectedTool != nil {
-                                drawingGestureOverlay(
-                                    displaySize: displayInfo.displaySize,
-                                    scale: displayInfo.scale
-                                )
-                            }
-
-                            // Selection/editing gesture overlay (when no tool and no crop mode)
-                            if viewModel.selectedTool == nil && !viewModel.isCropMode {
-                                selectionGestureOverlay(
-                                    displaySize: displayInfo.displaySize,
-                                    scale: displayInfo.scale
-                                )
-                            }
-
-                            // Crop overlay
-                            if viewModel.isCropMode {
-                                cropOverlay(
-                                    displaySize: displayInfo.displaySize,
-                                    scale: displayInfo.scale
-                                )
-                            }
-                        }
-                        .overlay(alignment: .topLeading) {
-                            // Active tool indicator
-                            if let tool = viewModel.selectedTool {
-                                activeToolIndicator(tool: tool)
-                                    .padding(8)
-                            } else if viewModel.isCropMode {
-                                cropModeIndicator
-                                    .padding(8)
-                            }
-                        }
-                        .overlay(alignment: .bottom) {
-                            // Crop action buttons
-                            if viewModel.cropRect != nil && !viewModel.isCropSelecting {
-                                cropActionButtons
-                                    .padding(12)
-                            }
-                        }
-
-                        Spacer()
-                    }
-                    Spacer()
-                }
+            // Text input field overlay (when text tool is active)
+            if viewModel.isWaitingForTextInput,
+               let inputPosition = viewModel.textInputPosition {
+                textInputField(at: inputPosition, scale: 1.0)
             }
-            .onAppear {
-                imageDisplaySize = displayInfo.displaySize
-                imageScale = displayInfo.scale
+
+            // Drawing gesture overlay
+            if viewModel.selectedTool != nil {
+                drawingGestureOverlay(displaySize: imageSize, scale: 1.0)
             }
-            .onChange(of: geometry.size) { _, newSize in
-                let newInfo = calculateDisplayInfo(
-                    imageSize: imageSize,
-                    containerSize: newSize
-                )
-                imageDisplaySize = newInfo.displaySize
-                imageScale = newInfo.scale
+
+            // Selection/editing gesture overlay (when no tool and no crop mode)
+            if viewModel.selectedTool == nil && !viewModel.isCropMode {
+                selectionGestureOverlay(displaySize: imageSize, scale: 1.0)
             }
+
+            // Crop overlay
+            if viewModel.isCropMode {
+                cropOverlay(displaySize: imageSize, scale: 1.0)
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if let tool = viewModel.selectedTool {
+                activeToolIndicator(tool: tool)
+                    .padding(8)
+            } else if viewModel.isCropMode {
+                cropModeIndicator
+                    .padding(8)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if viewModel.cropRect != nil && !viewModel.isCropSelecting {
+                cropActionButtons
+                    .padding(12)
+            }
+        }
+        .frame(width: imageSize.width, height: imageSize.height)
+        .onAppear {
+            imageDisplaySize = imageSize
+            imageScale = 1.0
         }
         .contentShape(Rectangle())
         .cursor(cursorForCurrentTool)
-    }
-
-    /// Calculates the display size and scale for fitting the image in the container
-    private func calculateDisplayInfo(
-        imageSize: CGSize,
-        containerSize: CGSize
-    ) -> (displaySize: CGSize, scale: CGFloat) {
-        let widthScale = containerSize.width / imageSize.width
-        let heightScale = containerSize.height / imageSize.height
-
-        // For large images, scale down to fit. For small images, scale up to fill
-        // at least 50% of the container (but cap at 4x to avoid excessive pixelation)
-        let fitScale = min(widthScale, heightScale)
-        let scale: CGFloat
-        if fitScale > 1.0 {
-            // Image is smaller than container - scale up but cap at 4x
-            scale = min(fitScale, 4.0)
-        } else {
-            // Image is larger than container - scale down to fit
-            scale = fitScale
-        }
-
-        let displaySize = CGSize(
-            width: imageSize.width * scale,
-            height: imageSize.height * scale
-        )
-
-        return (displaySize, scale)
     }
 
     /// The cursor to use based on the current tool
