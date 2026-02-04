@@ -941,7 +941,7 @@ struct PreviewContentView: View {
             Button {
                 viewModel.performTranslation()
             } label: {
-                if viewModel.isPerformingTranslation {
+                if viewModel.isPerformingTranslation || viewModel.isPerformingOCRThenTranslation {
                     ProgressView()
                         .controlSize(.small)
                         .frame(width: 16, height: 16)
@@ -949,8 +949,10 @@ struct PreviewContentView: View {
                     Image(systemName: "character")
                 }
             }
-            .disabled(viewModel.isPerformingTranslation)
-            .help(String(localized: "preview.tooltip.translate"))
+            .disabled(viewModel.isPerformingTranslation || viewModel.isPerformingOCRThenTranslation)
+            .help(viewModel.isPerformingOCRThenTranslation
+                ? String(localized: "preview.tooltip.ocr.then.translate")
+                : String(localized: "preview.tooltip.translate"))
 
             Divider()
                 .frame(height: 16)

@@ -28,10 +28,11 @@
         "OCR 或翻译失败时显示错误提示"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-001"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-003",
@@ -178,6 +179,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-04T13:37:40.747Z"
+    "updatedAt": "2026-02-04T13:41:35.326Z"
   }
 }

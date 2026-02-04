@@ -98,6 +98,8 @@ final class PreviewViewModel {
     private(set) var translations: [TranslationResult] = []
     private(set) var isPerformingOCR: Bool = false
     private(set) var isPerformingTranslation: Bool = false
+    /// True when translate was clicked without OCR, triggering OCR first then translation
+    private(set) var isPerformingOCRThenTranslation: Bool = false
     private(set) var ocrTranslationError: String?
 
     // MARK: - Annotation Tools
@@ -981,17 +983,17 @@ final class PreviewViewModel {
     }
 
     func performTranslation() {
-        guard !isPerformingTranslation else { return }
+        guard !isPerformingTranslation && !isPerformingOCRThenTranslation else { return }
 
-        let textsToTranslate: [String]
-        if let ocr = ocrResult, !ocr.observations.isEmpty {
-            textsToTranslate = ocr.observations.map { $0.text }
-        } else {
-            textsToTranslate = [""]
+        if !hasOCRResults {
+            performOCRThenTranslation()
+            return
         }
 
+        let textsToTranslate: [String] = ocrResult!.observations.map { $0.text }
+
         guard !textsToTranslate.isEmpty else {
-            ocrTranslationError = "No text to translate. Perform OCR first."
+            ocrTranslationError = "No text to translate."
             return
         }
 
@@ -1001,6 +1003,38 @@ final class PreviewViewModel {
 
         Task {
             await executeTranslation(texts: textsToTranslate)
+        }
+    }
+
+    private func performOCRThenTranslation() {
+        guard !isPerformingOCR && !isPerformingOCRThenTranslation else { return }
+        isPerformingOCRThenTranslation = true
+        ocrTranslationError = nil
+
+        Task {
+            do {
+                let result = try await ocrService.recognize(
+                    image,
+                    languages: [.english, .chineseSimplified]
+                )
+                ocrResult = result
+
+                guard result.hasResults else {
+                    ocrTranslationError = NSLocalizedString("error.ocr.no.text", comment: "No text found in image")
+                    isPerformingOCRThenTranslation = false
+                    return
+                }
+
+                let textsToTranslate = result.observations.map { $0.text }
+                await executeTranslation(texts: textsToTranslate)
+            } catch {
+                ocrTranslationError = String(
+                    format: NSLocalizedString("error.ocr.failed", comment: "OCR failed"),
+                    error.localizedDescription
+                )
+            }
+
+            isPerformingOCRThenTranslation = false
         }
     }
 
