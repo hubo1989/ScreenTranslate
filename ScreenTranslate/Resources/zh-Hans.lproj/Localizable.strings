@@ -403,6 +403,28 @@
 "onboarding.continue" = "继续";
 "onboarding.next" = "下一步";
 "onboarding.skip" = "跳过";
+"onboarding.complete" = "完成";
+
+/* 引导 - PaddleOCR */
+"onboarding.paddleocr.title" = "PaddleOCR（可选）";
+"onboarding.paddleocr.description" = "增强型 OCR 引擎，文字识别更准确，尤其适合中文。";
+"onboarding.paddleocr.installed" = "已安装";
+"onboarding.paddleocr.not.installed" = "未安装";
+"onboarding.paddleocr.install" = "安装";
+"onboarding.paddleocr.installing" = "安装中...";
+"onboarding.paddleocr.install.hint" = "需要 Python 3 和 pip。执行命令：pip3 install paddleocr paddlepaddle";
+"onboarding.paddleocr.copy.command" = "复制命令";
+"onboarding.paddleocr.refresh" = "刷新状态";
+"onboarding.paddleocr.version" = "版本：%@";
+
+/* 设置 - PaddleOCR */
+"settings.paddleocr.installed" = "已安装";
+"settings.paddleocr.not.installed" = "未安装";
+"settings.paddleocr.install" = "安装";
+"settings.paddleocr.installing" = "安装中...";
+"settings.paddleocr.install.hint" = "需要在系统上安装 Python 3 和 pip。";
+"settings.paddleocr.copy.command" = "复制命令";
+"settings.paddleocr.refresh" = "刷新状态";
 
 
 /* ========================================

@@ -200,39 +200,45 @@ actor CaptureManager {
 
         // Configure capture for the full display first
         let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
-        let config = createCaptureConfiguration(for: display)
-
-        // Set source rect for region capture
-        // sourceRect must be in PIXEL coordinates (not normalized!)
-        // The rect is in points from SelectionOverlayWindow, convert to pixels
-        // IMPORTANT: Round to integers to avoid fractional pixel boundaries
-        // which cause ScreenCaptureKit to apply anti-aliasing/interpolation
-        let pixelX = round(rect.origin.x * display.scaleFactor)
-        let pixelY = round(rect.origin.y * display.scaleFactor)
-        let pixelWidth = round(rect.width * display.scaleFactor)
-        let pixelHeight = round(rect.height * display.scaleFactor)
+        let config = SCStreamConfiguration()
+        
+        // sourceRect is in POINTS (same coordinate system as display.frame)
+        // NOT in pixels! ScreenCaptureKit handles the scaling internally.
+        let clampedX = min(max(rect.origin.x, 0), display.frame.width - 1)
+        let clampedY = min(max(rect.origin.y, 0), display.frame.height - 1)
+        let clampedWidth = min(rect.width, display.frame.width - clampedX)
+        let clampedHeight = min(rect.height, display.frame.height - clampedY)
 
         let sourceRect = CGRect(
-            x: pixelX,
-            y: pixelY,
-            width: pixelWidth,
-            height: pixelHeight
+            x: clampedX,
+            y: clampedY,
+            width: clampedWidth,
+            height: clampedHeight
         )
+
+        config.sourceRect = sourceRect
+        
+        // Output size should be in PIXELS for crisp capture
+        let outputWidth = Int(clampedWidth * display.scaleFactor)
+        let outputHeight = Int(clampedHeight * display.scaleFactor)
+        config.width = outputWidth
+        config.height = outputHeight
+        
+        // High quality settings
+        config.minimumFrameInterval = CMTime(value: 1, timescale: 1)
+        config.pixelFormat = kCVPixelFormatType_32BGRA
+        config.showsCursor = false
+        config.colorSpaceName = CGColorSpace.sRGB
 
         #if DEBUG
         print("=== CAPTURE MANAGER DEBUG ===")
         print("[CAP-1] Input rect (points): \(rect)")
         print("[CAP-2] display.frame (points): \(display.frame)")
         print("[CAP-3] display.scaleFactor: \(display.scaleFactor)")
-        print("[CAP-4] sourceRect (pixels, rounded): \(sourceRect)")
+        print("[CAP-4] sourceRect (points, clamped): \(sourceRect)")
+        print("[CAP-5] outputSize (pixels): \(outputWidth)x\(outputHeight)")
         print("=== END CAPTURE MANAGER DEBUG ===")
         #endif
-
-        config.sourceRect = sourceRect
-
-        // Adjust output size to match the region (use same rounded values)
-        config.width = Int(pixelWidth)
-        config.height = Int(pixelHeight)
 
         // Perform capture with signpost for profiling
         os_signpost(.begin, log: Self.performanceLog, name: "RegionCapture", signpostID: Self.signpostID)

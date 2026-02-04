@@ -15,8 +15,10 @@ actor PaddleOCREngine {
     /// Whether PaddleOCR is available on the system
     var isAvailable: Bool { PaddleOCRChecker.isAvailable }
 
-    /// PaddleOCR executable path
-    private let executablePath = "/usr/local/bin/paddleocr"
+    /// Get executable path from checker
+    private var executablePath: String {
+        PaddleOCRChecker.executablePath ?? "/usr/local/bin/paddleocr"
+    }
 
     /// Maximum concurrent operations
     private var isProcessing = false
@@ -202,25 +204,14 @@ actor PaddleOCREngine {
     /// Builds command line arguments for PaddleOCR
     private func buildArguments(config: Configuration, imagePath: String) -> [String] {
         var args = [
-            "--image_path", imagePath,
-            "--use_angle_cls", config.useDirectionClassify ? "true" : "false",
-            "--lang", config.languages.map(\.rawValue).joined(separator: ",")
+            "ocr",
+            "-i", imagePath,
+            "--lang", "ch"
         ]
 
         if config.useGPU {
-            args.append("--use_gpu")
-            args.append("true")
-        }
-
-        switch config.detectionModel {
-        case .default:
-            break
-        case .server:
-            args.append("--det_model_dir")
-            args.append("inference/ch_ppocr_server_v2.0_det/")
-        case .mobile:
-            args.append("--det_model_dir")
-            args.append("inference/ch_ppocr_mobile_v2.0_det/")
+            args.append("--device")
+            args.append("gpu")
         }
 
         return args
@@ -228,9 +219,19 @@ actor PaddleOCREngine {
 
     /// Executes PaddleOCR with the given arguments
     private func executePaddleOCR(arguments: [String]) async throws -> String {
+        let fullCommand = "\(executablePath) \(arguments.joined(separator: " "))"
+        print("[PaddleOCREngine] Executing: \(fullCommand)")
+        
         let task = Process()
-        task.executableURL = URL(fileURLWithPath: executablePath)
-        task.arguments = arguments
+        task.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        task.arguments = ["-c", fullCommand]
+        
+        task.environment = [
+            "PATH": "\(NSHomeDirectory())/.pyenv/shims:\(NSHomeDirectory())/.pyenv/bin:/usr/local/bin:/usr/bin:/bin",
+            "HOME": NSHomeDirectory(),
+            "PYENV_ROOT": "\(NSHomeDirectory())/.pyenv",
+            "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK": "True"
+        ]
 
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -239,121 +240,155 @@ actor PaddleOCREngine {
 
         do {
             try task.run()
+            print("[PaddleOCREngine] Process started, waiting...")
             task.waitUntilExit()
+            print("[PaddleOCREngine] Process finished with exit code: \(task.terminationStatus)")
 
-            let stdoutHandle = stdoutPipe.fileHandleForReading
-            let stderrHandle = stderrPipe.fileHandleForReading
-
-            defer {
-                stdoutHandle.closeFile()
-                stderrHandle.closeFile()
+            let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            var stdout = String(data: stdoutData, encoding: .utf8) ?? ""
+            let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+            
+            // PaddleOCR outputs result to stderr, extract JSON from it
+            if stdout.isEmpty, let resultRange = stderr.range(of: "{'res':") {
+                let resultStart = stderr[resultRange.lowerBound...]
+                // Find the matching closing brace
+                if let jsonEnd = findMatchingBrace(in: String(resultStart)) {
+                    stdout = String(resultStart.prefix(jsonEnd + 1))
+                    // Remove ANSI color codes
+                    stdout = stdout.replacingOccurrences(of: "\u{001B}\\[[0-9;]*m", with: "", options: .regularExpression)
+                    print("[PaddleOCREngine] Extracted result from stderr")
+                }
             }
+            
+            print("[PaddleOCREngine] output length: \(stdout.count)")
+            print("[PaddleOCREngine] output: \(stdout.prefix(1000))")
 
             let exitCode = task.terminationStatus
-
             if exitCode != 0 {
-                let stderrData = stderrHandle.readDataToEndOfFile()
-                let stderr = String(data: stderrData, encoding: .utf8) ?? "Unknown error"
-                throw PaddleOCREngineError.recognitionFailed(underlying: stderr)
+                throw PaddleOCREngineError.recognitionFailed(underlying: stderr.isEmpty ? "Exit code \(exitCode)" : stderr)
             }
 
-            let stdoutData = stdoutHandle.readDataToEndOfFile()
-            guard let output = String(data: stdoutData, encoding: .utf8) else {
+            guard !stdout.isEmpty else {
+                print("[PaddleOCREngine] No result found in output")
                 throw PaddleOCREngineError.invalidOutput
             }
 
-            return output
+            return stdout
         } catch let error as PaddleOCREngineError {
             throw error
         } catch {
+            print("[PaddleOCREngine] Error: \(error)")
             throw PaddleOCREngineError.recognitionFailed(underlying: error.localizedDescription)
         }
+    }
+    
+    private func findMatchingBrace(in string: String) -> Int? {
+        var depth = 0
+        for (index, char) in string.enumerated() {
+            if char == "{" { depth += 1 }
+            else if char == "}" { 
+                depth -= 1 
+                if depth == 0 { return index }
+            }
+        }
+        return nil
     }
 
     /// Parses PaddleOCR JSON output into OCRText observations
     private func parsePaddleOCROutput(_ output: String, imageSize: CGSize) throws -> [OCRText] {
-        // PaddleOCR outputs multiple lines with format: "text [[x1,y1],[x2,y2],...] confidence"
         var observations: [OCRText] = []
-        let lines = output.components(separatedBy: .newlines)
 
-        for line in lines where !line.isEmpty {
-            // Extract text, coordinates, and confidence using regex
-            let pattern = #"^(.+?)\s+\[\[.+?\]\]\s+(\d+\.\d+)"#
-            guard let regex = try? NSRegularExpression(pattern: pattern),
-                  let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
-                  match.numberOfRanges >= 3 else {
-                continue
+        guard let startIndex = output.firstIndex(of: "{"),
+              let endIndex = output.lastIndex(of: "}") else {
+            print("[PaddleOCREngine] No JSON found in output")
+            return observations
+        }
+
+        let jsonLike = String(output[startIndex...endIndex])
+        let cleanedJson = convertPythonDictToJson(jsonLike)
+        
+        print("[PaddleOCREngine] Cleaned JSON: \(cleanedJson.prefix(500))")
+
+        guard let jsonData = cleanedJson.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+              let res = json["res"] as? [String: Any] else {
+            print("[PaddleOCREngine] Failed to parse JSON")
+            return observations
+        }
+
+        guard let recTexts = res["rec_texts"] as? [String] else {
+            print("[PaddleOCREngine] No rec_texts found")
+            return observations
+        }
+        
+        let recScores = res["rec_scores"] as? [Double] ?? []
+        let recBoxes = res["rec_boxes"] as? [[Int]] ?? []
+        
+        print("[PaddleOCREngine] Found \(recTexts.count) texts, \(recBoxes.count) boxes")
+
+        for (index, text) in recTexts.enumerated() {
+            let confidence = index < recScores.count ? Float(recScores[index]) : 0.5
+            
+            var boundingBox: CGRect
+            if index < recBoxes.count && recBoxes[index].count >= 4 {
+                let box = recBoxes[index]
+                let x = CGFloat(box[0])
+                let y = CGFloat(box[1])
+                let x2 = CGFloat(box[2])
+                let y2 = CGFloat(box[3])
+                boundingBox = CGRect(
+                    x: x / imageSize.width,
+                    y: y / imageSize.height,
+                    width: (x2 - x) / imageSize.width,
+                    height: (y2 - y) / imageSize.height
+                )
+            } else {
+                boundingBox = CGRect(x: 0, y: CGFloat(index) * 0.1, width: 1, height: 0.1)
             }
-
-            // Extract text
-            if let textRange = Range(match.range(at: 1), in: line) {
-                let text = String(line[textRange]).trimmingCharacters(in: .whitespaces)
-
-                // Extract confidence
-                if let confidenceRange = Range(match.range(at: 2), in: line),
-                   let confidence = Float(String(line[confidenceRange])) {
-                    // Parse bounding box coordinates
-                    if let bbox = parseBoundingBox(from: line, imageSize: imageSize) {
-                        let observation = OCRText(
-                            text: text,
-                            boundingBox: bbox,
-                            confidence: confidence / 100.0 // Convert from percentage to 0-1
-                        )
-                        observations.append(observation)
-                    }
-                }
-            }
+            
+            let observation = OCRText(
+                text: text,
+                boundingBox: boundingBox,
+                confidence: confidence
+            )
+            observations.append(observation)
+            print("[PaddleOCREngine] Text: '\(text)', box: \(boundingBox), confidence: \(confidence)")
         }
 
         return observations
     }
 
-    /// Parses bounding box coordinates from PaddleOCR output line
+    private func convertPythonDictToJson(_ pythonDict: String) -> String {
+        var result = pythonDict
+        result = result.replacingOccurrences(of: "None", with: "null")
+        result = result.replacingOccurrences(of: "True", with: "true")
+        result = result.replacingOccurrences(of: "False", with: "false")
+        result = result.replacingOccurrences(of: "'", with: "\"")
+
+        let arrayPattern = #"array\([^)]*\)[^,}\]]*"#
+        if let regex = try? NSRegularExpression(pattern: arrayPattern, options: [.dotMatchesLineSeparators]) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "[]")
+        }
+        
+        let dtypePattern = #",?\s*dtype=[^\)]+\)"#
+        if let regex = try? NSRegularExpression(pattern: dtypePattern) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "")
+        }
+        
+        let shapePattern = #",?\s*shape=\([^\)]+\)"#
+        if let regex = try? NSRegularExpression(pattern: shapePattern) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "")
+        }
+
+        return result
+    }
+
     private func parseBoundingBox(from line: String, imageSize: CGSize) -> CGRect? {
-        // Extract coordinates: [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
-        let coordPattern = #"\[\[.+?\]\]"#
-        guard let coordRegex = try? NSRegularExpression(pattern: coordPattern),
-              let coordMatch = coordRegex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
-              let coordRange = Range(coordMatch.range, in: line) else {
-            return nil
-        }
-
-        let coordString = String(line[coordRange])
-        // Parse individual points
-        let pointPattern = #"\[(\d+),(\d+)\]"#
-        guard let pointRegex = try? NSRegularExpression(pattern: pointPattern) else {
-            return nil
-        }
-
-        var points: [CGPoint] = []
-        for match in pointRegex.matches(in: coordString, range: NSRange(coordString.startIndex..., in: coordString)) {
-            if match.numberOfRanges >= 3,
-               let xRange = Range(match.range(at: 1), in: coordString),
-               let yRange = Range(match.range(at: 2), in: coordString),
-               let x = Int(String(coordString[xRange])),
-               let y = Int(String(coordString[yRange])) {
-                points.append(CGPoint(x: x, y: y))
-            }
-        }
-
-        guard points.count >= 4 else { return nil }
-
-        // Calculate bounding box from points
-        let xCoords = points.map(\.x)
-        let yCoords = points.map(\.y)
-
-        let minX = xCoords.min() ?? 0
-        let maxX = xCoords.max() ?? 0
-        let minY = yCoords.min() ?? 0
-        let maxY = yCoords.max() ?? 0
-
-        // Convert to normalized coordinates (0-1)
-        return CGRect(
-            x: CGFloat(minX) / imageSize.width,
-            y: CGFloat(minY) / imageSize.height,
-            width: CGFloat(maxX - minX) / imageSize.width,
-            height: CGFloat(maxY - minY) / imageSize.height
-        )
+        nil
     }
 }
 
