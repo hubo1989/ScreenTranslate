@@ -45,11 +45,11 @@ struct PreviewContentView: View {
             }
         }
         .alert(
-            "Error",
+            String(localized: "error.title"),
             isPresented: .constant(viewModel.errorMessage != nil),
             presenting: viewModel.errorMessage
         ) { _ in
-            Button("OK") {
+            Button(String(localized: "button.ok")) {
                 viewModel.errorMessage = nil
             }
         } message: { message in
@@ -84,7 +84,7 @@ struct PreviewContentView: View {
 
                         ZStack(alignment: .topLeading) {
                             // Base image
-                            Image(viewModel.image, scale: 1.0, label: Text("Screenshot"))
+                            Image(viewModel.image, scale: 1.0, label: Text("preview.screenshot"))
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(
@@ -321,7 +321,7 @@ struct PreviewContentView: View {
             y: position.y * scale
         )
 
-        return TextField("Enter text", text: $viewModel.textInputContent)
+        return TextField(String(localized: "preview.enter.text"), text: $viewModel.textInputContent)
             .textFieldStyle(.plain)
             .font(.system(size: 14 * scale))
             .foregroundColor(AppSettings.shared.strokeColor.color)
@@ -357,14 +357,14 @@ struct PreviewContentView: View {
         .cornerRadius(6)
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("Active tool: \(tool.displayName)"))
+        .accessibilityLabel(Text("\(String(localized: "preview.active.tool")): \(tool.displayName)"))
     }
 
     /// Crop mode indicator badge
     private var cropModeIndicator: some View {
         HStack(spacing: 4) {
             Image(systemName: "crop")
-            Text("Crop")
+            Text("preview.crop")
                 .font(.caption)
         }
         .padding(.horizontal, 8)
@@ -373,7 +373,7 @@ struct PreviewContentView: View {
         .cornerRadius(6)
         .foregroundStyle(.secondary)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("Crop mode active"))
+        .accessibilityLabel(Text("preview.crop.mode.active"))
     }
 
     /// Overlay for capturing crop selection gestures
@@ -475,7 +475,7 @@ struct PreviewContentView: View {
             Button {
                 viewModel.cancelCrop()
             } label: {
-                Label("Cancel", systemImage: "xmark")
+                Label(String(localized: "action.cancel"), systemImage: "xmark")
             }
             .buttonStyle(.bordered)
             .keyboardShortcut(.escape, modifiers: [])
@@ -483,7 +483,7 @@ struct PreviewContentView: View {
             Button {
                 viewModel.applyCrop()
             } label: {
-                Label("Apply Crop", systemImage: "checkmark")
+                Label(String(localized: "preview.crop.apply"), systemImage: "checkmark")
             }
             .buttonStyle(.borderedProminent)
             .keyboardShortcut(.return, modifiers: [])
@@ -502,7 +502,7 @@ struct PreviewContentView: View {
                 Text(viewModel.dimensionsText)
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
-                    .help("Image dimensions")
+                    .help(String(localized: "preview.image.dimensions"))
 
                 Text("•")
                     .foregroundStyle(.tertiary)
@@ -510,7 +510,7 @@ struct PreviewContentView: View {
                 Text(viewModel.fileSizeText)
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
-                    .help("Estimated file size")
+                    .help(String(localized: "preview.estimated.size"))
             }
             .fixedSize()
 
@@ -584,7 +584,7 @@ struct PreviewContentView: View {
         HStack(spacing: 8) {
             // Show "Editing" label when modifying existing annotation
             if isEditingAnnotation {
-                Text("Edit:")
+                Text("preview.edit.label")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -667,7 +667,7 @@ struct PreviewContentView: View {
                         : Color.clear
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 4))
-                .help(isFilled ? "Filled (click for hollow)" : "Hollow (click for filled)")
+                .help(isFilled ? String(localized: "preview.shape.filled") : String(localized: "preview.shape.hollow"))
 
                 Divider()
                     .frame(height: 16)
@@ -701,7 +701,7 @@ struct PreviewContentView: View {
                         step: 0.5
                     )
                     .frame(width: 80)
-                    .help("Stroke Width")
+                    .help(String(localized: "settings.stroke.width"))
 
                     let width = isEditingAnnotation
                         ? Int(viewModel.selectedAnnotationStrokeWidth ?? 3)
@@ -740,7 +740,7 @@ struct PreviewContentView: View {
                         step: 1
                     )
                     .frame(width: 80)
-                    .help("Text Size")
+                    .help(String(localized: "settings.text.size"))
 
                     let size = isEditingAnnotation
                         ? Int(viewModel.selectedAnnotationFontSize ?? 16)
@@ -764,7 +764,7 @@ struct PreviewContentView: View {
                         .foregroundStyle(.red)
                 }
                 .buttonStyle(.plain)
-                .help("Delete selected annotation (Delete)")
+                .help(String(localized: "preview.tooltip.delete"))
             }
         }
     }
@@ -789,15 +789,15 @@ struct PreviewContentView: View {
     /// Get accessible color name
     private func colorName(for color: Color) -> String {
         switch color {
-        case .red: return "Red"
-        case .orange: return "Orange"
-        case .yellow: return "Yellow"
-        case .green: return "Green"
-        case .blue: return "Blue"
-        case .purple: return "Purple"
-        case .white: return "White"
-        case .black: return "Black"
-        default: return "Custom"
+        case .red: return String(localized: "color.red")
+        case .orange: return String(localized: "color.orange")
+        case .yellow: return String(localized: "color.yellow")
+        case .green: return String(localized: "color.green")
+        case .blue: return String(localized: "color.blue")
+        case .purple: return String(localized: "color.purple")
+        case .white: return String(localized: "color.white")
+        case .black: return String(localized: "color.black")
+        default: return String(localized: "color.custom")
         }
     }
 
@@ -805,7 +805,7 @@ struct PreviewContentView: View {
         VStack(alignment: .leading, spacing: 8) {
             if viewModel.hasOCRResults {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Recognized Text:")
+                    Text("preview.recognized.text")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(viewModel.combinedOCRText)
@@ -816,7 +816,7 @@ struct PreviewContentView: View {
 
             if viewModel.hasTranslationResults {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Translation:")
+                    Text("preview.translation")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(viewModel.combinedTranslatedText)
@@ -842,8 +842,8 @@ struct PreviewContentView: View {
                     : Color.clear
             )
             .clipShape(RoundedRectangle(cornerRadius: 4))
-            .help("Crop (C)")
-            .accessibilityLabel(Text("Crop"))
+            .help(String(localized: "preview.tooltip.crop"))
+            .accessibilityLabel(Text("preview.crop"))
             .accessibilityHint(Text("Press C to toggle"))
 
             Divider()
@@ -857,8 +857,8 @@ struct PreviewContentView: View {
                 Image(systemName: "arrow.uturn.backward")
             }
             .disabled(!viewModel.canUndo)
-            .help("Undo (⌘Z)")
-            .accessibilityLabel(Text("Undo"))
+            .help(String(localized: "preview.tooltip.undo"))
+            .accessibilityLabel(Text("action.undo"))
             .accessibilityHint(Text("Command Z"))
 
             Button {
@@ -867,8 +867,8 @@ struct PreviewContentView: View {
                 Image(systemName: "arrow.uturn.forward")
             }
             .disabled(!viewModel.canRedo)
-            .help("Redo (⌘⇧Z)")
-            .accessibilityLabel(Text("Redo"))
+            .help(String(localized: "preview.tooltip.redo"))
+            .accessibilityLabel(Text("action.redo"))
             .accessibilityHint(Text("Command Shift Z"))
 
             Divider()
@@ -894,7 +894,7 @@ struct PreviewContentView: View {
                 }
             }
             .disabled(viewModel.isCopying)
-            .help("Copy to Clipboard (⌘C)")
+            .help(String(localized: "preview.tooltip.copy"))
             .accessibilityLabel(Text(viewModel.isCopying ? "Copying to clipboard" : "Copy to clipboard"))
             .accessibilityHint(Text("Command C"))
 
@@ -916,7 +916,7 @@ struct PreviewContentView: View {
                 }
             }
             .disabled(viewModel.isSaving)
-            .help("Save (⌘S or Enter)")
+            .help(String(localized: "preview.tooltip.save"))
             .accessibilityLabel(Text(viewModel.isSaving ? "Saving screenshot" : "Save screenshot"))
             .accessibilityHint(Text("Command S or Enter"))
 
@@ -936,7 +936,7 @@ struct PreviewContentView: View {
                 }
             }
             .disabled(viewModel.isPerformingOCR)
-            .help("Recognize Text (OCR)")
+            .help(String(localized: "preview.tooltip.ocr"))
 
             Button {
                 viewModel.performTranslation()
@@ -950,7 +950,7 @@ struct PreviewContentView: View {
                 }
             }
             .disabled(viewModel.isPerformingTranslation || !viewModel.hasOCRResults)
-            .help("Translate Text")
+            .help(String(localized: "preview.tooltip.translate"))
 
             Divider()
                 .frame(height: 16)
@@ -962,7 +962,7 @@ struct PreviewContentView: View {
             } label: {
                 Image(systemName: "xmark")
             }
-            .help("Dismiss (Escape)")
+            .help(String(localized: "preview.tooltip.dismiss"))
             .accessibilityLabel(Text("Dismiss preview"))
             .accessibilityHint(Text("Escape key"))
         }

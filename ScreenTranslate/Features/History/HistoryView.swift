@@ -62,7 +62,7 @@ private struct SearchBar: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("Search history...", text: Binding(
+            TextField(String(localized: "history.search.placeholder"), text: Binding(
                 get: { store.searchQuery },
                 set: { store.search($0) }
             ))
@@ -94,7 +94,7 @@ private struct SearchBar: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Clear all history")
+                .help(String(localized: "history.clear.all"))
             }
         }
         .padding(12)
@@ -135,26 +135,26 @@ private struct EmptyStateView: View {
                 .foregroundStyle(.secondary)
 
             if store.searchQuery.isEmpty {
-                Text("No Translation History")
+                Text("history.empty.title")
                     .font(.headline)
                     .foregroundStyle(.secondary)
 
-                Text("Your translated screenshots will appear here")
+                Text("history.empty.message")
                     .font(.body)
                     .foregroundStyle(.tertiary)
             } else {
-                Text("No Results")
+                Text("history.no.results.title")
                     .font(.headline)
                     .foregroundStyle(.secondary)
 
-                Text("No entries match your search")
+                Text("history.no.results.message")
                     .font(.body)
                     .foregroundStyle(.tertiary)
 
                 Button {
                     store.search("")
                 } label: {
-                    Text("Clear Search")
+                    Text("history.clear.search")
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -204,7 +204,7 @@ private struct HistoryEntryRow: View {
                 TextSection(
                     text: entry.sourcePreview,
                     isTruncated: entry.isSourceTruncated,
-                    label: "Source"
+                    label: String(localized: "history.source")
                 )
 
                 // Arrow separator
@@ -227,7 +227,7 @@ private struct HistoryEntryRow: View {
                 TextSection(
                     text: entry.translatedPreview,
                     isTruncated: entry.isTranslatedTruncated,
-                    label: "Translation"
+                    label: String(localized: "history.translation")
                 )
             }
 
@@ -291,7 +291,7 @@ private struct TextSection: View {
                 HStack(spacing: 4) {
                     Image(systemName: "ellipsis")
                         .font(.caption2)
-                    Text("truncated")
+                    Text("history.truncated")
                         .font(.caption2)
                 }
                 .foregroundStyle(.tertiary)
@@ -312,19 +312,19 @@ private struct EntryContextMenu: View {
             Button {
                 store.copyTranslation(entry)
             } label: {
-                Label("Copy Translation", systemImage: "doc.on.doc")
+                Label(String(localized: "history.copy.translation"), systemImage: "doc.on.doc")
             }
 
             Button {
                 store.copySource(entry)
             } label: {
-                Label("Copy Source", systemImage: "doc.on.doc")
+                Label(String(localized: "history.copy.source"), systemImage: "doc.on.doc")
             }
 
             Button {
                 store.copyBoth(entry)
             } label: {
-                Label("Copy Both", systemImage: "doc.on.clipboard")
+                Label(String(localized: "history.copy.both"), systemImage: "doc.on.clipboard")
             }
 
             Divider()
@@ -332,7 +332,7 @@ private struct EntryContextMenu: View {
             Button(role: .destructive) {
                 store.remove(entry)
             } label: {
-                Label("Delete", systemImage: "trash")
+                Label(String(localized: "history.delete"), systemImage: "trash")
             }
         }
     }

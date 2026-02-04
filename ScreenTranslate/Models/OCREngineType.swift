@@ -51,36 +51,41 @@ enum OCREngineType: String, CaseIterable, Sendable, Codable {
 /// Helper to check if PaddleOCR is available on the system
 enum PaddleOCRChecker {
     /// Cached availability status (nonisolated(unsafe) for singleton cache)
-    private nonisolated(unsafe) static var _isAvailable: Bool?
+    private nonisolated(unsafe) static var _isAvailable: Bool? = false
 
-    /// Check if PaddleOCR command is available
+    /// Check if PaddleOCR command is available (returns cached value, never blocks)
     static var isAvailable: Bool {
-        if let cached = _isAvailable {
-            return cached
+        return _isAvailable ?? false
+    }
+    
+    /// Async check and cache PaddleOCR availability
+    static func checkAvailabilityAsync() {
+        Task.detached(priority: .background) {
+            let result = await checkPaddleOCRAsync()
+            _isAvailable = result
         }
-
-        let result = checkPaddleOCR()
-        _isAvailable = result
-        return result
     }
 
-    /// Perform actual check for PaddleOCR availability
-    private static func checkPaddleOCR() -> Bool {
-        let task = Process()
-        task.launchPath = "/usr/bin/which"
-        task.arguments = ["paddleocr"]
+    /// Perform actual check for PaddleOCR availability (async, off main thread)
+    private static func checkPaddleOCRAsync() async -> Bool {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .background).async {
+                let task = Process()
+                task.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+                task.arguments = ["paddleocr"]
 
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = Pipe()
+                let pipe = Pipe()
+                task.standardOutput = pipe
+                task.standardError = Pipe()
 
-        do {
-            try task.run()
-            task.waitUntilExit()
-
-            return task.terminationStatus == 0
-        } catch {
-            return false
+                do {
+                    try task.run()
+                    task.waitUntilExit()
+                    continuation.resume(returning: task.terminationStatus == 0)
+                } catch {
+                    continuation.resume(returning: false)
+                }
+            }
         }
     }
 
@@ -94,7 +99,7 @@ enum PaddleOCRChecker {
         guard isAvailable else { return nil }
 
         let task = Process()
-        task.launchPath = "/usr/local/bin/paddleocr"
+        task.executableURL = URL(fileURLWithPath: "/usr/local/bin/paddleocr")
         task.arguments = ["--version"]
 
         let pipe = Pipe()
