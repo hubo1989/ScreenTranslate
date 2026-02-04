@@ -1056,6 +1056,37 @@ final class PreviewViewModel {
         }
 
         translations = results
+        
+        showTranslationResult()
+    }
+    
+    private func showTranslationResult() {
+        guard !translations.isEmpty, let ocrResult = ocrResult else { return }
+        
+        switch settings.translationMode {
+        case .inline:
+            TranslationOverlayController.shared.presentOverlay(
+                ocrResult: ocrResult,
+                translations: translations
+            )
+        case .below:
+            let imageWidth = CGFloat(screenshot.image.width)
+            
+            guard let screen = NSScreen.main else { return }
+            let screenFrame = screen.frame
+            
+            let anchorRect = CGRect(
+                x: screenFrame.midX - imageWidth / 4,
+                y: screenFrame.midY,
+                width: imageWidth / 2,
+                height: 1
+            )
+            
+            TranslationPopoverController.shared.presentPopover(
+                anchorRect: anchorRect,
+                translations: translations
+            )
+        }
     }
 
     var hasOCRResults: Bool {
