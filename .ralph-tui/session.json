@@ -3,10 +3,10 @@
   "sessionId": "a20df592-ec5b-40bd-a063-3eba28eb5847",
   "status": "running",
   "startedAt": "2026-02-04T13:33:39.856Z",
-  "updatedAt": "2026-02-04T14:06:19.000Z",
-  "currentIteration": 3,
+  "updatedAt": "2026-02-04T14:08:24.992Z",
+  "currentIteration": 4,
   "maxIterations": 10,
-  "tasksCompleted": 3,
+  "tasksCompleted": 4,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -29,8 +29,8 @@
       {
         "id": "US-003",
         "title": "读取翻译显示位置设置",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-004",
@@ -112,6 +112,16 @@
       "durationMs": 1227661,
       "startedAt": "2026-02-04T13:41:36.389Z",
       "endedAt": "2026-02-04T14:02:04.050Z"
+    },
+    {
+      "iteration": 4,
+      "status": "completed",
+      "taskId": "US-003",
+      "taskTitle": "读取翻译显示位置设置",
+      "taskCompleted": true,
+      "durationMs": 253883,
+      "startedAt": "2026-02-04T14:02:05.116Z",
+      "endedAt": "2026-02-04T14:06:18.999Z"
     }
   ],
   "skippedTaskIds": [],
