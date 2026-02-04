@@ -85,6 +85,14 @@ struct PreviewContentView: View {
             )
             .frame(width: imageSize.width, height: imageSize.height)
 
+            TranslationOverlayCanvas(
+                ocrResult: viewModel.ocrResult,
+                translations: viewModel.translations,
+                image: viewModel.image,
+                canvasSize: imageSize,
+                isVisible: viewModel.isTranslationOverlayVisible
+            )
+
             // Text input field overlay (when text tool is active)
             if viewModel.isWaitingForTextInput,
                let inputPosition = viewModel.textInputPosition {
@@ -876,6 +884,16 @@ struct PreviewContentView: View {
             .help(viewModel.isPerformingOCRThenTranslation
                 ? String(localized: "preview.tooltip.ocr.then.translate")
                 : String(localized: "preview.tooltip.translate"))
+
+            Button {
+                viewModel.toggleTranslationOverlay()
+            } label: {
+                Image(systemName: viewModel.isTranslationOverlayVisible ? "eye.slash" : "eye")
+            }
+            .disabled(!viewModel.hasTranslationResults)
+            .help(viewModel.isTranslationOverlayVisible
+                ? String(localized: "preview.tooltip.hide.translation")
+                : String(localized: "preview.tooltip.show.translation"))
 
             Divider()
                 .frame(height: 16)

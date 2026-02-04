@@ -58,6 +58,8 @@ final class PreviewViewModel {
     /// Error message to display (if any)
     var errorMessage: String?
 
+    var isTranslationOverlayVisible: Bool = false
+
     /// Whether save is in progress
     private(set) var isSaving: Bool = false
 
@@ -1057,6 +1059,7 @@ final class PreviewViewModel {
 
         translations = results
         
+        isTranslationOverlayVisible = true
         showTranslationResult()
     }
     
@@ -1065,11 +1068,7 @@ final class PreviewViewModel {
         
         switch settings.translationMode {
         case .inline:
-            TranslationOverlayController.shared.presentOverlay(
-                ocrResult: ocrResult,
-                translations: translations,
-                capturedImage: screenshot.image
-            )
+            break
         case .below:
             let imageWidth = CGFloat(screenshot.image.width)
             
@@ -1088,6 +1087,10 @@ final class PreviewViewModel {
                 translations: translations
             )
         }
+    }
+    
+    func toggleTranslationOverlay() {
+        isTranslationOverlayVisible.toggle()
     }
 
     var hasOCRResults: Bool {

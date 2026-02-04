@@ -132,6 +132,9 @@
 "preview.tooltip.save" = "保存 (⌘S 或 回车)";
 "preview.tooltip.ocr" = "识别文字 (OCR)";
 "preview.tooltip.translate" = "翻译文本";
+"preview.tooltip.ocr.then.translate" = "正在识别文字...";
+"preview.tooltip.show.translation" = "显示翻译覆盖层";
+"preview.tooltip.hide.translation" = "隐藏翻译覆盖层";
 "preview.tooltip.dismiss" = "关闭 (Escape)";
 "preview.tooltip.delete" = "删除选中的标注";
 
