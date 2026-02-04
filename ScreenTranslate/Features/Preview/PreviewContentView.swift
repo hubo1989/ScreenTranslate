@@ -17,6 +17,9 @@ struct PreviewContentView: View {
     /// Focus state for the text input field
     @FocusState private var isTextFieldFocused: Bool
 
+    /// State for results panel expansion (collapsed by default)
+    @State private var isResultsPanelExpanded: Bool = false
+
     /// Environment variable for Reduce Motion preference
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -733,27 +736,74 @@ struct PreviewContentView: View {
     }
 
     private var resultsPanel: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if viewModel.hasOCRResults {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("preview.recognized.text")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(viewModel.combinedOCRText)
-                        .font(.body)
-                        .lineLimit(3)
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isResultsPanelExpanded.toggle()
                 }
+            } label: {
+                HStack {
+                    Image(systemName: isResultsPanelExpanded ? "chevron.down" : "chevron.right")
+                        .frame(width: 12)
+                    Text("preview.results.panel")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Spacer()
+                }
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            
+            if isResultsPanelExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    if viewModel.hasOCRResults {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("preview.recognized.text")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(viewModel.combinedOCRText, forType: .string)
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                                .help(String(localized: "preview.copy.text"))
+                            }
+                            Text(viewModel.combinedOCRText)
+                                .font(.body)
+                                .textSelection(.enabled)
+                        }
+                    }
 
-            if viewModel.hasTranslationResults {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("preview.translation")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(viewModel.combinedTranslatedText)
-                        .font(.body)
-                        .lineLimit(3)
+                    if viewModel.hasTranslationResults {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("preview.translation")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(viewModel.combinedTranslatedText, forType: .string)
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                                .help(String(localized: "preview.copy.text"))
+                            }
+                            Text(viewModel.combinedTranslatedText)
+                                .font(.body)
+                                .textSelection(.enabled)
+                        }
+                    }
                 }
+                .padding(.top, 8)
             }
         }
     }

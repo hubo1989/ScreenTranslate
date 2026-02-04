@@ -123,6 +123,8 @@
 /* Recognized Text */
 "preview.recognized.text" = "Recognized Text:";
 "preview.translation" = "Translation:";
+"preview.results.panel" = "Text Results";
+"preview.copy.text" = "Copy text";
 
 /* Toolbar Tooltips */
 "preview.tooltip.crop" = "Crop (C)";

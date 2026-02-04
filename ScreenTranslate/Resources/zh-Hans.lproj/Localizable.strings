@@ -123,6 +123,8 @@
 /* 识别文本 */
 "preview.recognized.text" = "识别文本：";
 "preview.translation" = "翻译结果：";
+"preview.results.panel" = "文本结果";
+"preview.copy.text" = "复制文本";
 
 /* 工具栏提示 */
 "preview.tooltip.crop" = "裁剪 (C)";
