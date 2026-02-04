@@ -2,6 +2,14 @@ import AppKit
 import CoreGraphics
 import SwiftUI
 
+// MARK: - CGFloat Extension
+
+private extension CGFloat {
+    func clamped(to range: ClosedRange<CGFloat>) -> CGFloat {
+        Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
+    }
+}
+
 // MARK: - TranslationOverlayDelegate
 
 /// Delegate protocol for translation overlay events.
@@ -15,6 +23,7 @@ protocol TranslationOverlayDelegate: AnyObject {
 
 /// NSPanel subclass for displaying translated text overlay on screen.
 /// Shows translated text at the exact position of original text using OCR bounding boxes.
+/// Implements "cover original text" mode with content-aware background fill.
 final class TranslationOverlayWindow: NSPanel {
     // MARK: - Properties
 
@@ -30,6 +39,9 @@ final class TranslationOverlayWindow: NSPanel {
     /// Translation results mapping to OCR texts
     private let translations: [TranslationResult]
 
+    /// The captured screenshot for background color sampling
+    private let capturedImage: CGImage?
+
     /// The content view handling drawing and interaction
     private var overlayView: TranslationOverlayView?
 
@@ -44,17 +56,20 @@ final class TranslationOverlayWindow: NSPanel {
     ///   - displayInfo: The DisplayInfo for the screen
     ///   - ocrResults: OCR text observations with bounding boxes
     ///   - translations: Translation results for each OCR text
+    ///   - capturedImage: Optional screenshot for background sampling (enables content-aware fill)
     @MainActor
     init(
         screen: NSScreen,
         displayInfo: DisplayInfo,
         ocrResults: [OCRText],
-        translations: [TranslationResult]
+        translations: [TranslationResult],
+        capturedImage: CGImage? = nil
     ) {
         self.targetScreen = screen
         self.displayInfo = displayInfo
         self.ocrResults = ocrResults
         self.translations = translations
+        self.capturedImage = capturedImage
 
         super.init(
             contentRect: screen.frame,
@@ -97,6 +112,7 @@ final class TranslationOverlayWindow: NSPanel {
             ocrResults: ocrResults,
             translations: translations,
             displayInfo: displayInfo,
+            capturedImage: capturedImage,
             window: self
         )
         view.autoresizingMask = [.width, .height]
@@ -139,32 +155,16 @@ final class TranslationOverlayWindow: NSPanel {
 // MARK: - TranslationOverlayView
 
 /// Custom NSView for drawing translated text overlay.
-/// Positions translated text at the original text locations with styling.
+/// Implements content-aware fill: samples background color from original image,
+/// fills text region, then renders translation with contrasting color.
 final class TranslationOverlayView: NSView {
     // MARK: - Properties
 
-    /// OCR text observations with bounding boxes
     private let ocrResults: [OCRText]
-
-    /// Translation results for each OCR text
     private let translations: [TranslationResult]
-
-    /// Display info for coordinate conversion
     private let displayInfo: DisplayInfo
-
-    /// Weak reference to parent window for delegate communication
+    private let capturedImage: CGImage?
     private weak var windowRef: TranslationOverlayWindow?
-
-    /// Background color for text boxes
-    private let boxBackgroundColor = NSColor.black.withAlphaComponent(0.85)
-
-    /// Text color
-    private let textColor = NSColor.white
-
-    /// Border color
-    private let borderColor = NSColor.white.withAlphaComponent(0.3)
-
-    /// Tracking area for mouse events
     private var trackingArea: NSTrackingArea?
 
     // MARK: - Initialization
@@ -174,11 +174,13 @@ final class TranslationOverlayView: NSView {
         ocrResults: [OCRText],
         translations: [TranslationResult],
         displayInfo: DisplayInfo,
+        capturedImage: CGImage?,
         window: TranslationOverlayWindow
     ) {
         self.ocrResults = ocrResults
         self.translations = translations
         self.displayInfo = displayInfo
+        self.capturedImage = capturedImage
         self.windowRef = window
         super.init(frame: frameRect)
         setupTrackingArea()
@@ -222,7 +224,6 @@ final class TranslationOverlayView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
-        // Draw each translation at its corresponding OCR position
         for (index, ocrText) in ocrResults.enumerated() {
             guard index < translations.count else { break }
 
@@ -231,27 +232,23 @@ final class TranslationOverlayView: NSView {
         }
     }
 
-    /// Draws a translation text box at the specified normalized bounding box.
     private func drawTranslation(
         _ translation: TranslationResult,
         at boundingBox: CGRect,
         context: CGContext
     ) {
-        // Convert normalized bounding box to screen coordinates
         let screenRect = convertToScreenCoordinates(boundingBox)
-
-        // Skip if outside visible area
         guard screenRect.intersects(bounds) else { return }
 
-        // Calculate font size based on bounding box height
+        let backgroundColor = sampleBackgroundColor(at: boundingBox)
+        let textColor = calculateContrastingColor(for: backgroundColor)
         let fontSize = calculateFontSize(for: screenRect)
-
-        // Create attributed string for translation
         let text = translation.translatedText
+
         let font = NSFont.systemFont(ofSize: fontSize, weight: .medium)
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .center
-        paragraphStyle.lineBreakMode = .byTruncatingTail
+        paragraphStyle.alignment = .left
+        paragraphStyle.lineBreakMode = .byWordWrapping
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
@@ -260,63 +257,100 @@ final class TranslationOverlayView: NSView {
         ]
 
         let attributedString = NSAttributedString(string: text, attributes: attributes)
+        let textSize = attributedString.boundingRect(
+            with: CGSize(width: max(screenRect.width, 200), height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading]
+        ).size
 
-        // Calculate text size
-        let textSize = attributedString.size()
-
-        // Adjust box size to fit text, maintaining minimum dimensions
-        let boxWidth = max(screenRect.width, textSize.width + 16)
-        let boxHeight = max(screenRect.height, textSize.height + 12)
-
-        // Center the box on the original text position
-        let boxOrigin = CGPoint(
-            x: screenRect.midX - boxWidth / 2,
-            y: screenRect.midY - boxHeight / 2
+        let fillWidth = max(screenRect.width, textSize.width + 8)
+        let fillHeight = max(screenRect.height, textSize.height + 4)
+        let fillRect = CGRect(
+            x: screenRect.origin.x,
+            y: screenRect.origin.y,
+            width: fillWidth,
+            height: fillHeight
         )
-
-        let boxRect = CGRect(origin: boxOrigin, size: CGSize(width: boxWidth, height: boxHeight))
-
-        // Draw background
-        drawBackgroundBox(boxRect, context: context)
-
-        // Draw text
-        let textPoint = CGPoint(
-            x: boxRect.midX - textSize.width / 2,
-            y: boxRect.midY - textSize.height / 2
-        )
-
-        attributedString.draw(at: textPoint)
-    }
-
-    /// Draws the background box with rounded corners and border.
-    private func drawBackgroundBox(_ rect: CGRect, context: CGContext) {
-        let cornerRadius: CGFloat = 6
 
         context.saveGState()
-
-        // Draw rounded rectangle
-        let path = CGPath(
-            roundedRect: rect,
-            cornerWidth: cornerRadius,
-            cornerHeight: cornerRadius,
-            transform: nil
-        )
-
-        // Fill
-        context.setFillColor(boxBackgroundColor.cgColor)
-        context.addPath(path)
-        context.fillPath()
-
-        // Stroke
-        context.setStrokeColor(borderColor.cgColor)
-        context.setLineWidth(1)
-        context.addPath(path)
-        context.strokePath()
-
+        context.setFillColor(backgroundColor.cgColor)
+        context.fill(fillRect)
         context.restoreGState()
+
+        let textRect = CGRect(
+            x: fillRect.origin.x + 4,
+            y: fillRect.origin.y + 2,
+            width: fillWidth - 8,
+            height: fillHeight - 4
+        )
+        attributedString.draw(in: textRect)
     }
 
-    /// Converts normalized bounding box to screen coordinates.
+    private func sampleBackgroundColor(at normalizedBox: CGRect) -> NSColor {
+        guard let image = capturedImage else {
+            return .windowBackgroundColor
+        }
+
+        let imageWidth = CGFloat(image.width)
+        let imageHeight = CGFloat(image.height)
+
+        let pixelRect = CGRect(
+            x: normalizedBox.minX * imageWidth,
+            y: normalizedBox.minY * imageHeight,
+            width: normalizedBox.width * imageWidth,
+            height: normalizedBox.height * imageHeight
+        )
+
+        var samples: [(r: CGFloat, g: CGFloat, b: CGFloat)] = []
+        let samplePoints = [
+            CGPoint(x: max(0, pixelRect.minX - 2), y: pixelRect.midY),
+            CGPoint(x: min(imageWidth - 1, pixelRect.maxX + 2), y: pixelRect.midY),
+            CGPoint(x: pixelRect.midX, y: max(0, pixelRect.minY - 2)),
+            CGPoint(x: pixelRect.midX, y: min(imageHeight - 1, pixelRect.maxY + 2))
+        ]
+
+        guard let dataProvider = image.dataProvider,
+              let data = dataProvider.data,
+              let bytes = CFDataGetBytePtr(data) else {
+            return .windowBackgroundColor
+        }
+
+        let bytesPerPixel = image.bitsPerPixel / 8
+        let bytesPerRow = image.bytesPerRow
+
+        for point in samplePoints {
+            let x = Int(point.x.clamped(to: 0...imageWidth - 1))
+            let y = Int(point.y.clamped(to: 0...imageHeight - 1))
+            let offset = y * bytesPerRow + x * bytesPerPixel
+
+            if offset >= 0 && offset + 2 < CFDataGetLength(data) {
+                let red = CGFloat(bytes[offset]) / 255.0
+                let green = CGFloat(bytes[offset + 1]) / 255.0
+                let blue = CGFloat(bytes[offset + 2]) / 255.0
+                samples.append((r: red, g: green, b: blue))
+            }
+        }
+
+        guard !samples.isEmpty else { return .windowBackgroundColor }
+
+        let avgR = samples.map(\.r).reduce(0, +) / CGFloat(samples.count)
+        let avgG = samples.map(\.g).reduce(0, +) / CGFloat(samples.count)
+        let avgB = samples.map(\.b).reduce(0, +) / CGFloat(samples.count)
+
+        return NSColor(red: avgR, green: avgG, blue: avgB, alpha: 1.0)
+    }
+
+    private func calculateContrastingColor(for backgroundColor: NSColor) -> NSColor {
+        guard let rgbColor = backgroundColor.usingColorSpace(.deviceRGB) else {
+            return .black
+        }
+
+        let luminance = 0.299 * rgbColor.redComponent +
+                        0.587 * rgbColor.greenComponent +
+                        0.114 * rgbColor.blueComponent
+
+        return luminance > 0.5 ? .black : .white
+    }
+
     private func convertToScreenCoordinates(_ normalizedBox: CGRect) -> CGRect {
         CGRect(
             x: normalizedBox.minX * bounds.width,
@@ -326,32 +360,29 @@ final class TranslationOverlayView: NSView {
         )
     }
 
-    /// Calculates appropriate font size based on bounding box height.
     private func calculateFontSize(for rect: CGRect) -> CGFloat {
-        // Base font size on box height, with reasonable bounds
-        let minFontSize: CGFloat = 12
-        let maxFontSize: CGFloat = 24
-        let calculatedSize = rect.height * 0.7
+        let minFontSize: CGFloat = 10
+        let maxFontSize: CGFloat = 32
+        let calculatedSize = rect.height * 0.75
         return max(minFontSize, min(maxFontSize, calculatedSize))
     }
 
     // MARK: - Mouse Events
 
     override func mouseDown(with event: NSEvent) {
-        // Check if click is outside any translation box
         let point = convert(event.locationInWindow, from: nil)
 
         var isOutside = true
         for ocrText in ocrResults {
             let screenRect = convertToScreenCoordinates(ocrText.boundingBox)
-            if screenRect.contains(point) {
+            let expandedRect = screenRect.insetBy(dx: -20, dy: -10)
+            if expandedRect.contains(point) {
                 isOutside = false
                 break
             }
         }
 
         if isOutside {
-            // Notify delegate to dismiss
             windowRef?.overlayDelegate?.translationOverlayDidDismiss()
         }
     }
@@ -383,19 +414,15 @@ final class TranslationOverlayController {
     // MARK: - Public API
 
     /// Presents translation overlay with the given OCR and translation results.
-    /// - Parameters:
-    ///   - ocrResult: The OCR result containing text observations
-    ///   - translations: Array of translation results
     func presentOverlay(
         ocrResult: OCRResult,
-        translations: [TranslationResult]
+        translations: [TranslationResult],
+        capturedImage: CGImage? = nil
     ) {
-        // Dismiss any existing overlay
         dismissOverlay()
 
         guard let screen = NSScreen.main else { return }
 
-        // Create display info for the main screen
         let displayInfo = DisplayInfo(
             id: CGMainDisplayID(),
             name: screen.localizedName,
@@ -404,12 +431,12 @@ final class TranslationOverlayController {
             isPrimary: true
         )
 
-        // Create overlay window
         let overlay = TranslationOverlayWindow(
             screen: screen,
             displayInfo: displayInfo,
             ocrResults: ocrResult.observations,
-            translations: translations
+            translations: translations,
+            capturedImage: capturedImage
         )
         overlay.overlayDelegate = self
 

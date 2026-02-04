@@ -1067,7 +1067,8 @@ final class PreviewViewModel {
         case .inline:
             TranslationOverlayController.shared.presentOverlay(
                 ocrResult: ocrResult,
-                translations: translations
+                translations: translations,
+                capturedImage: screenshot.image
             )
         case .below:
             let imageWidth = CGFloat(screenshot.image.width)
