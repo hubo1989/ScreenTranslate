@@ -61,6 +61,17 @@ struct PreviewContentView: View {
         } message: { message in
             Text(message)
         }
+        .alert(
+            String(localized: "save.success.title"),
+            isPresented: .constant(viewModel.saveSuccessMessage != nil),
+            presenting: viewModel.saveSuccessMessage
+        ) { _ in
+            Button(String(localized: "button.ok")) {
+                viewModel.dismissSuccessMessage()
+            }
+        } message: { message in
+            Text(message)
+        }
     }
 
     // MARK: - Subviews
@@ -944,6 +955,26 @@ struct PreviewContentView: View {
             .help(viewModel.isTranslationOverlayVisible
                 ? String(localized: "preview.tooltip.hide.translation")
                 : String(localized: "preview.tooltip.show.translation"))
+
+            Button {
+                viewModel.saveWithTranslations()
+            } label: {
+                if viewModel.isSavingWithTranslations {
+                    if reduceMotion {
+                        Image(systemName: "ellipsis")
+                            .frame(width: 16, height: 16)
+                    } else {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 16, height: 16)
+                    }
+                } else {
+                    Image(systemName: "photo.badge.arrow.down")
+                }
+            }
+            .disabled(!viewModel.hasTranslationResults || viewModel.isSavingWithTranslations)
+            .help(String(localized: "preview.tooltip.save.with.translations"))
+            .accessibilityLabel(Text(viewModel.isSavingWithTranslations ? "Saving translated image" : "Save image with translations"))
 
             Divider()
                 .frame(height: 16)

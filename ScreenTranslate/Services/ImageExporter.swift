@@ -348,6 +348,285 @@ struct ImageExporter: Sendable {
     }
 }
 
+// MARK: - Translation Overlay Compositing
+
+extension ImageExporter {
+    /// Composites translation overlays onto an image.
+    /// - Parameters:
+    ///   - image: The base image
+    ///   - ocrResult: The OCR result containing text positions
+    ///   - translations: The translated texts
+    /// - Returns: A new CGImage with translations rendered
+    /// - Throws: ScreenTranslateError if compositing fails
+    func compositeTranslations(
+        _ image: CGImage,
+        ocrResult: OCRResult,
+        translations: [TranslationResult]
+    ) throws -> CGImage {
+        let width = image.width
+        let height = image.height
+        let imageSize = CGSize(width: CGFloat(width), height: CGFloat(height))
+
+        // Create drawing context
+        guard let colorSpace = image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                  data: nil,
+                  width: width,
+                  height: height,
+                  bitsPerComponent: 8,
+                  bytesPerRow: 0,
+                  space: colorSpace,
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else {
+            throw ScreenTranslateError.exportEncodingFailed(format: .png)
+        }
+
+        // Draw base image
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        // Draw each translation overlay
+        for (index, observation) in ocrResult.observations.enumerated() {
+            guard index < translations.count else { break }
+
+            let translation = translations[index]
+            guard !translation.translatedText.isEmpty else { continue }
+
+            // Convert normalized bounding box to pixel coordinates
+            let pixelRect = convertNormalizedToPixels(
+                normalizedRect: observation.boundingBox,
+                imageSize: imageSize
+            )
+
+            // Convert to CG coordinates (origin at bottom-left)
+            let cgRect = CGRect(
+                x: pixelRect.origin.x,
+                y: CGFloat(height) - pixelRect.origin.y - pixelRect.height,
+                width: pixelRect.width,
+                height: pixelRect.height
+            )
+
+            renderTranslationOverlay(
+                context: context,
+                text: translation.translatedText,
+                rect: cgRect,
+                image: image
+            )
+        }
+
+        // Create final image
+        guard let result = context.makeImage() else {
+            throw ScreenTranslateError.exportEncodingFailed(format: .png)
+        }
+
+        return result
+    }
+
+    /// Converts normalized bounding box (0-1) to pixel coordinates
+    private func convertNormalizedToPixels(
+        normalizedRect: CGRect,
+        imageSize: CGSize
+    ) -> CGRect {
+        CGRect(
+            x: normalizedRect.origin.x * imageSize.width,
+            y: normalizedRect.origin.y * imageSize.height,
+            width: normalizedRect.width * imageSize.width,
+            height: normalizedRect.height * imageSize.height
+        )
+    }
+
+    private func renderTranslationOverlay(
+        context: CGContext,
+        text: String,
+        rect: CGRect,
+        image: CGImage
+    ) {
+        let backgroundColor = sampleBackgroundColor(at: rect, image: image)
+        let textColor = calculateContrastingColor(for: backgroundColor)
+        let fontSize = calculateFontSize(for: rect)
+
+        let bgWithAlpha = createColorWithAlpha(backgroundColor, alpha: 0.85)
+        context.setFillColor(bgWithAlpha)
+        let backgroundPath = CGPath(roundedRect: rect, cornerWidth: 2, cornerHeight: 2, transform: nil)
+        context.addPath(backgroundPath)
+        context.fillPath()
+
+        let font = CTFontCreateWithName(".AppleSystemUIFont" as CFString, fontSize, nil)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: textColor
+        ]
+
+        let attributedString = NSAttributedString(string: text, attributes: attributes)
+        let line = CTLineCreateWithAttributedString(attributedString)
+
+        let textBounds = CTLineGetBoundsWithOptions(line, [])
+        let textX = rect.origin.x + (rect.width - textBounds.width) / 2
+        let textY = rect.origin.y + (rect.height - textBounds.height) / 2 + textBounds.height * 0.25
+
+        context.saveGState()
+        context.textPosition = CGPoint(x: textX, y: textY)
+        CTLineDraw(line, context)
+        context.restoreGState()
+    }
+
+    private func createColorWithAlpha(_ color: CGColor, alpha: CGFloat) -> CGColor {
+        guard let components = color.components, components.count >= 3 else {
+            return CGColor(gray: 0, alpha: alpha)
+        }
+        return CGColor(red: components[0], green: components[1], blue: components[2], alpha: alpha)
+    }
+
+    /// Samples the average background color from the image at the specified rect
+    private func sampleBackgroundColor(at rect: CGRect, image: CGImage) -> CGColor {
+        let samplePoints = [
+            CGPoint(x: rect.minX + 2, y: rect.minY + 2),
+            CGPoint(x: rect.maxX - 2, y: rect.minY + 2),
+            CGPoint(x: rect.minX + 2, y: rect.maxY - 2),
+            CGPoint(x: rect.maxX - 2, y: rect.maxY - 2)
+        ]
+
+        var totalRed: CGFloat = 0
+        var totalGreen: CGFloat = 0
+        var totalBlue: CGFloat = 0
+        var validSamples = 0
+
+        guard let dataProvider = image.dataProvider,
+              let data = dataProvider.data,
+              let bytes = CFDataGetBytePtr(data) else {
+            return CGColor(gray: 0, alpha: 0.7)
+        }
+
+        let bytesPerPixel = image.bitsPerPixel / 8
+        let bytesPerRow = image.bytesPerRow
+
+        for point in samplePoints {
+            // Convert from CG coordinates to image pixel coordinates
+            let x = Int(point.x)
+            let y = image.height - Int(point.y) - 1
+
+            guard x >= 0, x < image.width, y >= 0, y < image.height else {
+                continue
+            }
+
+            let pixelOffset = y * bytesPerRow + x * bytesPerPixel
+            let red = CGFloat(bytes[pixelOffset]) / 255.0
+            let green = CGFloat(bytes[pixelOffset + 1]) / 255.0
+            let blue = CGFloat(bytes[pixelOffset + 2]) / 255.0
+
+            totalRed += red
+            totalGreen += green
+            totalBlue += blue
+            validSamples += 1
+        }
+
+        guard validSamples > 0 else {
+            return CGColor(gray: 0, alpha: 0.7)
+        }
+
+        return CGColor(
+            red: totalRed / CGFloat(validSamples),
+            green: totalGreen / CGFloat(validSamples),
+            blue: totalBlue / CGFloat(validSamples),
+            alpha: 1.0
+        )
+    }
+
+    /// Calculates a contrasting text color (black or white) based on background luminance
+    private func calculateContrastingColor(for backgroundColor: CGColor) -> CGColor {
+        guard let components = backgroundColor.components, components.count >= 3 else {
+            return CGColor(gray: 1, alpha: 1)
+        }
+
+        // W3C luminance formula: 0.299*R + 0.587*G + 0.114*B
+        let luminance = 0.299 * components[0] + 0.587 * components[1] + 0.114 * components[2]
+
+        return luminance > 0.5
+            ? CGColor(gray: 0, alpha: 1)
+            : CGColor(gray: 1, alpha: 1)
+    }
+
+    /// Calculates appropriate font size based on the rect height
+    private func calculateFontSize(for rect: CGRect) -> CGFloat {
+        let baseFontSize = rect.height * 0.75
+        return max(10, min(baseFontSize, 32))
+    }
+
+    /// Saves an image with translations to a file.
+    /// - Parameters:
+    ///   - image: The CGImage to export
+    ///   - annotations: Annotations to composite onto the image
+    ///   - ocrResult: The OCR result containing text positions
+    ///   - translations: The translated texts
+    ///   - url: The destination file URL
+    ///   - format: The export format (PNG or JPEG)
+    ///   - quality: JPEG quality (0.0-1.0), ignored for PNG
+    /// - Throws: ScreenTranslateError if export fails
+    func saveWithTranslations(
+        _ image: CGImage,
+        annotations: [Annotation],
+        ocrResult: OCRResult?,
+        translations: [TranslationResult],
+        to url: URL,
+        format: ExportFormat,
+        quality: Double = 0.9
+    ) throws {
+        var finalImage = image
+
+        // First composite annotations
+        if !annotations.isEmpty {
+            finalImage = try compositeAnnotations(annotations, onto: finalImage)
+        }
+
+        // Then composite translations if available
+        if let ocrResult = ocrResult, !translations.isEmpty {
+            finalImage = try compositeTranslations(finalImage, ocrResult: ocrResult, translations: translations)
+        }
+
+        // Verify parent directory exists and is writable
+        let directory = url.deletingLastPathComponent()
+        guard FileManager.default.isWritableFile(atPath: directory.path) else {
+            throw ScreenTranslateError.invalidSaveLocation(directory)
+        }
+
+        // Check for available disk space
+        let estimatedSize = Int64(finalImage.width * finalImage.height * 4)
+        do {
+            let resourceValues = try directory.resourceValues(forKeys: [.volumeAvailableCapacityKey])
+            if let availableCapacity = resourceValues.volumeAvailableCapacity,
+               Int64(availableCapacity) < estimatedSize {
+                throw ScreenTranslateError.diskFull
+            }
+        } catch let error as ScreenTranslateError {
+            throw error
+        } catch {
+            // Ignore disk space check errors, proceed with save
+        }
+
+        // Create image destination
+        guard let destination = CGImageDestinationCreateWithURL(
+            url as CFURL,
+            format.uti.identifier as CFString,
+            1,
+            nil
+        ) else {
+            throw ScreenTranslateError.exportEncodingFailed(format: format)
+        }
+
+        // Configure export options
+        var options: [CFString: Any] = [:]
+        if format == .jpeg || format == .heic {
+            options[kCGImageDestinationLossyCompressionQuality] = quality
+        }
+
+        // Add image and finalize
+        CGImageDestinationAddImage(destination, finalImage, options as CFDictionary)
+
+        guard CGImageDestinationFinalize(destination) else {
+            throw ScreenTranslateError.exportEncodingFailed(format: format)
+        }
+    }
+}
+
 // MARK: - Shared Instance
 
 extension ImageExporter {

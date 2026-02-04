@@ -958,6 +958,83 @@ final class PreviewViewModel {
         }
     }
 
+    // MARK: - Save with Translations
+
+    private(set) var isSavingWithTranslations: Bool = false
+    private(set) var saveSuccessMessage: String?
+
+    func saveWithTranslations() {
+        guard !isSavingWithTranslations else { return }
+        guard hasTranslationResults else {
+            errorMessage = NSLocalizedString("error.no.translations", comment: "No translations to save")
+            clearError()
+            return
+        }
+
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png, .jpeg]
+        panel.nameFieldStringValue = generateTranslationFilename()
+        panel.message = NSLocalizedString("save.with.translations.message", comment: "Choose where to save the translated image")
+
+        panel.begin { [weak self] response in
+            guard let self = self, response == .OK, let url = panel.url else { return }
+            Task { @MainActor in
+                await self.performSaveWithTranslations(to: url)
+            }
+        }
+    }
+
+    private func generateTranslationFilename() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+        return "translated-\(formatter.string(from: Date())).png"
+    }
+
+    private func performSaveWithTranslations(to url: URL) async {
+        isSavingWithTranslations = true
+        defer { isSavingWithTranslations = false }
+
+        let format: ExportFormat = url.pathExtension.lowercased() == "jpg" || url.pathExtension.lowercased() == "jpeg"
+            ? .jpeg
+            : .png
+        let quality = format == .jpeg ? settings.jpegQuality : 1.0
+
+        do {
+            try imageExporter.saveWithTranslations(
+                image,
+                annotations: annotations,
+                ocrResult: ocrResult,
+                translations: translations,
+                to: url,
+                format: format,
+                quality: quality
+            )
+
+            recentCapturesStore.add(filePath: url, image: image)
+            saveSuccessMessage = String(
+                format: NSLocalizedString("save.success.message", comment: "Saved to %@"),
+                url.lastPathComponent
+            )
+            clearSuccessMessage()
+        } catch let error as ScreenTranslateError {
+            handleSaveError(error)
+        } catch {
+            errorMessage = NSLocalizedString("error.save.unknown", comment: "An unexpected error occurred while saving")
+            clearError()
+        }
+    }
+
+    private func clearSuccessMessage() {
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            saveSuccessMessage = nil
+        }
+    }
+
+    func dismissSuccessMessage() {
+        saveSuccessMessage = nil
+    }
+
     // MARK: - OCR & Translation
 
     func performOCR() {

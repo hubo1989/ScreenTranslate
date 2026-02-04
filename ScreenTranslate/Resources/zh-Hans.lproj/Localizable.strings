@@ -137,6 +137,7 @@
 "preview.tooltip.ocr.then.translate" = "正在识别文字...";
 "preview.tooltip.show.translation" = "显示翻译覆盖层";
 "preview.tooltip.hide.translation" = "隐藏翻译覆盖层";
+"preview.tooltip.save.with.translations" = "保存带译文的图片";
 "preview.tooltip.dismiss" = "关闭 (Escape)";
 "preview.tooltip.delete" = "删除选中的标注";
 
@@ -196,6 +197,14 @@
 "button.reset" = "重置";
 "button.save" = "保存";
 "button.delete" = "删除";
+
+/* 保存成功 */
+"save.success.title" = "保存成功";
+"save.success.message" = "已保存到 %@";
+"save.with.translations.message" = "选择保存带译文图片的位置";
+
+/* 无翻译错误 */
+"error.no.translations" = "没有可用的翻译。请先翻译文本。";
 
 
 /* ========================================
