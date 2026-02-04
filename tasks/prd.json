@@ -1,262 +1,183 @@
 {
-  "name": "macOS ScreenTranslate",
-  "description": "A macOS menu bar app for screen region OCR and translation using local Vision OCR, Apple Translation API, with optional PaddleOCR and MTranServer support",
-  "branchName": "ralph/macos-screentranslate",
+  "name": "截图翻译流程优化与显示重构",
+  "branchName": "feat/refactor-translate",
   "userStories": [
     {
       "id": "US-001",
-      "title": "基础架构 - 菜单栏应用与截图功能",
-      "description": "As a user, I want a menu bar app that can capture screen regions via global hotkey so that I can select any area for OCR processing.",
+      "title": "翻译按钮始终可点击",
+      "description": "As a user, I want to click the translate button at any time so that I don't have to wait for OCR to complete first.",
       "acceptanceCriteria": [
-        "菜单栏图标（StatusBarItem），点击显示下拉菜单",
-        "全局快捷键 Cmd+Shift+T 触发截图",
-        "快捷键可在设置中修改",
-        "快捷键触发后进入截图模式，屏幕变暗",
-        "鼠标拖拽绘制选区，实时显示选区边框",
-        "支持按 Esc 取消截图",
-        "支持 Retina 屏幕，截图分辨率正确",
-        "选区确定后获取截图数据",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
+        "翻译按钮在截图完成后立即可用（不再等待 OCR）",
+        "TranslateButtonView 移除对 ocrCompleted 状态的依赖",
+        "按钮样式始终为可点击状态"
       ],
       "priority": 1,
       "passes": true,
       "dependsOn": [],
-      "notes": "基于现有项目架构",
-      "completionNotes": "当前项目已实现"
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-002",
-      "title": "本地 OCR 引擎 - Vision 框架",
-      "description": "As a user, I want text to be recognized locally using macOS native Vision framework for privacy and zero configuration.",
+      "title": "点击翻译自动触发 OCR",
+      "description": "As a user, I want clicking translate to automatically perform OCR first (if not done) so that the workflow is seamless.",
       "acceptanceCriteria": [
-        "使用 Vision 框架 VNRecognizeTextRequest 实现 OCR",
-        "支持中英文混合识别",
-        "支持自动语言检测",
-        "OCR 结果包含：文字内容、置信度、每个文字的边界框坐标",
-        "异步执行 OCR，不阻塞主线程",
-        "OCR 失败时显示友好错误提示",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
+        "点击翻译时检查 OCR 是否已完成",
+        "若未完成，先执行 OCR，完成后自动继续翻译",
+        "若已完成，直接进行翻译",
+        "显示适当的加载状态（如\"正在识别并翻译...\"）",
+        "OCR 或翻译失败时显示错误提示"
       ],
-      "priority": 2,
-      "passes": true,
-      "dependsOn": [
-        "US-001"
-      ],
-      "notes": "",
-      "completionNotes": "Completed by agent"
-    },
-    {
-      "id": "US-003",
-      "title": "本地翻译引擎 - Apple Translation API",
-      "description": "As a user, I want recognized text to be translated using macOS native Translation API without external dependencies.",
-      "acceptanceCriteria": [
-        "使用 Translation 框架 (macOS 12+) 实现本地翻译",
-        "支持自动检测源语言",
-        "支持配置目标语言（默认跟随系统，可手动覆盖）",
-        "翻译请求异步执行，带超时处理（默认 10 秒）",
-        "翻译失败时显示原文 + 错误提示",
-        "处理不支持的语言对时给出友好提示",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
-      ],
-      "priority": 3,
-      "passes": true,
-      "dependsOn": [
-        "US-002"
-      ],
-      "notes": "",
-      "completionNotes": "Completed by agent"
-    },
-    {
-      "id": "US-004",
-      "title": "覆盖层渲染引擎 - 原位替换模式",
-      "description": "As a user, I want to see translated text overlaid at the exact position of original text.",
-      "acceptanceCriteria": [
-        "创建透明覆盖窗口，覆盖整个屏幕或选区",
-        "根据 OCR 返回的边界框坐标定位译文",
-        "译文文字样式匹配原文区域（近似字体大小、颜色）",
-        "支持点击覆盖层外部关闭",
-        "支持按 Esc 关闭覆盖层",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
-      ],
-      "priority": 4,
-      "passes": true,
-      "dependsOn": [
-        "US-002",
-        "US-003"
-      ],
-      "notes": "",
-      "completionNotes": "Completed by agent"
-    },
-    {
-      "id": "US-005",
-      "title": "覆盖层渲染引擎 - 原文下方模式",
-      "description": "As a user, I want to see translation displayed below the original text area.",
-      "acceptanceCriteria": [
-        "在选区下方创建浮窗展示完整译文",
-        "浮窗样式美观，带阴影和圆角",
-        "显示原文和译文对照（原文灰色，译文黑色）",
-        "支持复制译文到剪贴板",
-        "支持点击外部或按 Esc 关闭",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
-      ],
-      "priority": 5,
-      "passes": true,
-      "dependsOn": [
-        "US-002",
-        "US-003"
-      ],
-      "notes": "",
-      "completionNotes": "Completed by agent"
-    },
-    {
-      "id": "US-006",
-      "title": "设置面板 - 引擎选择与基础配置",
-      "description": "As a user, I want to configure OCR/translation engines and app settings through a preferences window.",
-      "acceptanceCriteria": [
-        "创建设置窗口，可从菜单栏打开",
-        "快捷键设置：显示当前快捷键，点击可修改",
-        "OCR 引擎选择：Vision（本地默认）、PaddleOCR（可选）",
-        "翻译引擎选择：Apple Translation（本地默认）、MTranServer（可选）",
-        "翻译模式选择：原位替换 / 原文下方",
-        "设置变更立即保存到配置文件",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
-      ],
-      "priority": 6,
-      "passes": true,
-      "dependsOn": [
-        "US-001"
-      ],
-      "notes": "",
-      "completionNotes": "Completed by agent"
-    },
-    {
-      "id": "US-007",
-      "title": "设置面板 - 语言配置",
-      "description": "As a user, I want to configure source and target languages for translation.",
-      "acceptanceCriteria": [
-        "源语言选项：自动检测、中文、英文、日文、韩文、法文、德文、西班牙文等",
-        "目标语言选项：跟随系统、中文、英文、日文、韩文、法文、德文、西班牙文等",
-        "语言配置保存并立即生效",
-        "根据选择的翻译引擎动态显示支持的语言列表",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
-      ],
-      "priority": 7,
-      "passes": true,
-      "dependsOn": [
-        "US-006"
-      ],
-      "notes": "",
-      "completionNotes": "Completed by agent"
-    },
-    {
-      "id": "US-008",
-      "title": "可选 OCR 引擎 - PaddleOCR 集成",
-      "description": "As an advanced user, I want to use PaddleOCR for potentially better recognition accuracy on specific languages or scenarios.",
-      "acceptanceCriteria": [
-        "实现 PaddleOCR 引擎适配器，遵循统一的 OCREngine 协议",
-        "支持通过设置切换到 PaddleOCR 引擎",
-        "PaddleOCR 支持中英文混合识别",
-        "OCR 结果格式与 Vision 引擎一致（文字、置信度、边界框）",
-        "异步执行 OCR，不阻塞主线程",
-        "PaddleOCR 未安装或启动失败时给出友好提示",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
-      ],
-      "priority": 8,
-      "passes": true,
-      "dependsOn": [
-        "US-002",
-        "US-006"
-      ],
-      "notes": "",
-      "completionNotes": "Completed by agent"
-    },
-    {
-      "id": "US-009",
-      "title": "可选翻译引擎 - MTranServer 集成",
-      "description": "As an advanced user, I want to use self-hosted MTranServer for translation to have more control over translation quality and privacy.",
-      "acceptanceCriteria": [
-        "实现 MTranServer 引擎适配器，遵循统一的 TranslationEngine 协议",
-        "MTranServer 地址配置（默认 localhost:8989）",
-        "支持通过设置切换到 MTranServer 引擎",
-        "支持自动检测源语言（可选配置）",
-        "翻译请求异步执行，带超时处理（默认 10 秒）",
-        "MTranServer 连接失败时给出友好提示",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
-      ],
-      "priority": 9,
-      "passes": true,
-      "dependsOn": [
-        "US-003",
-        "US-006"
-      ],
-      "notes": "",
-      "completionNotes": "Completed by agent"
-    },
-    {
-      "id": "US-010",
-      "title": "翻译历史记录",
-      "description": "As a user, I want to view and manage my recent translation history.",
-      "acceptanceCriteria": [
-        "每次翻译保存记录：时间、原文、译文、截图缩略图",
-        "历史记录窗口可从菜单栏打开",
-        "显示最近 50 条记录，支持滚动加载更多",
-        "支持搜索历史记录（按原文或译文内容）",
-        "支持删除单条或清空全部历史",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
-      ],
-      "priority": 10,
-      "passes": true,
-      "dependsOn": [
-        "US-001"
-      ],
-      "notes": "",
-      "completionNotes": "Completed by agent"
-    },
-    {
-      "id": "US-011",
-      "title": "首次启动引导",
-      "description": "As a new user, I want to be guided through initial setup on first launch.",
-      "acceptanceCriteria": [
-        "检测首次启动，显示欢迎窗口",
-        "说明本地 OCR 和翻译功能已自动启用",
-        "可选配置：引导用户配置 PaddleOCR 和 MTranServer 地址",
-        "请求屏幕录制权限（macOS 隐私权限）",
-        "请求辅助功能权限（用于全局快捷键）",
-        "提供测试翻译按钮验证配置",
-        "swift build passes",
-        "swift test passes",
-        "swiftlint passes"
-      ],
-      "priority": 11,
+      "priority": 1,
       "passes": false,
       "dependsOn": [
         "US-001"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "读取翻译显示位置设置",
+      "description": "As a user, I want the app to respect my display preference setting so that translations appear where I configured.",
+      "acceptanceCriteria": [
+        "找到并读取现有的翻译显示位置设置项",
+        "若设置项不存在，新增设置项（覆盖原文 / 原文下方）",
+        "翻译完成后根据设置决定显示方式",
+        "设置变更后立即生效"
       ],
-      "notes": "",
-      "completionNotes": ""
+      "priority": 2,
+      "passes": false,
+      "dependsOn": [
+        "US-002"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "覆盖原文模式 - 内容感知填充",
+      "description": "As a user, I want the original text area to be intelligently filled before showing translation so that the result looks clean.",
+      "acceptanceCriteria": [
+        "使用 OCR 返回的文字块坐标定位原文区域",
+        "尝试使用 macOS 内容感知填充 API（如 Core Image 的 inpainting）",
+        "若无合适 API，fallback 到模糊滤镜或背景色填充",
+        "填充后在该区域渲染译文"
+      ],
+      "priority": 2,
+      "passes": false,
+      "dependsOn": [
+        "US-003"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "覆盖原文模式 - 译文渲染",
+      "description": "As a user, I want translations to be rendered in place of original text so that I can see the translated content naturally.",
+      "acceptanceCriteria": [
+        "在填充后的区域绘制译文",
+        "译文字体大小根据区域高度自动调整",
+        "若译文较长，允许向右/下延伸超出原区域",
+        "译文颜色与背景形成足够对比"
+      ],
+      "priority": 2,
+      "passes": false,
+      "dependsOn": [
+        "US-004"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "原文下方模式 - 译文渲染",
+      "description": "As a user, I want translations to appear below each text block so that I can compare original and translated text.",
+      "acceptanceCriteria": [
+        "在每个 OCR 识别的文字块下方显示对应译文",
+        "译文与原文对齐（左对齐或居中，视原文情况）",
+        "若译文较长，允许向右/下延伸",
+        "译文使用区分性样式（如不同颜色或半透明背景）"
+      ],
+      "priority": 2,
+      "passes": false,
+      "dependsOn": [
+        "US-003"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Preview 窗口图片渲染",
+      "description": "As a user, I want to see the translated result directly on the image in the Preview window so that I get immediate visual feedback.",
+      "acceptanceCriteria": [
+        "在 ScreenshotPreviewView 中的图片上渲染译文",
+        "使用 overlay 或自定义绘制层实现",
+        "渲染层不影响原始截图数据",
+        "支持实时切换显示模式"
+      ],
+      "priority": 2,
+      "passes": false,
+      "dependsOn": [
+        "US-005",
+        "US-006"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "保留底部面板作为备用",
+      "description": "As a user, I want the bottom results panel to remain available so that I can still see plain text results if needed.",
+      "acceptanceCriteria": [
+        "保留 resultsPanel 组件和功能",
+        "面板可折叠或默认收起",
+        "面板仍显示原文和译文的纯文本版本",
+        "面板文本可复制"
+      ],
+      "priority": 3,
+      "passes": false,
+      "dependsOn": [
+        "US-007"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "保存带译文的图片",
+      "description": "As a user, I want to save the image with translations so that I can keep a permanent copy.",
+      "acceptanceCriteria": [
+        "添加\"保存图片\"按钮",
+        "将渲染后的图片（含译文）保存为 PNG/JPEG",
+        "提供文件保存对话框选择位置",
+        "保存成功后显示确认提示"
+      ],
+      "priority": 3,
+      "passes": false,
+      "dependsOn": [
+        "US-007"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "复制带译文的图片到剪贴板",
+      "description": "As a user, I want to copy the translated image to clipboard so that I can quickly paste it elsewhere.",
+      "acceptanceCriteria": [
+        "添加\"复制图片\"按钮",
+        "将渲染后的图片（含译文）复制到系统剪贴板",
+        "复制成功后显示确认提示（如短暂的 toast）",
+        "支持直接粘贴到其他应用"
+      ],
+      "priority": 3,
+      "passes": false,
+      "dependsOn": [
+        "US-007"
+      ]
+    },
+    {
+      "id": "US-011",
+      "title": "修复编辑框尺寸与原框选一致",
+      "description": "As a user, I want the screenshot editor to show the exact size I selected so that what I see matches what I captured.",
+      "acceptanceCriteria": [
+        "ScreenshotPreviewView 中图片显示为原始尺寸（1:1）",
+        "移除任何缩放逻辑或固定尺寸约束",
+        "若图片超出窗口，使用 ScrollView 允许滚动查看",
+        "窗口大小可调整，图片始终保持原始比例"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": []
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-03T09:26:49.961Z"
+    "updatedAt": "2026-02-04T13:37:40.747Z"
   }
 }
