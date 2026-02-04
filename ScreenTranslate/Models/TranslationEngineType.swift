@@ -64,7 +64,10 @@ enum MTranServerChecker {
         return result
     }
 
-    /// Perform actual check for MTranServer availability
+    private final class ResultBox: @unchecked Sendable {
+        var value: Bool = false
+    }
+
     private static func checkMTranServer() -> Bool {
         var components = URLComponents()
         components.scheme = "http"
@@ -81,22 +84,17 @@ enum MTranServerChecker {
         request.httpMethod = "GET"
 
         let semaphore = DispatchSemaphore(value: 0)
-        let isSuccessBox = UnsafeMutablePointer<Bool>.allocate(capacity: 1)
-        isSuccessBox.initialize(to: false)
+        let resultBox = ResultBox()
 
         let task = URLSession.shared.dataTask(with: request) { _, response, _ in
-            if let httpResponse = response as? HTTPURLResponse {
-                isSuccessBox.pointee = httpResponse.statusCode == 200
-            }
+            resultBox.value = (response as? HTTPURLResponse)?.statusCode == 200
             semaphore.signal()
         }
 
         task.resume()
         _ = semaphore.wait(timeout: .now() + 2.5)
 
-        let result = isSuccessBox.pointee
-        isSuccessBox.deallocate()
-        return result
+        return resultBox.value
     }
 
     /// Reset the cached availability check

@@ -43,6 +43,9 @@ final class SettingsWindowController: NSObject {
         let viewModel = SettingsViewModel(settings: AppSettings.shared, appDelegate: appDelegate)
         self.viewModel = viewModel
 
+        // Check permissions before creating the view to avoid state changes during view update
+        viewModel.checkPermissions()
+
         // Create the SwiftUI view
         let settingsView = SettingsView(viewModel: viewModel)
 

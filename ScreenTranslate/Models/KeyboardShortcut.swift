@@ -198,8 +198,6 @@ struct KeyboardShortcut: Equatable, Codable, Sendable {
         case kVK_Space: return "Space"
         case kVK_Return: return "Return"
         case kVK_Tab: return "Tab"
-        case kVK_Delete: return "Delete"
-        case kVK_Escape: return "Esc"
         default: return nil
         }
     }

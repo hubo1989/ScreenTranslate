@@ -67,8 +67,8 @@ final class OnboardingWindowController: NSObject {
         window.isReleasedWhenClosed = false
         window.delegate = self
 
-        // Set window level to floating to appear above other windows
-        window.level = .floating
+        // Normal window level - allows menu bar and other system UI to remain accessible
+        window.level = .normal
 
         // Prevent resizing
         window.isMovableByWindowBackground = false

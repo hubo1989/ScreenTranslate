@@ -49,7 +49,7 @@ private class ScrollWheelCaptureView: NSView {
     override func scrollWheel(with event: NSEvent) {
         // Only handle scroll wheel zoom when Command key is held
         // or when using a mouse (not trackpad for scrolling)
-        if event.modifierFlags.contains(.command) || event.phase == .none {
+        if event.modifierFlags.contains(.command) || event.phase.isEmpty {
             // Use deltaY for vertical scroll (zoom)
             let delta = event.scrollingDeltaY
             if abs(delta) > 0.1 {

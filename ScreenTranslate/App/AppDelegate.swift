@@ -3,32 +3,14 @@ import AppKit
 /// Application delegate responsible for menu bar setup, hotkey registration, and app lifecycle.
 /// Runs on the main actor to ensure thread-safe UI operations.
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, TranslationPopoverDelegate {
-    // MARK: - Properties
-
-    /// Menu bar controller for status item management
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
-
-    /// Store for recent captures
     private var recentCapturesStore: RecentCapturesStore?
-
-    /// Registered hotkey for full screen capture
     private var fullScreenHotkeyRegistration: HotkeyManager.Registration?
-
-    /// Registered hotkey for selection capture
     private var selectionHotkeyRegistration: HotkeyManager.Registration?
-
-    /// Shared app settings
     private let settings = AppSettings.shared
-
-    /// Display selector for multi-monitor support
     private let displaySelector = DisplaySelector()
-
-    /// Whether a capture is currently in progress (prevents overlapping captures)
     private var isCaptureInProgress = false
-
-    /// Translation popover controller
-    private let translationPopoverController = TranslationPopoverController.shared
 
     // MARK: - NSApplicationDelegate
 
@@ -65,7 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TranslationPopoverDele
     private func checkFirstLaunchAndShowOnboarding() async {
         if !settings.onboardingCompleted {
             // Show onboarding for first-time users
-            await MainActor.run {
+            _ = await MainActor.run { [settings] in
                 OnboardingWindowController.shared.showOnboarding(settings: settings)
             }
         } else {
@@ -316,59 +298,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TranslationPopoverDele
             print("Region capture successful: \(screenshot.formattedDimensions)")
             #endif
 
-            // Perform OCR on the captured image
-            let ocrService = OCRService.shared
-            let ocrResult = try await ocrService.recognize(
-                screenshot.image,
-                languages: [.english, .chineseSimplified]
-            )
-
-            #if DEBUG
-            print("OCR found \(ocrResult.count) text regions")
-            #endif
-
-            // Translate the recognized text
-            let translationEngine = TranslationEngine.shared
-            var translations: [TranslationResult] = []
-
-            for observation in ocrResult.observations {
-                do {
-                    let translation = try await translationEngine.translate(
-                        observation.text,
-                        to: .chineseSimplified
-                    )
-                    translations.append(translation)
-                } catch {
-                    #if DEBUG
-                    print("Translation failed for: \(observation.text)")
-                    #endif
-                    // Add empty translation as fallback
-                    translations.append(TranslationResult.empty(for: observation.text))
-                }
-            }
-
-            #if DEBUG
-            print("Translation completed: \(translations.count) results")
-            #endif
-
-            // Save translations to history
-            if let combinedResult = TranslationResult.combine(translations) {
-                HistoryWindowController.shared.addTranslation(
-                    result: combinedResult,
-                    image: screenshot.image
-                )
-            }
-
-            // Show translation popover below the selection
             await MainActor.run {
-                // Convert selection rect to screen coordinates for the popover anchor
-                let anchorRect = convertToScreenCoordinates(rect, on: display)
-
-                translationPopoverController.popoverDelegate = self
-                translationPopoverController.presentPopover(
-                    anchorRect: anchorRect,
-                    translations: translations
-                )
+                PreviewWindowController.shared.showPreview(for: screenshot) { [weak self] savedURL in
+                    self?.addRecentCapture(filePath: savedURL, image: screenshot.image)
+                }
             }
 
         } catch let error as ScreenTranslateError {
@@ -378,39 +311,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, TranslationPopoverDele
         }
     }
 
-    /// Converts display-relative rect to screen coordinates for popover positioning
-    private func convertToScreenCoordinates(_ rect: CGRect, on display: DisplayInfo) -> CGRect {
-        // Get the screen for this display
-        guard let screen = NSScreen.screens.first(where: { screen in
-            guard let screenNumber = screen.deviceDescription[
-                NSDeviceDescriptionKey("NSScreenNumber")
-            ] as? CGDirectDisplayID else {
-                return false
-            }
-            return screenNumber == display.id
-        }) else {
-            return rect
-        }
-
-        // Convert from Quartz coordinates (Y=0 at top) to Cocoa coordinates (Y=0 at bottom)
-        let screenFrame = screen.frame
-        let cocoaY = screenFrame.height - display.frame.height - rect.origin.y
-
-        return CGRect(
-            x: display.frame.origin.x + rect.origin.x,
-            y: cocoaY,
-            width: rect.width,
-            height: rect.height
-        )
-    }
-
-    // MARK: - TranslationPopoverDelegate
-
-    func translationPopoverDidDismiss() {
-        translationPopoverController.dismissPopover()
-    }
-
-    /// Handles selection cancellation
     private func handleSelectionCancel() {
         isCaptureInProgress = false
         #if DEBUG

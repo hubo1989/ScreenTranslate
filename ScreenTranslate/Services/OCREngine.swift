@@ -169,7 +169,7 @@ actor OCREngine {
         #endif
 
         // Extract results
-        guard let observations = request.results as? [VNRecognizedTextObservation] else {
+        guard let observations = request.results else {
             return OCRResult.empty(imageSize: imageSize)
         }
 
