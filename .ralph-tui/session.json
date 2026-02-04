@@ -3,10 +3,10 @@
   "sessionId": "a20df592-ec5b-40bd-a063-3eba28eb5847",
   "status": "running",
   "startedAt": "2026-02-04T13:33:39.856Z",
-  "updatedAt": "2026-02-04T13:41:35.327Z",
-  "currentIteration": 1,
+  "updatedAt": "2026-02-04T14:02:04.052Z",
+  "currentIteration": 2,
   "maxIterations": 10,
-  "tasksCompleted": 1,
+  "tasksCompleted": 2,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -23,8 +23,8 @@
       {
         "id": "US-002",
         "title": "点击翻译自动触发 OCR",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-003",
@@ -92,6 +92,16 @@
       "durationMs": 198242,
       "startedAt": "2026-02-04T13:34:22.504Z",
       "endedAt": "2026-02-04T13:37:40.746Z"
+    },
+    {
+      "iteration": 2,
+      "status": "completed",
+      "taskId": "US-002",
+      "taskTitle": "点击翻译自动触发 OCR",
+      "taskCompleted": true,
+      "durationMs": 233524,
+      "startedAt": "2026-02-04T13:37:41.801Z",
+      "endedAt": "2026-02-04T13:41:35.325Z"
     }
   ],
   "skippedTaskIds": [],
