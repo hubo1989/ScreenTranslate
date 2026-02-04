@@ -3,10 +3,10 @@
   "sessionId": "a20df592-ec5b-40bd-a063-3eba28eb5847",
   "status": "running",
   "startedAt": "2026-02-04T13:33:39.856Z",
-  "updatedAt": "2026-02-04T14:45:35.321Z",
-  "currentIteration": 7,
+  "updatedAt": "2026-02-04T14:49:01.024Z",
+  "currentIteration": 8,
   "maxIterations": 10,
-  "tasksCompleted": 7,
+  "tasksCompleted": 8,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -53,8 +53,8 @@
       {
         "id": "US-007",
         "title": "Preview 窗口图片渲染",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-008",
@@ -152,6 +152,16 @@
       "durationMs": 261446,
       "startedAt": "2026-02-04T14:15:47.558Z",
       "endedAt": "2026-02-04T14:20:09.004Z"
+    },
+    {
+      "iteration": 8,
+      "status": "completed",
+      "taskId": "US-007",
+      "taskTitle": "Preview 窗口图片渲染",
+      "taskCompleted": true,
+      "durationMs": 1525261,
+      "startedAt": "2026-02-04T14:20:10.058Z",
+      "endedAt": "2026-02-04T14:45:35.319Z"
     }
   ],
   "skippedTaskIds": [],
