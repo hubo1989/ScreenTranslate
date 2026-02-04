@@ -949,7 +949,7 @@ struct PreviewContentView: View {
                     Image(systemName: "character")
                 }
             }
-            .disabled(viewModel.isPerformingTranslation || !viewModel.hasOCRResults)
+            .disabled(viewModel.isPerformingTranslation)
             .help(String(localized: "preview.tooltip.translate"))
 
             Divider()
