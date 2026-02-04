@@ -52,13 +52,31 @@ final class SettingsWindowController: NSObject {
 
         // Create the window
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 600),
-            styleMask: [.titled, .closable, .miniaturizable],
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        window.title = NSLocalizedString("settings.window.title", comment: "ScreenTranslate Settings")
-        window.contentView = hostingView
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hasShadow = true
+        window.isMovableByWindowBackground = true  // Allow dragging on clear background
+        window.titlebarSeparatorStyle = .none  // Cleaner unified look
+
+        // Add hosting view and set up constraints to fill window COMPLETELY
+        let containerView = NSView()
+        window.contentView = containerView
+        containerView.addSubview(hostingView)
+
+        NSLayoutConstraint.activate([
+            hostingView.topAnchor.constraint(equalTo: containerView.topAnchor),
+            hostingView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+        ])
+
         window.center()
         window.isReleasedWhenClosed = false
         window.delegate = self
@@ -76,7 +94,7 @@ final class SettingsWindowController: NSObject {
         // Show the window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        
+
         // Check permissions after window is shown to avoid state changes during view initialization
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(100))
@@ -98,14 +116,15 @@ final class SettingsWindowController: NSObject {
     private func installKeyEventMonitor() {
         removeKeyEventMonitor()
 
-        keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
+            [weak self] event in
             guard let self = self, let viewModel = self.viewModel else {
                 return event
             }
 
             // Try to handle the event for shortcut recording
             if viewModel.handleKeyEvent(event) {
-                return nil // Consume the event
+                return nil  // Consume the event
             }
 
             return event
