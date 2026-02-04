@@ -5,6 +5,7 @@ import AppKit
 /// Organized into sections: General, Export, Keyboard Shortcuts, and Annotations.
 struct SettingsView: View {
     @Bindable var viewModel: SettingsViewModel
+    @State private var refreshID = UUID()
 
     var body: some View {
         Form {
@@ -12,14 +13,15 @@ struct SettingsView: View {
             Section {
                 PermissionRow(viewModel: viewModel)
             } header: {
-                Label("Permissions", systemImage: "lock.shield")
+                Label(L("settings.section.permissions"), systemImage: "lock.shield")
             }
 
             // General Settings Section
             Section {
+                AppLanguagePicker()
                 SaveLocationPicker(viewModel: viewModel)
             } header: {
-                Label("General", systemImage: "gearshape")
+                Label(L("settings.section.general"), systemImage: "gearshape")
             }
 
             // Engine Settings Section
@@ -28,7 +30,7 @@ struct SettingsView: View {
                 TranslationEnginePicker(viewModel: viewModel)
                 TranslationModePicker(viewModel: viewModel)
             } header: {
-                Label("Engines", systemImage: "engine.combustion")
+                Label(L("settings.section.engines"), systemImage: "engine.combustion")
             }
 
             // Language Settings Section
@@ -36,7 +38,7 @@ struct SettingsView: View {
                 SourceLanguagePicker(viewModel: viewModel)
                 TargetLanguagePicker(viewModel: viewModel)
             } header: {
-                Label("Languages", systemImage: "globe")
+                Label(L("settings.section.languages"), systemImage: "globe")
             }
 
             // Export Settings Section
@@ -48,13 +50,13 @@ struct SettingsView: View {
                     HEICQualitySlider(viewModel: viewModel)
                 }
             } header: {
-                Label("Export", systemImage: "square.and.arrow.up")
+                Label(L("settings.section.export"), systemImage: "square.and.arrow.up")
             }
 
             // Keyboard Shortcuts Section
             Section {
                 ShortcutRecorder(
-                    label: "Full Screen Capture",
+                    label: L("settings.shortcut.fullscreen"),
                     shortcut: viewModel.fullScreenShortcut,
                     isRecording: viewModel.isRecordingFullScreenShortcut,
                     onRecord: { viewModel.startRecordingFullScreenShortcut() },
@@ -62,14 +64,14 @@ struct SettingsView: View {
                 )
 
                 ShortcutRecorder(
-                    label: "Selection Capture",
+                    label: L("settings.shortcut.selection"),
                     shortcut: viewModel.selectionShortcut,
                     isRecording: viewModel.isRecordingSelectionShortcut,
                     onRecord: { viewModel.startRecordingSelectionShortcut() },
                     onReset: { viewModel.resetSelectionShortcut() }
                 )
             } header: {
-                Label("Keyboard Shortcuts", systemImage: "keyboard")
+                Label(L("settings.section.shortcuts"), systemImage: "keyboard")
             }
 
             // Annotation Settings Section
@@ -78,7 +80,7 @@ struct SettingsView: View {
                 StrokeWidthSlider(viewModel: viewModel)
                 TextSizeSlider(viewModel: viewModel)
             } header: {
-                Label("Annotations", systemImage: "pencil.tip.crop.circle")
+                Label(L("settings.section.annotations"), systemImage: "pencil.tip.crop.circle")
             }
 
             // Reset Section
@@ -86,7 +88,7 @@ struct SettingsView: View {
                 Button(role: .destructive) {
                     viewModel.resetAllToDefaults()
                 } label: {
-                    Label("Reset All to Defaults", systemImage: "arrow.counterclockwise")
+                    Label(L("settings.reset.all"), systemImage: "arrow.counterclockwise")
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.red)
@@ -94,8 +96,12 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(minWidth: 450, minHeight: 500)
-        .alert("Error", isPresented: $viewModel.showErrorAlert) {
-            Button("OK") {
+        .id(refreshID)
+        .onReceive(NotificationCenter.default.publisher(for: LanguageManager.languageDidChangeNotification)) { _ in
+            refreshID = UUID()
+        }
+        .alert(L("error.title"), isPresented: $viewModel.showErrorAlert) {
+            Button(L("button.ok")) {
                 viewModel.errorMessage = nil
             }
         } message: {
@@ -117,8 +123,8 @@ private struct PermissionRow: View {
             // Screen Recording permission
             PermissionItem(
                 icon: "record.circle",
-                title: "Screen Recording",
-                hint: "Required to capture screenshots",
+                title: L("settings.permission.screen.recording"),
+                hint: L("settings.permission.screen.recording.hint"),
                 isGranted: viewModel.hasScreenRecordingPermission,
                 isChecking: viewModel.isCheckingPermissions,
                 onGrant: { viewModel.requestScreenRecordingPermission() }
@@ -129,8 +135,8 @@ private struct PermissionRow: View {
             // Folder Access permission
             PermissionItem(
                 icon: "folder",
-                title: "Save Location Access",
-                hint: "Required to save screenshots to the selected folder",
+                title: L("settings.save.location"),
+                hint: L("settings.save.location.message"),
                 isGranted: viewModel.hasFolderAccessPermission,
                 isChecking: viewModel.isCheckingPermissions,
                 onGrant: { viewModel.requestFolderAccess() }
@@ -141,7 +147,7 @@ private struct PermissionRow: View {
                 Button {
                     viewModel.checkPermissions()
                 } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
+                    Label(L("action.reset"), systemImage: "arrow.clockwise")
                 }
                 .buttonStyle(.borderless)
             }
@@ -178,7 +184,7 @@ private struct PermissionItem: View {
                         if isGranted {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
-                            Text("Granted")
+                            Text(L("settings.permission.granted"))
                                 .foregroundStyle(.secondary)
                         } else {
                             Image(systemName: "xmark.circle.fill")
@@ -187,7 +193,7 @@ private struct PermissionItem: View {
                             Button {
                                 onGrant()
                             } label: {
-                                Text("Grant Access")
+                                Text(L("settings.permission.grant"))
                             }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)
@@ -203,7 +209,7 @@ private struct PermissionItem: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(title): \(isGranted ? "Granted" : "Not Granted")"))
+        .accessibilityLabel(Text("\(title): \(isGranted ? L("settings.permission.granted") : L("settings.permission.not.granted"))"))
     }
 }
 
@@ -216,7 +222,7 @@ private struct SaveLocationPicker: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Save Location")
+                Text(L("settings.save.location"))
                     .font(.headline)
                 Text(viewModel.saveLocationPath)
                     .font(.caption)
@@ -230,7 +236,7 @@ private struct SaveLocationPicker: View {
             Button {
                 viewModel.selectSaveLocation()
             } label: {
-                Text("Choose...")
+                Text(L("settings.save.location.choose"))
             }
 
             Button {
@@ -238,10 +244,10 @@ private struct SaveLocationPicker: View {
             } label: {
                 Image(systemName: "folder")
             }
-            .help("Show in Finder")
+            .help(L("settings.save.location.reveal"))
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("Save Location: \(viewModel.saveLocationPath)"))
+        .accessibilityLabel(Text("\(L("settings.save.location")): \(viewModel.saveLocationPath)"))
     }
 }
 
@@ -252,13 +258,13 @@ private struct ExportFormatPicker: View {
     @Bindable var viewModel: SettingsViewModel
 
     var body: some View {
-        Picker("Default Format", selection: $viewModel.defaultFormat) {
-            Text("PNG").tag(ExportFormat.png)
-            Text("JPEG").tag(ExportFormat.jpeg)
-            Text("HEIC").tag(ExportFormat.heic)
+        Picker(L("settings.format"), selection: $viewModel.defaultFormat) {
+            Text(L("settings.format.png")).tag(ExportFormat.png)
+            Text(L("settings.format.jpeg")).tag(ExportFormat.jpeg)
+            Text(L("settings.format.heic")).tag(ExportFormat.heic)
         }
         .pickerStyle(.segmented)
-        .accessibilityLabel(Text("Export Format"))
+        .accessibilityLabel(Text(L("settings.format")))
     }
 }
 
@@ -271,7 +277,7 @@ private struct JPEGQualitySlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("JPEG Quality")
+                Text(L("settings.jpeg.quality"))
                 Spacer()
                 Text("\(Int(viewModel.jpegQualityPercentage))%")
                     .foregroundStyle(.secondary)
@@ -283,7 +289,7 @@ private struct JPEGQualitySlider: View {
                 in: SettingsViewModel.jpegQualityRange,
                 step: 0.05
             ) {
-                Text("JPEG Quality")
+                Text(L("settings.jpeg.quality"))
             } minimumValueLabel: {
                 Text("10%")
                     .font(.caption)
@@ -293,7 +299,7 @@ private struct JPEGQualitySlider: View {
             }
             .accessibilityValue(Text("\(Int(viewModel.jpegQualityPercentage)) percent"))
 
-            Text("Higher quality results in larger file sizes")
+            Text(L("settings.jpeg.quality.hint"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -309,7 +315,7 @@ private struct HEICQualitySlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("HEIC Quality")
+                Text(L("settings.heic.quality"))
                 Spacer()
                 Text("\(Int(viewModel.heicQualityPercentage))%")
                     .foregroundStyle(.secondary)
@@ -321,7 +327,7 @@ private struct HEICQualitySlider: View {
                 in: SettingsViewModel.heicQualityRange,
                 step: 0.05
             ) {
-                Text("HEIC Quality")
+                Text(L("settings.heic.quality"))
             } minimumValueLabel: {
                 Text("10%")
                     .font(.caption)
@@ -331,7 +337,7 @@ private struct HEICQualitySlider: View {
             }
             .accessibilityValue(Text("\(Int(viewModel.heicQualityPercentage)) percent"))
 
-            Text("HEIC offers better compression than JPEG at similar quality")
+            Text(L("settings.heic.quality.hint"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -355,7 +361,7 @@ private struct ShortcutRecorder: View {
             Spacer()
 
             if isRecording {
-                Text("Press keys...")
+                Text(L("settings.shortcut.recording"))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
@@ -380,7 +386,7 @@ private struct ShortcutRecorder: View {
                 Image(systemName: "arrow.counterclockwise")
             }
             .buttonStyle(.borderless)
-            .help("Reset to default")
+            .help(L("settings.shortcut.reset"))
             .disabled(isRecording)
         }
         .accessibilityElement(children: .combine)
@@ -396,7 +402,7 @@ private struct StrokeColorPicker: View {
 
     var body: some View {
         HStack {
-            Text("Stroke Color")
+            Text(L("settings.stroke.color"))
 
             Spacer()
 
@@ -434,7 +440,7 @@ private struct StrokeColorPicker: View {
                 .frame(width: 30)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("Stroke Color"))
+        .accessibilityLabel(Text(L("settings.stroke.color")))
     }
 
     /// Compare colors approximately
@@ -453,16 +459,16 @@ private struct StrokeColorPicker: View {
     /// Get accessible color name
     private func colorName(for color: Color) -> String {
         switch color {
-        case .red: return "Red"
-        case .orange: return "Orange"
-        case .yellow: return "Yellow"
-        case .green: return "Green"
-        case .blue: return "Blue"
-        case .purple: return "Purple"
-        case .pink: return "Pink"
-        case .white: return "White"
-        case .black: return "Black"
-        default: return "Custom"
+        case .red: return L("color.red")
+        case .orange: return L("color.orange")
+        case .yellow: return L("color.yellow")
+        case .green: return L("color.green")
+        case .blue: return L("color.blue")
+        case .purple: return L("color.purple")
+        case .pink: return L("color.pink")
+        case .white: return L("color.white")
+        case .black: return L("color.black")
+        default: return L("color.custom")
         }
     }
 }
@@ -476,7 +482,7 @@ private struct StrokeWidthSlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Stroke Width")
+                Text(L("settings.stroke.width"))
                 Spacer()
                 Text("\(viewModel.strokeWidth, specifier: "%.1f") pt")
                     .foregroundStyle(.secondary)
@@ -489,7 +495,7 @@ private struct StrokeWidthSlider: View {
                     in: SettingsViewModel.strokeWidthRange,
                     step: 0.5
                 ) {
-                    Text("Stroke Width")
+                    Text(L("settings.stroke.width"))
                 }
                 .accessibilityValue(Text("\(viewModel.strokeWidth, specifier: "%.1f") points"))
 
@@ -511,7 +517,7 @@ private struct TextSizeSlider: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text("Text Size")
+                Text(L("settings.text.size"))
                 Spacer()
                 Text("\(Int(viewModel.textSize)) pt")
                     .foregroundStyle(.secondary)
@@ -524,7 +530,7 @@ private struct TextSizeSlider: View {
                     in: SettingsViewModel.textSizeRange,
                     step: 1
                 ) {
-                    Text("Text Size")
+                    Text(L("settings.text.size"))
                 }
                 .accessibilityValue(Text("\(Int(viewModel.textSize)) points"))
 
@@ -545,7 +551,7 @@ private struct OCREnginePicker: View {
     @Bindable var viewModel: SettingsViewModel
 
     var body: some View {
-        Picker("OCR Engine", selection: $viewModel.ocrEngine) {
+        Picker(L("settings.ocr.engine"), selection: $viewModel.ocrEngine) {
             ForEach(OCREngineType.allCases, id: \.self) { engine in
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
@@ -569,8 +575,11 @@ private struct OCREnginePicker: View {
         .pickerStyle(.inline)
         .onChange(of: viewModel.ocrEngine) { _, newValue in
             // If user selects an unavailable engine, show warning and revert to Vision
+            // Use Task to avoid setting value during update
             if !newValue.isAvailable {
-                viewModel.ocrEngine = .vision
+                Task { @MainActor in
+                    viewModel.ocrEngine = .vision
+                }
             }
         }
     }
@@ -600,7 +609,7 @@ private struct TranslationEnginePicker: View {
     @Bindable var viewModel: SettingsViewModel
 
     var body: some View {
-        Picker("Translation Engine", selection: $viewModel.translationEngine) {
+        Picker(L("settings.translation.engine"), selection: $viewModel.translationEngine) {
             ForEach(TranslationEngineType.allCases, id: \.self) { engine in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(engine.localizedName)
@@ -623,7 +632,7 @@ private struct TranslationModePicker: View {
     @Bindable var viewModel: SettingsViewModel
 
     var body: some View {
-        Picker("Translation Mode", selection: $viewModel.translationMode) {
+        Picker(L("settings.translation.mode"), selection: $viewModel.translationMode) {
             ForEach(TranslationMode.allCases, id: \.self) { mode in
                 VStack(alignment: .leading, spacing: 4) {
                     Text(mode.localizedName)
@@ -645,14 +654,14 @@ private struct SourceLanguagePicker: View {
     @Bindable var viewModel: SettingsViewModel
 
     var body: some View {
-        Picker("Source Language", selection: $viewModel.translationSourceLanguage) {
+        Picker(L("translation.language.source"), selection: $viewModel.translationSourceLanguage) {
             ForEach(viewModel.availableSourceLanguages, id: \.rawValue) { language in
                 Text(language.localizedName)
                     .tag(language)
             }
         }
         .pickerStyle(.menu)
-        .help("The language of the text you want to translate")
+        .help(L("translation.language.source.hint"))
     }
 }
 
@@ -664,7 +673,7 @@ private struct TargetLanguagePicker: View {
 
     var body: some View {
         HStack {
-            Text("Target Language")
+            Text(L("translation.language.target"))
 
             Spacer()
 
@@ -673,7 +682,7 @@ private struct TargetLanguagePicker: View {
                     viewModel.translationTargetLanguage = nil
                 } label: {
                     HStack {
-                        Text("Follow System")
+                        Text(L("translation.language.follow.system"))
                         if viewModel.translationTargetLanguage == nil {
                             Image(systemName: "checkmark")
                         }
@@ -709,14 +718,50 @@ private struct TargetLanguagePicker: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
         }
-        .help("The language to translate the text into")
+        .help(L("translation.language.target.hint"))
     }
 
     private var targetLanguageDisplay: String {
         if let targetLanguage = viewModel.translationTargetLanguage {
             return targetLanguage.localizedName
         }
-        return NSLocalizedString("translation.language.follow.system", comment: "Follow System")
+        return L("translation.language.follow.system")
+    }
+}
+
+// MARK: - App Language Picker
+
+/// Picker for selecting the application display language.
+private struct AppLanguagePicker: View {
+    @State private var selectedLanguage: AppLanguage = .system
+    @State private var isInitialized = false
+    
+    var body: some View {
+        HStack {
+            Text(L("settings.language"))
+            
+            Spacer()
+            
+            Picker("", selection: $selectedLanguage) {
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.displayName)
+                        .tag(language)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(minWidth: 120)
+            .onChange(of: selectedLanguage) { _, newValue in
+                guard isInitialized else { return }
+                Task { @MainActor in
+                    LanguageManager.shared.currentLanguage = newValue
+                }
+            }
+        }
+        .onAppear {
+            selectedLanguage = LanguageManager.shared.currentLanguage
+            isInitialized = true
+        }
     }
 }
 

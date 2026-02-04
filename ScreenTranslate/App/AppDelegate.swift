@@ -37,6 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             await checkFirstLaunchAndShowOnboarding()
         }
+        
+        // Check PaddleOCR availability in background (non-blocking)
+        PaddleOCRChecker.checkAvailabilityAsync()
 
         #if DEBUG
         print("ScreenTranslate launched - settings loaded from: \(settings.saveLocation.path)")

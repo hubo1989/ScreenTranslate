@@ -43,9 +43,6 @@ final class SettingsWindowController: NSObject {
         let viewModel = SettingsViewModel(settings: AppSettings.shared, appDelegate: appDelegate)
         self.viewModel = viewModel
 
-        // Check permissions before creating the view to avoid state changes during view update
-        viewModel.checkPermissions()
-
         // Create the SwiftUI view
         let settingsView = SettingsView(viewModel: viewModel)
 
@@ -79,6 +76,12 @@ final class SettingsWindowController: NSObject {
         // Show the window
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        
+        // Check permissions after window is shown to avoid state changes during view initialization
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(100))
+            viewModel.checkPermissions()
+        }
     }
 
     /// Closes the settings window if open.
