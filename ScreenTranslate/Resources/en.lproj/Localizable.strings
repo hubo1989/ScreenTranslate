@@ -403,6 +403,28 @@
 "onboarding.continue" = "Continue";
 "onboarding.next" = "Next";
 "onboarding.skip" = "Skip";
+"onboarding.complete" = "Complete";
+
+/* Onboarding - PaddleOCR */
+"onboarding.paddleocr.title" = "PaddleOCR (Optional)";
+"onboarding.paddleocr.description" = "Enhanced OCR engine for better text recognition accuracy, especially for Chinese.";
+"onboarding.paddleocr.installed" = "Installed";
+"onboarding.paddleocr.not.installed" = "Not Installed";
+"onboarding.paddleocr.install" = "Install";
+"onboarding.paddleocr.installing" = "Installing...";
+"onboarding.paddleocr.install.hint" = "Requires Python 3 and pip. Run: pip3 install paddleocr paddlepaddle";
+"onboarding.paddleocr.copy.command" = "Copy Command";
+"onboarding.paddleocr.refresh" = "Refresh Status";
+"onboarding.paddleocr.version" = "Version: %@";
+
+/* Settings - PaddleOCR */
+"settings.paddleocr.installed" = "Installed";
+"settings.paddleocr.not.installed" = "Not Installed";
+"settings.paddleocr.install" = "Install";
+"settings.paddleocr.installing" = "Installing...";
+"settings.paddleocr.install.hint" = "Requires Python 3 and pip installed on your system.";
+"settings.paddleocr.copy.command" = "Copy Command";
+"settings.paddleocr.refresh" = "Refresh Status";
 
 
 /* ========================================

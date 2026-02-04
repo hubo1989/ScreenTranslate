@@ -53,17 +53,25 @@ actor OCRService {
         languages: Set<OCREngine.RecognitionLanguage>
     ) async throws -> OCRResult {
         let engineType = await AppSettings.shared.ocrEngine
+        print("[OCRService] Engine type: \(engineType), image size: \(image.width)x\(image.height)")
 
         switch engineType {
         case .vision:
+            print("[OCRService] Using Vision engine")
             return try await visionEngine.recognize(image, languages: languages)
         case .paddleOCR:
-            guard await paddleOCREngine.isAvailable else {
+            print("[OCRService] Using PaddleOCR engine")
+            let isAvailable = await paddleOCREngine.isAvailable
+            print("[OCRService] PaddleOCR available: \(isAvailable)")
+            guard isAvailable else {
+                print("[OCRService] PaddleOCR not available, throwing error")
                 throw OCREngineError.engineNotAvailable
             }
-            // Convert Vision languages to PaddleOCR languages
             let paddleLanguages = convertToPaddleOCRLanguages(languages)
-            return try await paddleOCREngine.recognize(image, languages: paddleLanguages)
+            print("[OCRService] PaddleOCR languages: \(paddleLanguages)")
+            let result = try await paddleOCREngine.recognize(image, languages: paddleLanguages)
+            print("[OCRService] PaddleOCR result: \(result.observations.count) observations")
+            return result
         }
     }
 

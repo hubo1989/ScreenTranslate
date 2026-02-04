@@ -89,7 +89,7 @@ final class PreviewViewModel {
     private let recentCapturesStore: RecentCapturesStore
 
     @ObservationIgnored
-    private let ocrEngine = OCREngine.shared
+    private let ocrService = OCRService.shared
 
     @ObservationIgnored
     private let translationEngine = TranslationEngine.shared
@@ -970,7 +970,7 @@ final class PreviewViewModel {
         defer { isPerformingOCR = false }
 
         do {
-            let result = try await ocrEngine.recognize(
+            let result = try await ocrService.recognize(
                 image,
                 languages: [.english, .chineseSimplified]
             )

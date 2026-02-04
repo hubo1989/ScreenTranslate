@@ -40,6 +40,18 @@ final class OnboardingViewModel {
     /// Translation test success status
     var translationTestSuccess = false
 
+    /// Whether PaddleOCR is installed
+    var isPaddleOCRInstalled = false
+
+    /// Whether PaddleOCR installation is in progress
+    var isInstallingPaddleOCR = false
+
+    /// PaddleOCR installation error message
+    var paddleOCRInstallError: String?
+
+    /// PaddleOCR version if installed
+    var paddleOCRVersion: String?
+
     // MARK: - Computed Properties
 
     /// Whether we can move to the next step
@@ -79,6 +91,7 @@ final class OnboardingViewModel {
         Task {
             await MainActor.run {
                 checkPermissions()
+                refreshPaddleOCRStatus()
             }
         }
     }
@@ -238,6 +251,74 @@ final class OnboardingViewModel {
         paddleOCRServerAddress = ""
         mtranServerURL = ""
         completeOnboarding()
+    }
+
+    // MARK: - PaddleOCR Management
+
+    func refreshPaddleOCRStatus() {
+        PaddleOCRChecker.resetCache()
+        PaddleOCRChecker.checkAvailabilityAsync()
+        
+        Task {
+            for _ in 0..<20 {
+                try? await Task.sleep(for: .milliseconds(250))
+                if PaddleOCRChecker.checkCompleted {
+                    break
+                }
+            }
+            await MainActor.run {
+                isPaddleOCRInstalled = PaddleOCRChecker.isAvailable
+                paddleOCRVersion = PaddleOCRChecker.version
+                paddleOCRInstallError = nil
+            }
+        }
+    }
+
+    func installPaddleOCR() {
+        isInstallingPaddleOCR = true
+        paddleOCRInstallError = nil
+
+        Task.detached(priority: .userInitiated) {
+            let result = await self.runPipInstall()
+            await MainActor.run {
+                self.isInstallingPaddleOCR = false
+                if let error = result {
+                    self.paddleOCRInstallError = error
+                } else {
+                    self.refreshPaddleOCRStatus()
+                }
+            }
+        }
+    }
+
+    private func runPipInstall() async -> String? {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        task.arguments = ["pip3", "install", "paddleocr", "paddlepaddle"]
+
+        let stderrPipe = Pipe()
+        task.standardError = stderrPipe
+        task.standardOutput = Pipe()
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+
+            if task.terminationStatus != 0 {
+                let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                let stderr = String(data: stderrData, encoding: .utf8) ?? "Unknown error"
+                return stderr.isEmpty ? "Installation failed with exit code \(task.terminationStatus)" : stderr
+            }
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    func copyInstallCommand() {
+        let command = "pip3 install paddleocr paddlepaddle"
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(command, forType: .string)
     }
 }
 

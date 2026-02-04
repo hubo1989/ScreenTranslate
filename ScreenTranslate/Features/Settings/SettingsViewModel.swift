@@ -39,6 +39,18 @@ final class SettingsViewModel {
     /// Whether permission check is in progress
     var isCheckingPermissions: Bool = false
 
+    /// Whether PaddleOCR is installed
+    var isPaddleOCRInstalled: Bool = false
+
+    /// Whether PaddleOCR installation is in progress
+    var isInstallingPaddleOCR: Bool = false
+
+    /// PaddleOCR installation error message
+    var paddleOCRInstallError: String?
+
+    /// PaddleOCR version if installed
+    var paddleOCRVersion: String?
+
     // MARK: - Computed Properties (Bindings to AppSettings)
 
     /// Save location URL
@@ -183,6 +195,7 @@ final class SettingsViewModel {
     init(settings: AppSettings = .shared, appDelegate: AppDelegate? = nil) {
         self.settings = settings
         self.appDelegate = appDelegate
+        refreshPaddleOCRStatus()
     }
 
     // MARK: - Permission Checking
@@ -395,6 +408,74 @@ final class SettingsViewModel {
     private func showError(_ message: String) {
         errorMessage = message
         showErrorAlert = true
+    }
+
+    // MARK: - PaddleOCR Management
+
+    func refreshPaddleOCRStatus() {
+        PaddleOCRChecker.resetCache()
+        PaddleOCRChecker.checkAvailabilityAsync()
+        
+        Task {
+            for _ in 0..<20 {
+                try? await Task.sleep(for: .milliseconds(250))
+                if PaddleOCRChecker.checkCompleted {
+                    break
+                }
+            }
+            await MainActor.run {
+                isPaddleOCRInstalled = PaddleOCRChecker.isAvailable
+                paddleOCRVersion = PaddleOCRChecker.version
+                paddleOCRInstallError = nil
+            }
+        }
+    }
+
+    func installPaddleOCR() {
+        isInstallingPaddleOCR = true
+        paddleOCRInstallError = nil
+
+        Task.detached(priority: .userInitiated) {
+            let result = await self.runPipInstall()
+            await MainActor.run {
+                self.isInstallingPaddleOCR = false
+                if let error = result {
+                    self.paddleOCRInstallError = error
+                } else {
+                    self.refreshPaddleOCRStatus()
+                }
+            }
+        }
+    }
+
+    private func runPipInstall() async -> String? {
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        task.arguments = ["pip3", "install", "paddleocr", "paddlepaddle"]
+
+        let stderrPipe = Pipe()
+        task.standardError = stderrPipe
+        task.standardOutput = Pipe()
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+
+            if task.terminationStatus != 0 {
+                let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                let stderr = String(data: stderrData, encoding: .utf8) ?? "Unknown error"
+                return stderr.isEmpty ? "Installation failed with exit code \(task.terminationStatus)" : stderr
+            }
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
+    func copyPaddleOCRInstallCommand() {
+        let command = "pip3 install paddleocr paddlepaddle"
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(command, forType: .string)
     }
 }
 

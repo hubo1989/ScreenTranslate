@@ -258,19 +258,12 @@ struct OnboardingView: View {
             }
 
             VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(NSLocalizedString("onboarding.configuration.paddleocr", comment: ""))
-                        .font(.headline)
-                    Text(NSLocalizedString("onboarding.configuration.paddleocr.hint", comment: ""))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextField(
-                        NSLocalizedString("onboarding.configuration.placeholder", comment: ""),
-                        text: $viewModel.paddleOCRServerAddress
-                    )
-                    .textFieldStyle(.roundedBorder)
-                }
+                // PaddleOCR Installation Section
+                paddleOCRConfigSection
 
+                Divider()
+
+                // MTran Server Section
                 VStack(alignment: .leading, spacing: 8) {
                     Text(NSLocalizedString("onboarding.configuration.mtran", comment: ""))
                         .font(.headline)
@@ -284,6 +277,7 @@ struct OnboardingView: View {
                     .textFieldStyle(.roundedBorder)
                 }
 
+                // Translation Test Section
                 VStack(alignment: .leading, spacing: 8) {
                     Text(NSLocalizedString("onboarding.configuration.test", comment: ""))
                         .font(.headline)
@@ -339,6 +333,101 @@ struct OnboardingView: View {
             }
         }
         .padding(32)
+    }
+
+    // MARK: - PaddleOCR Configuration Section
+
+    private var paddleOCRConfigSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(NSLocalizedString("onboarding.paddleocr.title", comment: ""))
+                    .font(.headline)
+
+                Spacer()
+
+                // Installation status indicator
+                if viewModel.isPaddleOCRInstalled {
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text(NSLocalizedString("onboarding.paddleocr.installed", comment: ""))
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                } else {
+                    HStack(spacing: 4) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                        Text(NSLocalizedString("onboarding.paddleocr.not.installed", comment: ""))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Text(NSLocalizedString("onboarding.paddleocr.description", comment: ""))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if !viewModel.isPaddleOCRInstalled {
+                // Installation options
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(NSLocalizedString("onboarding.paddleocr.install.hint", comment: ""))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 12) {
+                        Button {
+                            viewModel.installPaddleOCR()
+                        } label: {
+                            if viewModel.isInstallingPaddleOCR {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .frame(width: 16, height: 16)
+                                Text(NSLocalizedString("onboarding.paddleocr.installing", comment: ""))
+                            } else {
+                                Image(systemName: "arrow.down.circle")
+                                Text(NSLocalizedString("onboarding.paddleocr.install", comment: ""))
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(viewModel.isInstallingPaddleOCR)
+
+                        Button {
+                            viewModel.copyInstallCommand()
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                            Text(NSLocalizedString("onboarding.paddleocr.copy.command", comment: ""))
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button {
+                            viewModel.refreshPaddleOCRStatus()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.borderless)
+                        .help(NSLocalizedString("onboarding.paddleocr.refresh", comment: ""))
+                    }
+
+                    if let error = viewModel.paddleOCRInstallError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+            } else {
+                // PaddleOCR is installed - show version
+                if let version = viewModel.paddleOCRVersion {
+                    Text(String(format: NSLocalizedString("onboarding.paddleocr.version", comment: ""), version))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(8)
     }
 
     // MARK: - Step 3: Complete

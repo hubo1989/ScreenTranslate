@@ -50,73 +50,87 @@ enum OCREngineType: String, CaseIterable, Sendable, Codable {
 
 /// Helper to check if PaddleOCR is available on the system
 enum PaddleOCRChecker {
-    /// Cached availability status (nonisolated(unsafe) for singleton cache)
-    private nonisolated(unsafe) static var _isAvailable: Bool? = false
+    private nonisolated(unsafe) static var _isAvailable: Bool = false
+    private nonisolated(unsafe) static var _executablePath: String?
+    private nonisolated(unsafe) static var _version: String?
+    private nonisolated(unsafe) static var _checkCompleted: Bool = false
 
-    /// Check if PaddleOCR command is available (returns cached value, never blocks)
-    static var isAvailable: Bool {
-        return _isAvailable ?? false
-    }
-    
-    /// Async check and cache PaddleOCR availability
+    static var isAvailable: Bool { _isAvailable }
+    static var executablePath: String? { _executablePath }
+    static var version: String? { _version }
+    static var checkCompleted: Bool { _checkCompleted }
+
     static func checkAvailabilityAsync() {
-        Task.detached(priority: .background) {
-            let result = await checkPaddleOCRAsync()
-            _isAvailable = result
+        Task.detached(priority: .userInitiated) {
+            let result = await performFullCheck()
+            _isAvailable = result.available
+            _executablePath = result.path
+            _version = result.version
+            _checkCompleted = true
         }
     }
 
-    /// Perform actual check for PaddleOCR availability (async, off main thread)
-    private static func checkPaddleOCRAsync() async -> Bool {
+    private static func performFullCheck() async -> (available: Bool, path: String?, version: String?) {
         await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .background).async {
-                let task = Process()
-                task.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-                task.arguments = ["paddleocr"]
-
-                let pipe = Pipe()
-                task.standardOutput = pipe
-                task.standardError = Pipe()
-
-                do {
-                    try task.run()
-                    task.waitUntilExit()
-                    continuation.resume(returning: task.terminationStatus == 0)
-                } catch {
-                    continuation.resume(returning: false)
+            DispatchQueue.global(qos: .userInitiated).async {
+                let possiblePaths = [
+                    "\(NSHomeDirectory())/.pyenv/shims/paddleocr",
+                    "/usr/local/bin/paddleocr",
+                    "/opt/homebrew/bin/paddleocr",
+                    "\(NSHomeDirectory())/.local/bin/paddleocr"
+                ]
+                
+                print("[PaddleOCRChecker] Checking paths: \(possiblePaths)")
+                
+                for path in possiblePaths {
+                    if FileManager.default.isExecutableFile(atPath: path) {
+                        print("[PaddleOCRChecker] Found executable at: \(path)")
+                        
+                        let task = Process()
+                        task.executableURL = URL(fileURLWithPath: path)
+                        task.arguments = ["--version"]
+                        task.environment = [
+                            "PATH": "\(NSHomeDirectory())/.pyenv/shims:/usr/local/bin:/usr/bin:/bin",
+                            "HOME": NSHomeDirectory(),
+                            "PYENV_ROOT": "\(NSHomeDirectory())/.pyenv",
+                            "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK": "True"
+                        ]
+                        
+                        let pipe = Pipe()
+                        task.standardOutput = pipe
+                        task.standardError = pipe
+                        
+                        do {
+                            try task.run()
+                            task.waitUntilExit()
+                            
+                            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                            let output = String(data: data, encoding: .utf8) ?? ""
+                            print("[PaddleOCRChecker] Version output: \(output)")
+                            
+                            let versionLine = output.components(separatedBy: .newlines)
+                                .first { $0.contains("paddleocr") }?
+                                .trimmingCharacters(in: .whitespaces)
+                            
+                            print("[PaddleOCRChecker] Found: path=\(path), version=\(versionLine ?? "unknown")")
+                            continuation.resume(returning: (true, path, versionLine))
+                            return
+                        } catch {
+                            print("[PaddleOCRChecker] Error running \(path): \(error)")
+                        }
+                    }
                 }
+                
+                print("[PaddleOCRChecker] Not found in any known path")
+                continuation.resume(returning: (false, nil, nil))
             }
         }
     }
 
-    /// Reset the cached availability check
     static func resetCache() {
-        _isAvailable = nil
-    }
-
-    /// Get the PaddleOCR version if available
-    static var version: String? {
-        guard isAvailable else { return nil }
-
-        let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/local/bin/paddleocr")
-        task.arguments = ["--version"]
-
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        task.standardError = pipe
-
-        do {
-            try task.run()
-            task.waitUntilExit()
-
-            if task.terminationStatus == 0,
-               let data = try? FileHandle(fileDescriptor: pipe.fileHandleForReading.fileDescriptor).readToEnd(),
-               let output = String(data: data, encoding: .utf8) {
-                return output.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-        } catch {}
-
-        return nil
+        _isAvailable = false
+        _executablePath = nil
+        _version = nil
+        _checkCompleted = false
     }
 }
