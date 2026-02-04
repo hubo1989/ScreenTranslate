@@ -3,10 +3,10 @@
   "sessionId": "a20df592-ec5b-40bd-a063-3eba28eb5847",
   "status": "running",
   "startedAt": "2026-02-04T13:33:39.856Z",
-  "updatedAt": "2026-02-04T14:02:04.052Z",
-  "currentIteration": 2,
+  "updatedAt": "2026-02-04T14:06:19.000Z",
+  "currentIteration": 3,
   "maxIterations": 10,
-  "tasksCompleted": 2,
+  "tasksCompleted": 3,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -77,8 +77,8 @@
       {
         "id": "US-011",
         "title": "修复编辑框尺寸与原框选一致",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       }
     ]
   },
@@ -102,6 +102,16 @@
       "durationMs": 233524,
       "startedAt": "2026-02-04T13:37:41.801Z",
       "endedAt": "2026-02-04T13:41:35.325Z"
+    },
+    {
+      "iteration": 3,
+      "status": "completed",
+      "taskId": "US-011",
+      "taskTitle": "修复编辑框尺寸与原框选一致",
+      "taskCompleted": true,
+      "durationMs": 1227661,
+      "startedAt": "2026-02-04T13:41:36.389Z",
+      "endedAt": "2026-02-04T14:02:04.050Z"
     }
   ],
   "skippedTaskIds": [],
