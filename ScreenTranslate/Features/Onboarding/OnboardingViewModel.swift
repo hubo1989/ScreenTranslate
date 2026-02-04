@@ -1,6 +1,9 @@
 import Foundation
 import SwiftUI
 import AppKit
+@preconcurrency import ScreenCaptureKit
+import Translation
+import os.log
 
 /// ViewModel for the first launch onboarding experience.
 @MainActor
@@ -26,11 +29,7 @@ final class OnboardingViewModel {
     /// PaddleOCR server address
     var paddleOCRServerAddress = ""
 
-    /// MTranServer address
-    var mtranServerAddress = "localhost"
-
-    /// MTranServer port
-    var mtranServerPort = 8989
+    var mtranServerURL = "localhost:8989"
 
     /// Whether a translation test is in progress
     var isTestingTranslation = false
@@ -77,7 +76,11 @@ final class OnboardingViewModel {
 
     init(settings: AppSettings = .shared) {
         self.settings = settings
-        checkPermissions()
+        Task {
+            await MainActor.run {
+                checkPermissions()
+            }
+        }
     }
 
     // MARK: - Actions
@@ -101,17 +104,29 @@ final class OnboardingViewModel {
 
     /// Checks all permission statuses
     func checkPermissions() {
-        hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
         hasAccessibilityPermission = AccessibilityPermissionChecker.hasPermission
+        Task {
+            hasScreenRecordingPermission = await ScreenDetector.shared.hasPermission
+        }
+    }
+
+    /// Checks screen recording permission using ScreenCaptureKit
+    func checkScreenRecordingPermission() async -> Bool {
+        await ScreenDetector.shared.hasPermission
     }
 
     /// Requests screen recording permission
     func requestScreenRecordingPermission() {
         _ = CGRequestScreenCaptureAccess()
-        // Recheck after a short delay
         Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            checkPermissions()
+            for _ in 0..<20 {
+                try? await Task.sleep(for: .milliseconds(300))
+                let hasPermission = await checkScreenRecordingPermission()
+                await MainActor.run {
+                    hasScreenRecordingPermission = hasPermission
+                }
+                if hasPermission { break }
+            }
         }
     }
 
@@ -124,12 +139,13 @@ final class OnboardingViewModel {
 
     /// Requests accessibility permission
     func requestAccessibilityPermission() {
-        // Show system prompt
         _ = AccessibilityPermissionChecker.requestPermission()
-        // Recheck after a short delay
         Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            checkPermissions()
+            for _ in 0..<10 {
+                try? await Task.sleep(for: .milliseconds(500))
+                checkPermissions()
+                if hasAccessibilityPermission { break }
+            }
         }
     }
 
@@ -138,26 +154,46 @@ final class OnboardingViewModel {
         AccessibilityPermissionChecker.openAccessibilitySettings()
     }
 
-    /// Tests the translation configuration with a sample request
     func testTranslation() async {
         isTestingTranslation = true
         translationTestResult = nil
         translationTestSuccess = false
 
-        // Test with sample text
         let testText = "Hello"
 
         do {
-            // Try Apple Translation (always available as fallback)
-            let engine = TranslationEngine.shared
-            let result = try await engine.translate(testText, to: .chineseSimplified)
+            if let (host, port) = parseServerURL(mtranServerURL), !host.isEmpty {
+                let originalHost = settings.mtranServerHost
+                let originalPort = settings.mtranServerPort
+                settings.mtranServerHost = host
+                settings.mtranServerPort = port
 
-            translationTestResult = String(
-                format: NSLocalizedString("onboarding.test.success", comment: ""),
-                testText,
-                result.translatedText
-            )
-            translationTestSuccess = true
+                let result = try await MTranServerEngine.shared.translate(testText, to: "zh")
+
+                settings.mtranServerHost = originalHost
+                settings.mtranServerPort = originalPort
+
+                translationTestResult = String(
+                    format: NSLocalizedString("onboarding.test.success", comment: ""),
+                    testText,
+                    result.translatedText
+                )
+                translationTestSuccess = true
+            } else {
+                let config = TranslationEngine.Configuration(
+                    targetLanguage: TranslationLanguage.chineseSimplified,
+                    timeout: 10.0,
+                    autoDetectSourceLanguage: true
+                )
+                let result = try await TranslationEngine.shared.translate(testText, config: config)
+
+                translationTestResult = String(
+                    format: NSLocalizedString("onboarding.test.success", comment: ""),
+                    testText,
+                    result.translatedText
+                )
+                translationTestSuccess = true
+            }
         } catch {
             translationTestResult = String(
                 format: NSLocalizedString("onboarding.test.failed", comment: ""),
@@ -169,29 +205,39 @@ final class OnboardingViewModel {
         isTestingTranslation = false
     }
 
-    /// Saves the configuration and completes onboarding
     private func completeOnboarding() {
-        // Save configuration if addresses were provided
         if !paddleOCRServerAddress.isEmpty {
-            // Note: PaddleOCR is selected via ocrEngine in AppSettings
-            // The server address would be used when PaddleOCR engine is active
+            settings.paddleOCRServerAddress = paddleOCRServerAddress
         }
 
-        if !mtranServerAddress.isEmpty {
-            // Note: MTranServer configuration would be saved here
-            // when MTranServer engine is selected
+        if let (host, port) = parseServerURL(mtranServerURL), !host.isEmpty {
+            settings.mtranServerHost = host
+            settings.mtranServerPort = port
         }
 
-        // Mark onboarding as completed
         settings.onboardingCompleted = true
-
-        // Notify window to close
         NotificationCenter.default.post(name: .onboardingCompleted, object: nil)
     }
 
-    /// Skips optional configuration
+    private func parseServerURL(_ url: String) -> (host: String, port: Int)? {
+        let trimmed = url.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+
+        if let colonIndex = trimmed.lastIndex(of: ":") {
+            let host = String(trimmed[..<colonIndex])
+            let portString = String(trimmed[colonIndex...].dropFirst())
+            if let port = Int(portString) {
+                return (host, port)
+            }
+        }
+
+        return (trimmed, 8989)
+    }
+
     func skipConfiguration() {
-        goToNextStep()
+        paddleOCRServerAddress = ""
+        mtranServerURL = ""
+        completeOnboarding()
     }
 }
 

@@ -156,6 +156,8 @@
 "error.translation.unsupported.pair.recovery" = "Please select different languages";
 "error.translation.failed" = "Translation failed";
 "error.translation.failed.recovery" = "Please try again";
+"error.translation.language.not.installed" = "Translation language '%@' is not installed";
+"error.translation.language.download.instructions" = "Go to System Settings > General > Language & Region > Translation Languages, then download the required language.";
 
 /* Onboarding */
 "onboarding.window.title" = "Welcome to ScreenCapture";

@@ -33,6 +33,9 @@ final class AppSettings {
         static let translationEngine = prefix + "translationEngine"
         static let translationMode = prefix + "translationMode"
         static let onboardingCompleted = prefix + "onboardingCompleted"
+        static let paddleOCRServerAddress = prefix + "paddleOCRServerAddress"
+        static let mtranServerHost = prefix + "mtranServerHost"
+        static let mtranServerPort = prefix + "mtranServerPort"
     }
 
     // MARK: - Properties
@@ -133,6 +136,18 @@ final class AppSettings {
         didSet { save(onboardingCompleted, forKey: Keys.onboardingCompleted) }
     }
 
+    var paddleOCRServerAddress: String {
+        didSet { save(paddleOCRServerAddress, forKey: Keys.paddleOCRServerAddress) }
+    }
+
+    var mtranServerHost: String {
+        didSet { save(mtranServerHost, forKey: Keys.mtranServerHost) }
+    }
+
+    var mtranServerPort: Int {
+        didSet { save(mtranServerPort, forKey: Keys.mtranServerPort) }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -195,6 +210,9 @@ final class AppSettings {
         translationMode = defaults.string(forKey: Keys.translationMode)
             .flatMap { TranslationMode(rawValue: $0) } ?? .below
         onboardingCompleted = defaults.object(forKey: Keys.onboardingCompleted) as? Bool ?? false
+        paddleOCRServerAddress = defaults.string(forKey: Keys.paddleOCRServerAddress) ?? ""
+        mtranServerHost = defaults.string(forKey: Keys.mtranServerHost) ?? "localhost"
+        mtranServerPort = defaults.object(forKey: Keys.mtranServerPort) as? Int ?? 8989
 
         print("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }

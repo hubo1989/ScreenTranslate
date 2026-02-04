@@ -79,8 +79,7 @@ final class TranslationPopoverWindow: NSPanel {
         ignoresMouseEvents = false
         hasShadow = true
 
-        // Don't hide on deactivation
-        hidesOnDeactivate = false
+        hidesOnDeactivate = true
 
         // Behavior
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
@@ -151,13 +150,37 @@ final class TranslationPopoverWindow: NSPanel {
     @MainActor
     func showPopover() {
         makeKeyAndOrderFront(nil)
+        orderFrontRegardless()
+
+        // Add close button after window is positioned
+        setupCloseButton()
     }
 
-    /// Hides and closes the popover window
-    @MainActor
-    func hidePopover() {
+    private var closeButton: NSButton?
+
+    private func setupCloseButton() {
+        guard closeButton == nil else { return }
+
+        let buttonSize: CGFloat = 28
+        let margin: CGFloat = 8
+        let button = NSButton(frame: NSRect(
+            x: contentView?.bounds.width ?? 400 - buttonSize - margin,
+            y: contentView?.bounds.height ?? 200 - buttonSize - margin,
+            width: buttonSize,
+            height: buttonSize
+        ))
+        button.bezelStyle = NSButton.BezelStyle.circular
+        button.title = "×"
+        button.font = NSFont.systemFont(ofSize: 18, weight: .medium)
+        button.target = self
+        button.action = #selector(closeWindow)
+        button.autoresizingMask = NSView.AutoresizingMask([.minXMargin, .minYMargin])
+        contentView?.addSubview(button)
+        closeButton = button
+    }
+
+    @objc private func closeWindow() {
         orderOut(nil)
-        close()
     }
 
     // MARK: - NSWindow Overrides
@@ -634,8 +657,9 @@ final class TranslationPopoverController {
 
     /// Dismisses the current popover.
     func dismissPopover() {
-        popoverWindow?.hidePopover()
+        popoverWindow?.close()
         popoverWindow = nil
+        onDismiss?()
     }
 }
 

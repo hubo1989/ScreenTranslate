@@ -35,6 +35,14 @@ struct PreviewContentView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
                 .background(.bar)
+
+            if viewModel.hasOCRResults || viewModel.hasTranslationResults {
+                Divider()
+                resultsPanel
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.bar)
+            }
         }
         .alert(
             "Error",
@@ -793,7 +801,32 @@ struct PreviewContentView: View {
         }
     }
 
-    /// Action buttons for save, copy, etc.
+    private var resultsPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if viewModel.hasOCRResults {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Recognized Text:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(viewModel.combinedOCRText)
+                        .font(.body)
+                        .lineLimit(3)
+                }
+            }
+
+            if viewModel.hasTranslationResults {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Translation:")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(viewModel.combinedTranslatedText)
+                        .font(.body)
+                        .lineLimit(3)
+                }
+            }
+        }
+    }
+
     private var actionButtons: some View {
         HStack(spacing: 8) {
             // Crop button
@@ -886,6 +919,38 @@ struct PreviewContentView: View {
             .help("Save (⌘S or Enter)")
             .accessibilityLabel(Text(viewModel.isSaving ? "Saving screenshot" : "Save screenshot"))
             .accessibilityHint(Text("Command S or Enter"))
+
+            Divider()
+                .frame(height: 16)
+                .accessibilityHidden(true)
+
+            Button {
+                viewModel.performOCR()
+            } label: {
+                if viewModel.isPerformingOCR {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(width: 16, height: 16)
+                } else {
+                    Image(systemName: "text.viewfinder")
+                }
+            }
+            .disabled(viewModel.isPerformingOCR)
+            .help("Recognize Text (OCR)")
+
+            Button {
+                viewModel.performTranslation()
+            } label: {
+                if viewModel.isPerformingTranslation {
+                    ProgressView()
+                        .controlSize(.small)
+                        .frame(width: 16, height: 16)
+                } else {
+                    Image(systemName: "character")
+                }
+            }
+            .disabled(viewModel.isPerformingTranslation || !viewModel.hasOCRResults)
+            .help("Translate Text")
 
             Divider()
                 .frame(height: 16)

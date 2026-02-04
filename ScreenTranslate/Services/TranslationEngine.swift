@@ -140,12 +140,39 @@ actor TranslationEngine {
             effectiveTargetLanguage = Self.systemTargetLanguage()
         }
 
+        // Check language availability before attempting translation
+        let languageStatus = await Self.checkLanguageAvailability(
+            target: effectiveTargetLanguage.localeLanguage
+        )
+
+        switch languageStatus {
+        case .installed:
+            break
+        case .supported(let languageName):
+            throw TranslationEngineError.languageNotInstalled(
+                language: languageName,
+                downloadInstructions: NSLocalizedString(
+                    "error.translation.language.download.instructions",
+                    comment: ""
+                )
+            )
+        case .unsupported(let languageName):
+            throw TranslationEngineError.unsupportedLanguagePair(
+                source: NSLocalizedString("translation.auto.detected", comment: ""),
+                target: languageName
+            )
+        }
+
         // Perform translation with signpost for profiling
         os_signpost(.begin, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
         let startTime = CFAbsoluteTimeGetCurrent()
 
         // Define timeout error type
         struct TranslationTimeout: Error {}
+
+        struct AppleTranslationError: Error {
+            let nsError: NSError
+        }
 
         do {
             // Perform translation with timeout
@@ -161,13 +188,18 @@ actor TranslationEngine {
                         )
                         let result = try await session.translate(text)
                         return .success(result)
+                    } catch let error as NSError {
+                        if error.domain == "TranslationErrorDomain" {
+                            return .failure(AppleTranslationError(nsError: error))
+                        }
+                        return .failure(error)
                     } catch {
                         return .failure(error)
                     }
                 }
 
                 // Timeout task
-                group.addTaskUnlessCancelled { [timeout = config.timeout] in
+                _ = group.addTaskUnlessCancelled { [timeout = config.timeout] in
                     try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
                     return .failure(TranslationTimeout())
                 }
@@ -187,20 +219,29 @@ actor TranslationEngine {
             os_log("Translation completed in %.1fms", log: OSLog.default, type: .info, duration)
             #endif
 
-            // Convert response to translated text
-            // TranslationSession.Response is a struct that contains the translated text
-            let translatedText = String(describing: response)
-
             return TranslationResult(
-                sourceText: text,
-                translatedText: translatedText,
-                sourceLanguage: NSLocalizedString("translation.auto.detected", comment: ""),
-                targetLanguage: effectiveTargetLanguage.localizedName
+                sourceText: response.sourceText,
+                translatedText: response.targetText,
+                sourceLanguage: response.sourceLanguage.minimalIdentifier,
+                targetLanguage: response.targetLanguage.minimalIdentifier
             )
 
         } catch is TranslationTimeout {
             os_signpost(.end, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
             throw TranslationEngineError.timeout
+
+        } catch let error as AppleTranslationError {
+            os_signpost(.end, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
+            if error.nsError.code == 16 {
+                throw TranslationEngineError.languageNotInstalled(
+                    language: effectiveTargetLanguage.localizedName,
+                    downloadInstructions: NSLocalizedString(
+                        "error.translation.language.download.instructions",
+                        comment: ""
+                    )
+                )
+            }
+            throw TranslationEngineError.translationFailed(underlying: error.nsError)
 
         } catch {
             os_signpost(.end, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
@@ -264,6 +305,37 @@ actor TranslationEngine {
         // Most common pairs are supported; this is a simplified check
         return source != target
     }
+
+    // MARK: - Language Availability
+
+    /// Represents the availability status of a translation language
+    enum LanguageAvailabilityStatus {
+        case installed
+        case supported(languageName: String)
+        case unsupported(languageName: String)
+    }
+
+    /// Checks if the target language is available for translation
+    /// - Parameter target: The target language to check
+    /// - Returns: The availability status of the language
+    private static func checkLanguageAvailability(target: Locale.Language) async -> LanguageAvailabilityStatus {
+        let availability = LanguageAvailability()
+        let sourceLanguage = Locale.Language(identifier: "en")
+        let status = await availability.status(from: sourceLanguage, to: target)
+
+        let languageName = target.minimalIdentifier
+
+        switch status {
+        case .installed:
+            return .installed
+        case .supported:
+            return .supported(languageName: languageName)
+        case .unsupported:
+            return .unsupported(languageName: languageName)
+        @unknown default:
+            return .unsupported(languageName: languageName)
+        }
+    }
 }
 
 // MARK: - Translation Engine Errors
@@ -282,6 +354,9 @@ enum TranslationEngineError: LocalizedError, Sendable {
     /// The requested language pair is not supported
     case unsupportedLanguagePair(source: String, target: String)
 
+    /// Translation language not installed (needs download)
+    case languageNotInstalled(language: String, downloadInstructions: String)
+
     /// Translation failed with an underlying error
     case translationFailed(underlying: any Error)
 
@@ -295,6 +370,8 @@ enum TranslationEngineError: LocalizedError, Sendable {
             return NSLocalizedString("error.translation.timeout", comment: "")
         case .unsupportedLanguagePair(let source, let target):
             return String(format: NSLocalizedString("error.translation.unsupported.pair", comment: ""), source, target)
+        case .languageNotInstalled(let language, _):
+            return String(format: NSLocalizedString("error.translation.language.not.installed", comment: ""), language)
         case .translationFailed:
             return NSLocalizedString("error.translation.failed", comment: "")
         }
@@ -310,6 +387,8 @@ enum TranslationEngineError: LocalizedError, Sendable {
             return NSLocalizedString("error.translation.timeout.recovery", comment: "")
         case .unsupportedLanguagePair:
             return NSLocalizedString("error.translation.unsupported.pair.recovery", comment: "")
+        case .languageNotInstalled(_, let instructions):
+            return instructions
         case .translationFailed:
             return NSLocalizedString("error.translation.failed.recovery", comment: "")
         }

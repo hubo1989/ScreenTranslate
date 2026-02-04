@@ -88,6 +88,18 @@ final class PreviewViewModel {
     @ObservationIgnored
     private let recentCapturesStore: RecentCapturesStore
 
+    @ObservationIgnored
+    private let ocrEngine = OCREngine.shared
+
+    @ObservationIgnored
+    private let translationEngine = TranslationEngine.shared
+
+    private(set) var ocrResult: OCRResult?
+    private(set) var translations: [TranslationResult] = []
+    private(set) var isPerformingOCR: Bool = false
+    private(set) var isPerformingTranslation: Bool = false
+    private(set) var ocrTranslationError: String?
+
     // MARK: - Annotation Tools
 
     /// Rectangle drawing tool
@@ -940,6 +952,92 @@ final class PreviewViewModel {
             try? await Task.sleep(for: .seconds(3))
             errorMessage = nil
         }
+    }
+
+    // MARK: - OCR & Translation
+
+    func performOCR() {
+        guard !isPerformingOCR else { return }
+        isPerformingOCR = true
+        ocrTranslationError = nil
+
+        Task {
+            await executeOCR()
+        }
+    }
+
+    private func executeOCR() async {
+        defer { isPerformingOCR = false }
+
+        do {
+            let result = try await ocrEngine.recognize(
+                image,
+                languages: [.english, .chineseSimplified]
+            )
+            ocrResult = result
+        } catch {
+            ocrTranslationError = "OCR failed: \(error.localizedDescription)"
+        }
+    }
+
+    func performTranslation() {
+        guard !isPerformingTranslation else { return }
+
+        let textsToTranslate: [String]
+        if let ocr = ocrResult, !ocr.observations.isEmpty {
+            textsToTranslate = ocr.observations.map { $0.text }
+        } else {
+            textsToTranslate = [""]
+        }
+
+        guard !textsToTranslate.isEmpty else {
+            ocrTranslationError = "No text to translate. Perform OCR first."
+            return
+        }
+
+        isPerformingTranslation = true
+        ocrTranslationError = nil
+        translations = []
+
+        Task {
+            await executeTranslation(texts: textsToTranslate)
+        }
+    }
+
+    private func executeTranslation(texts: [String]) async {
+        defer { isPerformingTranslation = false }
+
+        var results: [TranslationResult] = []
+
+        for text in texts {
+            do {
+                let translation = try await translationEngine.translate(
+                    text,
+                    to: .chineseSimplified
+                )
+                results.append(translation)
+            } catch {
+                results.append(TranslationResult.empty(for: text))
+            }
+        }
+
+        translations = results
+    }
+
+    var hasOCRResults: Bool {
+        ocrResult?.hasResults ?? false
+    }
+
+    var hasTranslationResults: Bool {
+        !translations.isEmpty
+    }
+
+    var combinedOCRText: String {
+        ocrResult?.fullText ?? ""
+    }
+
+    var combinedTranslatedText: String {
+        translations.map { $0.translatedText }.joined(separator: "\n")
     }
 }
 

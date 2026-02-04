@@ -277,17 +277,11 @@ struct OnboardingView: View {
                     Text(NSLocalizedString("onboarding.configuration.mtran.hint", comment: ""))
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    HStack {
-                        TextField(
-                            NSLocalizedString("onboarding.configuration.placeholder.address", comment: ""),
-                            text: $viewModel.mtranServerAddress
-                        )
-                        .textFieldStyle(.roundedBorder)
-                        Text(":")
-                        TextField("", value: $viewModel.mtranServerPort, format: .number)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(width: 80)
-                    }
+                    TextField(
+                        NSLocalizedString("onboarding.configuration.placeholder.address", comment: ""),
+                        text: $viewModel.mtranServerURL
+                    )
+                    .textFieldStyle(.roundedBorder)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -328,19 +322,20 @@ struct OnboardingView: View {
                     viewModel.skipConfiguration()
                 } label: {
                     Text(NSLocalizedString("onboarding.skip", comment: ""))
+                        .fontWeight(.medium)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.borderedProminent)
+                .tint(.secondary)
 
                 Spacer()
 
-                if viewModel.canGoNext {
-                    Button {
-                        viewModel.goToNextStep()
-                    } label: {
-                        Text(NSLocalizedString("onboarding.next", comment: ""))
-                    }
-                    .buttonStyle(.borderedProminent)
+                Button {
+                    viewModel.goToNextStep()
+                } label: {
+                    Text(NSLocalizedString("onboarding.complete", comment: ""))
+                        .fontWeight(.semibold)
                 }
+                .buttonStyle(.borderedProminent)
             }
         }
         .padding(32)

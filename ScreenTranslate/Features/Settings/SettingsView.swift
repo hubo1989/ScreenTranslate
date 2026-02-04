@@ -146,9 +146,6 @@ private struct PermissionRow: View {
                 .buttonStyle(.borderless)
             }
         }
-        .onAppear {
-            viewModel.checkPermissions()
-        }
     }
 }
 
