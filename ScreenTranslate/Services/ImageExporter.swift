@@ -150,7 +150,7 @@ struct ImageExporter: Sendable {
     ///   - image: The base image
     /// - Returns: A new CGImage with annotations rendered
     /// - Throws: ScreenTranslateError if compositing fails
-    private func compositeAnnotations(
+    func compositeAnnotations(
         _ annotations: [Annotation],
         onto image: CGImage
     ) throws -> CGImage {

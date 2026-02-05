@@ -138,6 +138,7 @@
 "preview.tooltip.show.translation" = "Show Translation Overlay";
 "preview.tooltip.hide.translation" = "Hide Translation Overlay";
 "preview.tooltip.save.with.translations" = "Save Image with Translations";
+"preview.tooltip.copy.with.translations" = "Copy Image with Translations";
 "preview.tooltip.dismiss" = "Dismiss (Escape)";
 "preview.tooltip.delete" = "Delete selected annotation";
 
@@ -205,6 +206,9 @@
 
 /* No Translations Error */
 "error.no.translations" = "No translations available. Please translate the text first.";
+
+/* Copy Success */
+"copy.success.message" = "Copied to clipboard";
 
 
 /* ========================================

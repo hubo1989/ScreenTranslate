@@ -66,6 +66,12 @@ final class PreviewViewModel {
     /// Whether copy is in progress
     private(set) var isCopying: Bool = false
 
+    /// Whether copying with translations is in progress
+    private(set) var isCopyingWithTranslations: Bool = false
+
+    /// Success message for copy with translations
+    private(set) var copySuccessMessage: String?
+
     /// Callback when the preview should be dismissed
     @ObservationIgnored
     var onDismiss: (() -> Void)?
@@ -1033,6 +1039,64 @@ final class PreviewViewModel {
 
     func dismissSuccessMessage() {
         saveSuccessMessage = nil
+    }
+
+    func copyWithTranslations() {
+        guard !isCopyingWithTranslations else { return }
+        guard hasTranslationResults else {
+            errorMessage = NSLocalizedString("error.no.translations", comment: "No translations to copy")
+            clearError()
+            return
+        }
+
+        isCopyingWithTranslations = true
+
+        do {
+            var finalImage = image
+
+            if !annotations.isEmpty {
+                finalImage = try imageExporter.compositeAnnotations(annotations, onto: finalImage)
+            }
+
+            if let ocrResult = ocrResult {
+                finalImage = try imageExporter.compositeTranslations(
+                    finalImage,
+                    ocrResult: ocrResult,
+                    translations: translations
+                )
+            }
+
+            let nsImage = NSImage(
+                cgImage: finalImage,
+                size: NSSize(width: finalImage.width, height: finalImage.height)
+            )
+
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+
+            guard pasteboard.writeObjects([nsImage]) else {
+                throw ScreenTranslateError.clipboardWriteFailed
+            }
+
+            copySuccessMessage = NSLocalizedString("copy.success.message", comment: "Copied to clipboard")
+            clearCopySuccessMessage()
+        } catch {
+            errorMessage = NSLocalizedString("error.clipboard.write.failed", comment: "Failed to copy to clipboard")
+            clearError()
+        }
+
+        isCopyingWithTranslations = false
+    }
+
+    private func clearCopySuccessMessage() {
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            copySuccessMessage = nil
+        }
+    }
+
+    func dismissCopySuccessMessage() {
+        copySuccessMessage = nil
     }
 
     // MARK: - OCR & Translation

@@ -72,6 +72,26 @@ struct PreviewContentView: View {
         } message: { message in
             Text(message)
         }
+        .overlay(alignment: .top) {
+            if let message = viewModel.copySuccessMessage {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                    Text(message)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+                .cornerRadius(8)
+                .shadow(radius: 4)
+                .padding(.top, 20)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .onTapGesture {
+                    viewModel.dismissCopySuccessMessage()
+                }
+            }
+        }
+        .animation(.easeInOut(duration: 0.3), value: viewModel.copySuccessMessage != nil)
     }
 
     // MARK: - Subviews
@@ -975,6 +995,26 @@ struct PreviewContentView: View {
             .disabled(!viewModel.hasTranslationResults || viewModel.isSavingWithTranslations)
             .help(String(localized: "preview.tooltip.save.with.translations"))
             .accessibilityLabel(Text(viewModel.isSavingWithTranslations ? "Saving translated image" : "Save image with translations"))
+
+            Button {
+                viewModel.copyWithTranslations()
+            } label: {
+                if viewModel.isCopyingWithTranslations {
+                    if reduceMotion {
+                        Image(systemName: "ellipsis")
+                            .frame(width: 16, height: 16)
+                    } else {
+                        ProgressView()
+                            .controlSize(.small)
+                            .frame(width: 16, height: 16)
+                    }
+                } else {
+                    Image(systemName: "photo.on.rectangle")
+                }
+            }
+            .disabled(!viewModel.hasTranslationResults || viewModel.isCopyingWithTranslations)
+            .help(String(localized: "preview.tooltip.copy.with.translations"))
+            .accessibilityLabel(Text(viewModel.isCopyingWithTranslations ? "Copying translated image" : "Copy image with translations"))
 
             Divider()
                 .frame(height: 16)
