@@ -37,20 +37,22 @@ struct MeshGradientView: View {
             // Flowing blobs
             TimelineView(.animation) { timeline in
                 Canvas { context, size in
-                    let t = timeline.date.timeIntervalSinceReferenceDate
+                    let time = timeline.date.timeIntervalSinceReferenceDate
                     
-                    for i in 0..<4 {
-                        let x = size.width * (0.5 + 0.3 * sin(t * 0.5 + Double(i)))
-                        let y = size.height * (0.5 + 0.3 * cos(t * 0.4 + Double(i) * 1.5))
+                    for index in 0..<4 {
+                        let x = size.width * (0.5 + 0.3 * sin(time * 0.5 + Double(index)))
+                        let y = size.height * (0.5 + 0.3 * cos(time * 0.4 + Double(index) * 1.5))
                         let radius = max(size.width, size.height) * 0.6
                         
                         context.fill(
-                            Circle().path(in: CGRect(x: x - radius/2, y: y - radius/2, width: radius, height: radius)),
+                            Circle().path(
+                                in: CGRect(x: x - radius / 2, y: y - radius / 2, width: radius, height: radius)
+                            ),
                             with: .radialGradient(
-                                Gradient(colors: [DesignSystem.Colors.meshColors[i].opacity(0.4), .clear]),
+                                Gradient(colors: [DesignSystem.Colors.meshColors[index].opacity(0.4), .clear]),
                                 center: CGPoint(x: x, y: y),
                                 startRadius: 0,
-                                endRadius: radius/2
+                                endRadius: radius / 2
                             )
                         )
                     }
@@ -89,7 +91,12 @@ extension View {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .stroke(
                             AngularGradient(
-                                colors: [.blue.opacity(0.2), .purple.opacity(0.2), .cyan.opacity(0.2), .blue.opacity(0.2)],
+                                colors: [
+                                    .blue.opacity(0.2),
+                                    .purple.opacity(0.2),
+                                    .cyan.opacity(0.2),
+                                    .blue.opacity(0.2)
+                                ],
                                 center: .center
                             ),
                             lineWidth: 0.5

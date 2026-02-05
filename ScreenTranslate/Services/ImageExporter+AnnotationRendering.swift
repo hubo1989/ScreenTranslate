@@ -1,110 +1,16 @@
 import Foundation
-import AppKit
 import CoreGraphics
+import AppKit
 
-/// Service for copying screenshots to the system clipboard.
-/// Uses NSPasteboard for compatibility with all macOS applications.
-@MainActor
-struct ClipboardService {
-    // MARK: - Public API
+// MARK: - Annotation Rendering
 
-    /// Copies an image with annotations to the system clipboard.
-    /// - Parameters:
-    ///   - image: The base image to copy
-    ///   - annotations: Annotations to composite onto the image
-    /// - Throws: ScreenTranslateError.clipboardWriteFailed if the operation fails
-    func copy(_ image: CGImage, annotations: [Annotation]) throws {
-        // Composite annotations if any exist
-        let finalImage: CGImage
-        if annotations.isEmpty {
-            finalImage = image
-        } else {
-            finalImage = try compositeAnnotations(annotations, onto: image)
-        }
-
-        // Convert to NSImage
-        let nsImage = NSImage(
-            cgImage: finalImage,
-            size: NSSize(width: finalImage.width, height: finalImage.height)
-        )
-
-        // Write to pasteboard
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-
-        // Write both PNG and TIFF for maximum compatibility
-        guard pasteboard.writeObjects([nsImage]) else {
-            throw ScreenTranslateError.clipboardWriteFailed
-        }
-    }
-
-    /// Copies an image (without annotations) to the system clipboard.
-    /// - Parameter image: The image to copy
-    /// - Throws: ScreenTranslateError.clipboardWriteFailed if the operation fails
-    func copy(_ image: CGImage) throws {
-        try copy(image, annotations: [])
-    }
-
-    /// Checks if the clipboard currently contains an image.
-    var hasImage: Bool {
-        let pasteboard = NSPasteboard.general
-        return pasteboard.canReadItem(withDataConformingToTypes: [
-            NSPasteboard.PasteboardType.tiff.rawValue,
-            NSPasteboard.PasteboardType.png.rawValue
-        ])
-    }
-
-    // MARK: - Annotation Compositing
-
-    /// Composites annotations onto an image.
-    /// - Parameters:
-    ///   - annotations: The annotations to draw
-    ///   - image: The base image
-    /// - Returns: A new CGImage with annotations rendered
-    /// - Throws: ScreenTranslateError if compositing fails
-    private func compositeAnnotations(
-        _ annotations: [Annotation],
-        onto image: CGImage
-    ) throws -> CGImage {
-        let width = image.width
-        let height = image.height
-
-        // Create drawing context
-        guard let colorSpace = image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB),
-              let context = CGContext(
-                  data: nil,
-                  width: width,
-                  height: height,
-                  bitsPerComponent: 8,
-                  bytesPerRow: 0,
-                  space: colorSpace,
-                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-              ) else {
-            throw ScreenTranslateError.clipboardWriteFailed
-        }
-
-        // Draw base image
-        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-
-        // Configure for drawing annotations
-        context.setLineCap(.round)
-        context.setLineJoin(.round)
-
-        // Draw each annotation
-        for annotation in annotations {
-            renderAnnotation(annotation, in: context, imageHeight: CGFloat(height))
-        }
-
-        // Create final image
-        guard let result = context.makeImage() else {
-            throw ScreenTranslateError.clipboardWriteFailed
-        }
-
-        return result
-    }
-
+extension ImageExporter {
     /// Renders a single annotation into a graphics context.
-    private func renderAnnotation(
+    /// - Parameters:
+    ///   - annotation: The annotation to render
+    ///   - context: The graphics context
+    ///   - imageHeight: The image height (for coordinate transformation)
+    func renderAnnotation(
         _ annotation: Annotation,
         in context: CGContext,
         imageHeight: CGFloat
@@ -122,11 +28,12 @@ struct ClipboardService {
     }
 
     /// Renders a rectangle annotation.
-    private func renderRectangle(
+    func renderRectangle(
         _ annotation: RectangleAnnotation,
         in context: CGContext,
         imageHeight: CGFloat
     ) {
+        // Transform from SwiftUI coordinates (origin top-left) to CG coordinates (origin bottom-left)
         let rect = CGRect(
             x: annotation.rect.origin.x,
             y: imageHeight - annotation.rect.origin.y - annotation.rect.height,
@@ -147,7 +54,7 @@ struct ClipboardService {
     }
 
     /// Renders a freehand annotation.
-    private func renderFreehand(
+    func renderFreehand(
         _ annotation: FreehandAnnotation,
         in context: CGContext,
         imageHeight: CGFloat
@@ -157,6 +64,7 @@ struct ClipboardService {
         context.setStrokeColor(annotation.style.color.cgColor)
         context.setLineWidth(annotation.style.lineWidth)
 
+        // Transform points and draw path
         context.beginPath()
         let firstPoint = annotation.points[0]
         context.move(to: CGPoint(x: firstPoint.x, y: imageHeight - firstPoint.y))
@@ -169,11 +77,12 @@ struct ClipboardService {
     }
 
     /// Renders an arrow annotation.
-    private func renderArrow(
+    func renderArrow(
         _ annotation: ArrowAnnotation,
         in context: CGContext,
         imageHeight: CGFloat
     ) {
+        // Transform from SwiftUI coordinates (origin top-left) to CG coordinates (origin bottom-left)
         let start = CGPoint(x: annotation.startPoint.x, y: imageHeight - annotation.startPoint.y)
         let end = CGPoint(x: annotation.endPoint.x, y: imageHeight - annotation.endPoint.y)
         let lineWidth = annotation.style.lineWidth
@@ -216,13 +125,14 @@ struct ClipboardService {
     }
 
     /// Renders a text annotation.
-    private func renderText(
+    func renderText(
         _ annotation: TextAnnotation,
         in context: CGContext,
         imageHeight: CGFloat
     ) {
         guard !annotation.content.isEmpty else { return }
 
+        // Create attributed string
         let font = NSFont(name: annotation.style.fontName, size: annotation.style.fontSize)
             ?? NSFont.systemFont(ofSize: annotation.style.fontSize)
 
@@ -232,22 +142,22 @@ struct ClipboardService {
         ]
 
         let attributedString = NSAttributedString(string: annotation.content, attributes: attributes)
+
+        // Draw text at position (transform Y coordinate)
         let position = CGPoint(
             x: annotation.position.x,
             y: imageHeight - annotation.position.y - annotation.style.fontSize
         )
 
+        // Save context state
         context.saveGState()
+
+        // Create line and draw
         let line = CTLineCreateWithAttributedString(attributedString)
         context.textPosition = position
         CTLineDraw(line, context)
+
+        // Restore context state
         context.restoreGState()
     }
-}
-
-// MARK: - Shared Instance
-
-extension ClipboardService {
-    /// Shared instance for convenience
-    @MainActor static let shared = ClipboardService()
 }

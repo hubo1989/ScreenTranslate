@@ -71,7 +71,9 @@ struct RectangleTool: AnnotationTool {
         }
 
         let start = drawingState.startPoint
-        let end = drawingState.points.last!
+        guard let end = drawingState.points.last else {
+            return .zero
+        }
 
         let minX = min(start.x, end.x)
         let minY = min(start.y, end.y)

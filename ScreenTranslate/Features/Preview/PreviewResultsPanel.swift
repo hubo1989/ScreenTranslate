@@ -1,0 +1,80 @@
+import SwiftUI
+import AppKit
+
+struct PreviewResultsPanel: View {
+    @Bindable var viewModel: PreviewViewModel
+    @Binding var isExpanded: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .frame(width: 12)
+                    Text("preview.results.panel")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    Spacer()
+                }
+                .foregroundStyle(.secondary)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 12) {
+                    if viewModel.hasOCRResults {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("preview.recognized.text")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(viewModel.combinedOCRText, forType: .string)
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                                .help(String(localized: "preview.copy.text"))
+                            }
+                            Text(viewModel.combinedOCRText)
+                                .font(.body)
+                                .textSelection(.enabled)
+                        }
+                    }
+
+                    if viewModel.hasTranslationResults {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text("preview.translation")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Button {
+                                    NSPasteboard.general.clearContents()
+                                    NSPasteboard.general.setString(viewModel.combinedTranslatedText, forType: .string)
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.caption)
+                                }
+                                .buttonStyle(.plain)
+                                .help(String(localized: "preview.copy.text"))
+                            }
+                            Text(viewModel.combinedTranslatedText)
+                                .font(.body)
+                                .textSelection(.enabled)
+                        }
+                    }
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+}

@@ -220,7 +220,7 @@ actor PaddleOCREngine {
     /// Executes PaddleOCR with the given arguments
     private func executePaddleOCR(arguments: [String]) async throws -> String {
         let fullCommand = "\(executablePath) \(arguments.joined(separator: " "))"
-        print("[PaddleOCREngine] Executing: \(fullCommand)")
+        Logger.ocr.info("Executing: \(fullCommand)")
         
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/zsh")
@@ -240,9 +240,9 @@ actor PaddleOCREngine {
 
         do {
             try task.run()
-            print("[PaddleOCREngine] Process started, waiting...")
+            Logger.ocr.debug("Process started, waiting...")
             task.waitUntilExit()
-            print("[PaddleOCREngine] Process finished with exit code: \(task.terminationStatus)")
+            Logger.ocr.debug("Process finished with exit code: \(task.terminationStatus)")
 
             let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
             let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
@@ -256,21 +256,23 @@ actor PaddleOCREngine {
                 if let jsonEnd = findMatchingBrace(in: String(resultStart)) {
                     stdout = String(resultStart.prefix(jsonEnd + 1))
                     // Remove ANSI color codes
-                    stdout = stdout.replacingOccurrences(of: "\u{001B}\\[[0-9;]*m", with: "", options: .regularExpression)
-                    print("[PaddleOCREngine] Extracted result from stderr")
+                    let ansiPattern = "\u{001B}\\[[0-9;]*m"
+                    stdout = stdout.replacingOccurrences(of: ansiPattern, with: "", options: .regularExpression)
+                    Logger.ocr.debug("Extracted result from stderr")
                 }
             }
             
-            print("[PaddleOCREngine] output length: \(stdout.count)")
-            print("[PaddleOCREngine] output: \(stdout.prefix(1000))")
+            Logger.ocr.debug("output length: \(stdout.count)")
+            Logger.ocr.debug("output: \(stdout.prefix(1000))")
 
             let exitCode = task.terminationStatus
             if exitCode != 0 {
-                throw PaddleOCREngineError.recognitionFailed(underlying: stderr.isEmpty ? "Exit code \(exitCode)" : stderr)
+                let errorMsg = stderr.isEmpty ? "Exit code \(exitCode)" : stderr
+                throw PaddleOCREngineError.recognitionFailed(underlying: errorMsg)
             }
 
             guard !stdout.isEmpty else {
-                print("[PaddleOCREngine] No result found in output")
+                Logger.ocr.error("No result found in output")
                 throw PaddleOCREngineError.invalidOutput
             }
 
@@ -278,7 +280,7 @@ actor PaddleOCREngine {
         } catch let error as PaddleOCREngineError {
             throw error
         } catch {
-            print("[PaddleOCREngine] Error: \(error)")
+            Logger.ocr.error("Error: \(error.localizedDescription)")
             throw PaddleOCREngineError.recognitionFailed(underlying: error.localizedDescription)
         }
     }
@@ -286,9 +288,10 @@ actor PaddleOCREngine {
     private func findMatchingBrace(in string: String) -> Int? {
         var depth = 0
         for (index, char) in string.enumerated() {
-            if char == "{" { depth += 1 }
-            else if char == "}" { 
-                depth -= 1 
+            if char == "{" {
+                depth += 1
+            } else if char == "}" {
+                depth -= 1
                 if depth == 0 { return index }
             }
         }
@@ -301,31 +304,31 @@ actor PaddleOCREngine {
 
         guard let startIndex = output.firstIndex(of: "{"),
               let endIndex = output.lastIndex(of: "}") else {
-            print("[PaddleOCREngine] No JSON found in output")
+            Logger.ocr.debug("No JSON found in output")
             return observations
         }
 
         let jsonLike = String(output[startIndex...endIndex])
         let cleanedJson = convertPythonDictToJson(jsonLike)
         
-        print("[PaddleOCREngine] Cleaned JSON: \(cleanedJson.prefix(500))")
+        Logger.ocr.debug("Cleaned JSON: \(cleanedJson.prefix(500))")
 
         guard let jsonData = cleanedJson.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
               let res = json["res"] as? [String: Any] else {
-            print("[PaddleOCREngine] Failed to parse JSON")
+            Logger.ocr.error("Failed to parse JSON")
             return observations
         }
 
         guard let recTexts = res["rec_texts"] as? [String] else {
-            print("[PaddleOCREngine] No rec_texts found")
+            Logger.ocr.error("No rec_texts found")
             return observations
         }
         
         let recScores = res["rec_scores"] as? [Double] ?? []
         let recBoxes = res["rec_boxes"] as? [[Int]] ?? []
         
-        print("[PaddleOCREngine] Found \(recTexts.count) texts, \(recBoxes.count) boxes")
+        Logger.ocr.info("Found \(recTexts.count) texts, \(recBoxes.count) boxes")
 
         for (index, text) in recTexts.enumerated() {
             let confidence = index < recScores.count ? Float(recScores[index]) : 0.5
@@ -353,7 +356,7 @@ actor PaddleOCREngine {
                 confidence: confidence
             )
             observations.append(observation)
-            print("[PaddleOCREngine] Text: '\(text)', box: \(boundingBox), confidence: \(confidence)")
+            Logger.ocr.debug("Text: '\(text)', box: \(String(describing: boundingBox)), confidence: \(confidence)")
         }
 
         return observations
@@ -366,25 +369,67 @@ actor PaddleOCREngine {
         result = result.replacingOccurrences(of: "False", with: "false")
         result = result.replacingOccurrences(of: "'", with: "\"")
 
-        let arrayPattern = #"array\([^)]*\)[^,}\]]*"#
-        if let regex = try? NSRegularExpression(pattern: arrayPattern, options: [.dotMatchesLineSeparators]) {
-            let range = NSRange(result.startIndex..., in: result)
-            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "[]")
-        }
-        
-        let dtypePattern = #",?\s*dtype=[^\)]+\)"#
-        if let regex = try? NSRegularExpression(pattern: dtypePattern) {
-            let range = NSRange(result.startIndex..., in: result)
-            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "")
-        }
-        
-        let shapePattern = #",?\s*shape=\([^\)]+\)"#
-        if let regex = try? NSRegularExpression(pattern: shapePattern) {
-            let range = NSRange(result.startIndex..., in: result)
-            result = regex.stringByReplacingMatches(in: result, range: range, withTemplate: "")
-        }
+        result = convertNumpyArraysToJson(result)
 
         return result
+    }
+    
+    private func convertNumpyArraysToJson(_ input: String) -> String {
+        var result = input
+        var searchStart = result.startIndex
+        
+        while let arrayStart = result.range(of: "array(", range: searchStart..<result.endIndex) {
+            var depth = 1
+            var current = arrayStart.upperBound
+            
+            while current < result.endIndex && depth > 0 {
+                let char = result[current]
+                if char == "(" {
+                    depth += 1
+                } else if char == ")" {
+                    depth -= 1
+                }
+                current = result.index(after: current)
+            }
+            
+            guard depth == 0 else {
+                searchStart = arrayStart.upperBound
+                continue
+            }
+            
+            let arrayContent = String(result[arrayStart.upperBound..<result.index(before: current)])
+            let extracted = extractArrayContent(from: arrayContent)
+            
+            result.replaceSubrange(arrayStart.lowerBound..<current, with: extracted)
+            searchStart = result.index(arrayStart.lowerBound, offsetBy: extracted.count, limitedBy: result.endIndex) ?? result.endIndex
+        }
+        
+        return result
+    }
+    
+    private func extractArrayContent(from arrayContent: String) -> String {
+        var content = arrayContent
+        
+        if let shapeRange = content.range(of: ", shape=") {
+            content = String(content[..<shapeRange.lowerBound])
+        }
+        if let dtypeRange = content.range(of: ", dtype=") {
+            content = String(content[..<dtypeRange.lowerBound])
+        }
+        
+        content = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if content.hasPrefix("[") {
+            content = content.replacingOccurrences(of: "...", with: "")
+            content = content.replacingOccurrences(of: "\n", with: "")
+            content = content.replacingOccurrences(of: " ", with: "")
+            content = content.replacingOccurrences(of: ",,", with: ",")
+            content = content.replacingOccurrences(of: "[,", with: "[")
+            content = content.replacingOccurrences(of: ",]", with: "]")
+            return content
+        }
+        
+        return "[]"
     }
 
     private func parseBoundingBox(from line: String, imageSize: CGSize) -> CGRect? {

@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import os
 
 // MARK: - SelectionOverlayDelegate
 
@@ -205,7 +206,9 @@ final class SelectionOverlayView: NSView {
             owner: self,
             userInfo: nil
         )
-        addTrackingArea(trackingArea!)
+        if let area = trackingArea {
+            addTrackingArea(area)
+        }
     }
 
     override func updateTrackingAreas() {
@@ -399,45 +402,36 @@ final class SelectionOverlayView: NSView {
             guard let window = self.window,
                   let displayInfo = displayInfo else { return }
 
-            #if DEBUG
-            print("=== SELECTION COORDINATE DEBUG ===")
-            print("[1] selectionRect (view coords): \(selectionRect)")
-            print("[2] window.frame: \(window.frame)")
-            print("[3] window.screen?.frame: \(String(describing: window.screen?.frame))")
-            #endif
+            Logger.capture.debug("=== SELECTION COORDINATE DEBUG ===")
+            Logger.capture.debug("[1] selectionRect (view coords): \(String(describing: selectionRect))")
+            Logger.capture.debug("[2] window.frame: \(String(describing: window.frame))")
+            Logger.capture.debug("[3] window.screen?.frame: \(String(describing: window.screen?.frame))")
 
             // The selectionRect is in view coordinates, convert to screen coordinates
             // screenRect is in Cocoa coordinates (Y=0 at bottom of primary screen)
             let screenRect = window.convertToScreen(selectionRect)
 
-            #if DEBUG
-            print("[4] screenRect (after convertToScreen): \(screenRect)")
-            print("[5] NSScreen.screens.first?.frame: \(String(describing: NSScreen.screens.first?.frame))")
-            #endif
+            Logger.capture.debug("[4] screenRect (after convertToScreen): \(String(describing: screenRect))")
+            let firstScreenFrame = NSScreen.screens.first?.frame
+            Logger.capture.debug("[5] NSScreen.screens.first?.frame: \(String(describing: firstScreenFrame))")
 
             // Get the screen height for coordinate conversion
             // Use the window's screen, not necessarily the primary screen
             // Cocoa uses Y=0 at bottom, ScreenCaptureKit/Quartz uses Y=0 at top
             let screenHeight = window.screen?.frame.height ?? NSScreen.screens.first?.frame.height ?? 0
 
-            #if DEBUG
-            print("[6] screenHeight for conversion: \(screenHeight)")
-            #endif
+            Logger.capture.debug("[6] screenHeight for conversion: \(screenHeight)")
 
             // Convert from Cocoa coordinates (Y=0 at bottom) to Quartz coordinates (Y=0 at top)
             let quartzY = screenHeight - screenRect.origin.y - screenRect.height
 
-            #if DEBUG
-            print("[7] quartzY (converted): \(quartzY)")
-            #endif
+            Logger.capture.debug("[7] quartzY (converted): \(quartzY)")
 
             // displayFrame is in Quartz coordinates (from SCDisplay)
             let displayFrame = displayInfo.frame
 
-            #if DEBUG
-            print("[8] displayInfo.frame (SCDisplay): \(displayFrame)")
-            print("[9] displayInfo.isPrimary: \(displayInfo.isPrimary)")
-            #endif
+            Logger.capture.debug("[8] displayInfo.frame (SCDisplay): \(String(describing: displayFrame))")
+            Logger.capture.debug("[9] displayInfo.isPrimary: \(displayInfo.isPrimary)")
 
             // Now compute display-relative coordinates (both in Quartz coordinate system)
             // Round to whole points to minimize fractional pixel issues when scaled
@@ -448,11 +442,11 @@ final class SelectionOverlayView: NSView {
                 height: round(screenRect.height)
             )
 
-            #if DEBUG
-            print("[10] FINAL relativeRect (rounded): \(relativeRect)")
-            print("[11] Normalized would be: x=\(relativeRect.origin.x / displayFrame.width), y=\(relativeRect.origin.y / displayFrame.height)")
-            print("=== END COORDINATE DEBUG ===")
-            #endif
+            Logger.capture.debug("[10] FINAL relativeRect (rounded): \(String(describing: relativeRect))")
+            let normX = relativeRect.origin.x / displayFrame.width
+            let normY = relativeRect.origin.y / displayFrame.height
+            Logger.capture.debug("[11] Normalized would be: x=\(normX), y=\(normY)")
+            Logger.capture.debug("=== END COORDINATE DEBUG ===")
 
             delegate?.selectionOverlay(didSelectRect: relativeRect, on: displayInfo)
         } else {

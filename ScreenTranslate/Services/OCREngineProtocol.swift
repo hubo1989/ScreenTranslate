@@ -1,5 +1,6 @@
 import Foundation
 import CoreGraphics
+import os
 
 /// Unified OCR engine protocol
 /// All OCR engine implementations must conform to this protocol
@@ -53,24 +54,24 @@ actor OCRService {
         languages: Set<OCREngine.RecognitionLanguage>
     ) async throws -> OCRResult {
         let engineType = await AppSettings.shared.ocrEngine
-        print("[OCRService] Engine type: \(engineType), image size: \(image.width)x\(image.height)")
+        Logger.ocr.info("Engine type: \(String(describing: engineType)), image size: \(image.width)x\(image.height)")
 
         switch engineType {
         case .vision:
-            print("[OCRService] Using Vision engine")
+            Logger.ocr.info("Using Vision engine")
             return try await visionEngine.recognize(image, languages: languages)
         case .paddleOCR:
-            print("[OCRService] Using PaddleOCR engine")
+            Logger.ocr.info("Using PaddleOCR engine")
             let isAvailable = await paddleOCREngine.isAvailable
-            print("[OCRService] PaddleOCR available: \(isAvailable)")
+            Logger.ocr.info("PaddleOCR available: \(isAvailable)")
             guard isAvailable else {
-                print("[OCRService] PaddleOCR not available, throwing error")
+                Logger.ocr.error("PaddleOCR not available, throwing error")
                 throw OCREngineError.engineNotAvailable
             }
             let paddleLanguages = convertToPaddleOCRLanguages(languages)
-            print("[OCRService] PaddleOCR languages: \(paddleLanguages)")
+            Logger.ocr.info("PaddleOCR languages: \(String(describing: paddleLanguages))")
             let result = try await paddleOCREngine.recognize(image, languages: paddleLanguages)
-            print("[OCRService] PaddleOCR result: \(result.observations.count) observations")
+            Logger.ocr.info("PaddleOCR result: \(result.observations.count) observations")
             return result
         }
     }

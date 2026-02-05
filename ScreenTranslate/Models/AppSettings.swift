@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import os
 
 /// User preferences persisted across sessions via UserDefaults.
 /// All properties automatically sync to UserDefaults with the `ScreenCapture.` prefix.
@@ -214,7 +215,7 @@ final class AppSettings {
         mtranServerHost = defaults.string(forKey: Keys.mtranServerHost) ?? "localhost"
         mtranServerPort = defaults.object(forKey: Keys.mtranServerPort) as? Int ?? 8989
 
-        print("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
+        Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
 
     // MARK: - Computed Properties
@@ -335,7 +336,7 @@ final class AppSettings {
             }
             return url
         } catch {
-            print("Failed to resolve bookmark: \(error)")
+            Logger.settings.error("Failed to resolve bookmark: \(error.localizedDescription)")
             return nil
         }
     }

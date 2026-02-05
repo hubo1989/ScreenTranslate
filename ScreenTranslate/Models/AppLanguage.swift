@@ -181,6 +181,6 @@ struct LocalizedText: View {
 
 /// Returns a localized string using the current app language bundle
 @MainActor
-func L(_ key: String) -> String {
+func localized(_ key: String) -> String {
     LanguageManager.shared.localizedString(key)
 }

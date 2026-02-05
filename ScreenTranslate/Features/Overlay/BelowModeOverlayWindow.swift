@@ -10,21 +10,20 @@ private extension CGFloat {
     }
 }
 
-// MARK: - TranslationOverlayDelegate
+// MARK: - BelowModeOverlayDelegate
 
-/// Delegate protocol for translation overlay events.
+/// Delegate protocol for below mode overlay events.
 @MainActor
-protocol TranslationOverlayDelegate: AnyObject {
+protocol BelowModeOverlayDelegate: AnyObject {
     /// Called when user dismisses the overlay.
-    func translationOverlayDidDismiss()
+    func belowModeOverlayDidDismiss()
 }
 
-// MARK: - TranslationOverlayWindow
+// MARK: - BelowModeOverlayWindow
 
-/// NSPanel subclass for displaying translated text overlay on screen.
-/// Shows translated text at the exact position of original text using OCR bounding boxes.
-/// Implements "cover original text" mode with content-aware background fill.
-final class TranslationOverlayWindow: NSPanel {
+/// NSPanel subclass for displaying translated text below original text.
+/// Implements "below original" mode: shows translation below each text block.
+final class BelowModeOverlayWindow: NSPanel {
     // MARK: - Properties
 
     /// The screen this overlay covers
@@ -43,20 +42,20 @@ final class TranslationOverlayWindow: NSPanel {
     private let capturedImage: CGImage?
 
     /// The content view handling drawing and interaction
-    private var overlayView: TranslationOverlayView?
+    private var overlayView: BelowModeOverlayView?
 
-    /// Delegate for overlay events (named to avoid conflict with NSWindow.delegate)
-    weak var overlayDelegate: TranslationOverlayDelegate?
+    /// Delegate for overlay events
+    weak var overlayDelegate: BelowModeOverlayDelegate?
 
     // MARK: - Initialization
 
-    /// Creates a new translation overlay window.
+    /// Creates a new below mode overlay window.
     /// - Parameters:
     ///   - screen: The NSScreen to overlay
     ///   - displayInfo: The DisplayInfo for the screen
     ///   - ocrResults: OCR text observations with bounding boxes
     ///   - translations: Translation results for each OCR text
-    ///   - capturedImage: Optional screenshot for background sampling (enables content-aware fill)
+    ///   - capturedImage: Optional screenshot for background sampling
     @MainActor
     init(
         screen: NSScreen,
@@ -86,28 +85,21 @@ final class TranslationOverlayWindow: NSPanel {
 
     @MainActor
     private func configureWindow() {
-        // Window properties for full-screen overlay
         level = .floating
         isOpaque = false
         backgroundColor = .clear
         ignoresMouseEvents = false
         hasShadow = false
-
-        // Don't hide on deactivation
         hidesOnDeactivate = false
-
-        // Behavior
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         isMovable = false
         isMovableByWindowBackground = false
-
-        // Accept mouse events
         acceptsMouseMovedEvents = true
     }
 
     @MainActor
     private func setupOverlayView() {
-        let view = TranslationOverlayView(
+        let view = BelowModeOverlayView(
             frame: targetScreen.frame,
             ocrResults: ocrResults,
             translations: translations,
@@ -142,30 +134,51 @@ final class TranslationOverlayWindow: NSPanel {
     override var acceptsFirstResponder: Bool { true }
 
     override func keyDown(with event: NSEvent) {
-        // Escape key dismisses overlay
         if event.keyCode == 53 { // Escape
-            overlayDelegate?.translationOverlayDidDismiss()
+            overlayDelegate?.belowModeOverlayDidDismiss()
             return
         }
-
         super.keyDown(with: event)
     }
 }
 
-// MARK: - TranslationOverlayView
+// MARK: - BelowModeOverlayView
 
-/// Custom NSView for drawing translated text overlay.
-/// Implements content-aware fill: samples background color from original image,
-/// fills text region, then renders translation with contrasting color.
-final class TranslationOverlayView: NSView {
+/// Custom NSView for drawing translations below original text.
+/// Shows translated text below each OCR text block with distinctive styling.
+final class BelowModeOverlayView: NSView {
     // MARK: - Properties
 
     private let ocrResults: [OCRText]
     private let translations: [TranslationResult]
     private let displayInfo: DisplayInfo
     private let capturedImage: CGImage?
-    private weak var windowRef: TranslationOverlayWindow?
+    private weak var windowRef: BelowModeOverlayWindow?
     private var trackingArea: NSTrackingArea?
+
+    // MARK: - Styling Constants
+
+    /// Vertical spacing between original text and translation
+    private let translationSpacing: CGFloat = 4
+
+    /// Horizontal padding for translation background
+    private let horizontalPadding: CGFloat = 8
+
+    /// Vertical padding for translation background
+    private let verticalPadding: CGFloat = 4
+
+    /// Corner radius for translation background
+    private let backgroundCornerRadius: CGFloat = 6
+
+    /// Translation background color (semi-transparent dark)
+    private var translationBackgroundColor: NSColor {
+        NSColor(red: 0.1, green: 0.15, blue: 0.25, alpha: 0.85)
+    }
+
+    /// Translation text color
+    private var translationTextColor: NSColor {
+        NSColor(red: 0.95, green: 0.95, blue: 1.0, alpha: 1.0)
+    }
 
     // MARK: - Initialization
 
@@ -175,7 +188,7 @@ final class TranslationOverlayView: NSView {
         translations: [TranslationResult],
         displayInfo: DisplayInfo,
         capturedImage: CGImage?,
-        window: TranslationOverlayWindow
+        window: BelowModeOverlayWindow
     ) {
         self.ocrResults = ocrResults
         self.translations = translations
@@ -228,127 +241,140 @@ final class TranslationOverlayView: NSView {
             guard index < translations.count else { break }
 
             let translation = translations[index]
-            drawTranslation(translation, at: ocrText.boundingBox, context: context)
+            drawTranslationBelow(translation, for: ocrText, context: context)
         }
     }
 
-    private func drawTranslation(
+    private func drawTranslationBelow(
         _ translation: TranslationResult,
-        at boundingBox: CGRect,
+        for ocrText: OCRText,
         context: CGContext
     ) {
-        let screenRect = convertToScreenCoordinates(boundingBox)
-        guard screenRect.intersects(bounds) else { return }
+        let originalRect = convertToScreenCoordinates(ocrText.boundingBox)
+        guard originalRect.intersects(bounds) else { return }
 
-        let backgroundColor = sampleBackgroundColor(at: boundingBox)
-        let textColor = calculateContrastingColor(for: backgroundColor)
-        let fontSize = calculateFontSize(for: screenRect)
-        let text = translation.translatedText
+        // Determine text alignment based on original text position
+        let textAlignment = determineAlignment(for: originalRect)
 
+        // Calculate font size based on original text height
+        let fontSize = calculateFontSize(for: originalRect)
         let font = NSFont.systemFont(ofSize: fontSize, weight: .medium)
+
+        // Create paragraph style
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .left
+        paragraphStyle.alignment = textAlignment
         paragraphStyle.lineBreakMode = .byWordWrapping
 
+        // Text attributes
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: textColor,
+            .foregroundColor: translationTextColor,
             .paragraphStyle: paragraphStyle
         ]
 
-        let attributedString = NSAttributedString(string: text, attributes: attributes)
+        let attributedString = NSAttributedString(
+            string: translation.translatedText,
+            attributes: attributes
+        )
+
+        // Calculate text size with max width (allowing extension to the right)
+        let maxWidth = max(originalRect.width, bounds.width - originalRect.minX - 20)
         let textSize = attributedString.boundingRect(
-            with: CGSize(width: max(screenRect.width, 200), height: .greatestFiniteMagnitude),
+            with: CGSize(width: maxWidth, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading]
         ).size
 
-        let fillWidth = max(screenRect.width, textSize.width + 8)
-        let fillHeight = max(screenRect.height, textSize.height + 4)
-        let fillRect = CGRect(
-            x: screenRect.origin.x,
-            y: screenRect.origin.y,
-            width: fillWidth,
-            height: fillHeight
+        // Calculate translation position (below original text)
+        let translationWidth = textSize.width + horizontalPadding * 2
+        let translationHeight = textSize.height + verticalPadding * 2
+
+        // Position translation below original, aligned with it
+        let translationX = calculateTranslationX(
+            originalRect: originalRect,
+            translationWidth: translationWidth,
+            alignment: textAlignment
+        )
+        let translationY = originalRect.minY - translationSpacing - translationHeight
+
+        // Clamp to screen bounds (extend down if needed)
+        let clampedY = max(10, translationY)
+        let clampedX = max(10, min(translationX, bounds.width - translationWidth - 10))
+
+        let backgroundRect = CGRect(
+            x: clampedX,
+            y: clampedY,
+            width: translationWidth,
+            height: translationHeight
+        )
+
+        // Draw background with rounded corners
+        let backgroundPath = CGPath(
+            roundedRect: backgroundRect,
+            cornerWidth: backgroundCornerRadius,
+            cornerHeight: backgroundCornerRadius,
+            transform: nil
         )
 
         context.saveGState()
-        context.setFillColor(backgroundColor.cgColor)
-        context.fill(fillRect)
+
+        // Draw semi-transparent background
+        context.setFillColor(translationBackgroundColor.cgColor)
+        context.addPath(backgroundPath)
+        context.fillPath()
+
+        // Draw subtle border for better visibility
+        context.setStrokeColor(NSColor.white.withAlphaComponent(0.2).cgColor)
+        context.setLineWidth(0.5)
+        context.addPath(backgroundPath)
+        context.strokePath()
+
         context.restoreGState()
 
+        // Draw text
         let textRect = CGRect(
-            x: fillRect.origin.x + 4,
-            y: fillRect.origin.y + 2,
-            width: fillWidth - 8,
-            height: fillHeight - 4
+            x: backgroundRect.origin.x + horizontalPadding,
+            y: backgroundRect.origin.y + verticalPadding,
+            width: backgroundRect.width - horizontalPadding * 2,
+            height: backgroundRect.height - verticalPadding * 2
         )
         attributedString.draw(in: textRect)
     }
 
-    private func sampleBackgroundColor(at normalizedBox: CGRect) -> NSColor {
-        guard let image = capturedImage else {
-            return .windowBackgroundColor
+    /// Determines text alignment based on the position of original text
+    private func determineAlignment(for rect: CGRect) -> NSTextAlignment {
+        let centerThreshold: CGFloat = 0.1 // 10% tolerance for center detection
+
+        let rectCenterX = rect.midX
+        let screenCenterX = bounds.midX
+
+        let normalizedOffset = abs(rectCenterX - screenCenterX) / bounds.width
+
+        // If the text is close to the center of the screen, use center alignment
+        if normalizedOffset < centerThreshold {
+            return .center
         }
 
-        let imageWidth = CGFloat(image.width)
-        let imageHeight = CGFloat(image.height)
-
-        let pixelRect = CGRect(
-            x: normalizedBox.minX * imageWidth,
-            y: normalizedBox.minY * imageHeight,
-            width: normalizedBox.width * imageWidth,
-            height: normalizedBox.height * imageHeight
-        )
-
-        var samples: [(r: CGFloat, g: CGFloat, b: CGFloat)] = []
-        let samplePoints = [
-            CGPoint(x: max(0, pixelRect.minX - 2), y: pixelRect.midY),
-            CGPoint(x: min(imageWidth - 1, pixelRect.maxX + 2), y: pixelRect.midY),
-            CGPoint(x: pixelRect.midX, y: max(0, pixelRect.minY - 2)),
-            CGPoint(x: pixelRect.midX, y: min(imageHeight - 1, pixelRect.maxY + 2))
-        ]
-
-        guard let dataProvider = image.dataProvider,
-              let data = dataProvider.data,
-              let bytes = CFDataGetBytePtr(data) else {
-            return .windowBackgroundColor
-        }
-
-        let bytesPerPixel = image.bitsPerPixel / 8
-        let bytesPerRow = image.bytesPerRow
-
-        for point in samplePoints {
-            let x = Int(point.x.clamped(to: 0...imageWidth - 1))
-            let y = Int(point.y.clamped(to: 0...imageHeight - 1))
-            let offset = y * bytesPerRow + x * bytesPerPixel
-
-            if offset >= 0 && offset + 2 < CFDataGetLength(data) {
-                let red = CGFloat(bytes[offset]) / 255.0
-                let green = CGFloat(bytes[offset + 1]) / 255.0
-                let blue = CGFloat(bytes[offset + 2]) / 255.0
-                samples.append((r: red, g: green, b: blue))
-            }
-        }
-
-        guard !samples.isEmpty else { return .windowBackgroundColor }
-
-        let avgR = samples.map(\.r).reduce(0, +) / CGFloat(samples.count)
-        let avgG = samples.map(\.g).reduce(0, +) / CGFloat(samples.count)
-        let avgB = samples.map(\.b).reduce(0, +) / CGFloat(samples.count)
-
-        return NSColor(red: avgR, green: avgG, blue: avgB, alpha: 1.0)
+        // Otherwise, use left alignment (most common for paragraphs)
+        return .left
     }
 
-    private func calculateContrastingColor(for backgroundColor: NSColor) -> NSColor {
-        guard let rgbColor = backgroundColor.usingColorSpace(.deviceRGB) else {
-            return .black
+    /// Calculates X position for translation based on alignment
+    private func calculateTranslationX(
+        originalRect: CGRect,
+        translationWidth: CGFloat,
+        alignment: NSTextAlignment
+    ) -> CGFloat {
+        switch alignment {
+        case .center:
+            // Center translation under original text
+            return originalRect.midX - translationWidth / 2
+        case .right:
+            // Right-align translation with original text
+            return originalRect.maxX - translationWidth
+        default:
+            // Left-align translation with original text
+            return originalRect.minX
         }
-
-        let luminance = 0.299 * rgbColor.redComponent +
-                        0.587 * rgbColor.greenComponent +
-                        0.114 * rgbColor.blueComponent
-
-        return luminance > 0.5 ? .black : .white
     }
 
     private func convertToScreenCoordinates(_ normalizedBox: CGRect) -> CGRect {
@@ -362,8 +388,8 @@ final class TranslationOverlayView: NSView {
 
     private func calculateFontSize(for rect: CGRect) -> CGFloat {
         let minFontSize: CGFloat = 10
-        let maxFontSize: CGFloat = 32
-        let calculatedSize = rect.height * 0.75
+        let maxFontSize: CGFloat = 28
+        let calculatedSize = rect.height * 0.7
         return max(minFontSize, min(maxFontSize, calculatedSize))
     }
 
@@ -375,7 +401,13 @@ final class TranslationOverlayView: NSView {
         var isOutside = true
         for ocrText in ocrResults {
             let screenRect = convertToScreenCoordinates(ocrText.boundingBox)
-            let expandedRect = screenRect.insetBy(dx: -20, dy: -10)
+            // Expand the hit area to include the translation below
+            let expandedRect = CGRect(
+                x: screenRect.minX - 20,
+                y: screenRect.minY - 60,  // Include translation area below
+                width: max(screenRect.width + 40, 200),
+                height: screenRect.height + 70
+            )
             if expandedRect.contains(point) {
                 isOutside = false
                 break
@@ -383,26 +415,26 @@ final class TranslationOverlayView: NSView {
         }
 
         if isOutside {
-            windowRef?.overlayDelegate?.translationOverlayDidDismiss()
+            windowRef?.overlayDelegate?.belowModeOverlayDidDismiss()
         }
     }
 }
 
-// MARK: - TranslationOverlayController
+// MARK: - BelowModeOverlayController
 
-/// Controller for managing translation overlay lifecycle.
+/// Controller for managing below mode overlay lifecycle.
 @MainActor
-final class TranslationOverlayController {
+final class BelowModeOverlayController {
     // MARK: - Properties
 
     /// Shared instance
-    static let shared = TranslationOverlayController()
+    static let shared = BelowModeOverlayController()
 
     /// The current overlay window
-    private var overlayWindow: TranslationOverlayWindow?
+    private var overlayWindow: BelowModeOverlayWindow?
 
     /// Delegate for overlay events
-    weak var overlayDelegate: TranslationOverlayDelegate?
+    weak var overlayDelegate: BelowModeOverlayDelegate?
 
     /// Callback for when overlay is dismissed
     var onDismiss: (() -> Void)?
@@ -413,7 +445,7 @@ final class TranslationOverlayController {
 
     // MARK: - Public API
 
-    /// Presents translation overlay with the given OCR and translation results.
+    /// Presents below mode overlay with the given OCR and translation results.
     func presentOverlay(
         ocrResult: OCRResult,
         translations: [TranslationResult],
@@ -431,7 +463,7 @@ final class TranslationOverlayController {
             isPrimary: true
         )
 
-        let overlay = TranslationOverlayWindow(
+        let overlay = BelowModeOverlayWindow(
             screen: screen,
             displayInfo: displayInfo,
             ocrResults: ocrResult.observations,
@@ -451,10 +483,10 @@ final class TranslationOverlayController {
     }
 }
 
-// MARK: - TranslationOverlayController + TranslationOverlayDelegate
+// MARK: - BelowModeOverlayController + BelowModeOverlayDelegate
 
-extension TranslationOverlayController: TranslationOverlayDelegate {
-    func translationOverlayDidDismiss() {
+extension BelowModeOverlayController: BelowModeOverlayDelegate {
+    func belowModeOverlayDidDismiss() {
         dismissOverlay()
         onDismiss?()
     }

@@ -69,32 +69,30 @@ final class MenuBarController {
         let menu = NSMenu()
 
         // Capture Full Screen
-        let fullScreenItem = NSMenuItem(
-            title: NSLocalizedString("menu.capture.full.screen", tableName: "Localizable", bundle: .main, comment: "Capture Full Screen"),
+        menu.addItem(createMenuItem(
+            titleKey: "menu.capture.full.screen",
+            comment: "Capture Full Screen",
             action: #selector(AppDelegate.captureFullScreen),
-            keyEquivalent: "3"
-        )
-        fullScreenItem.keyEquivalentModifierMask = [.command, .shift]
-        fullScreenItem.target = appDelegate
-        menu.addItem(fullScreenItem)
+            keyEquivalent: "3",
+            target: appDelegate
+        ))
 
         // Capture Selection
-        let selectionItem = NSMenuItem(
-            title: NSLocalizedString("menu.capture.selection", tableName: "Localizable", bundle: .main, comment: "Capture Selection"),
+        menu.addItem(createMenuItem(
+            titleKey: "menu.capture.selection",
+            comment: "Capture Selection",
             action: #selector(AppDelegate.captureSelection),
-            keyEquivalent: "4"
-        )
-        selectionItem.keyEquivalentModifierMask = [.command, .shift]
-        selectionItem.target = appDelegate
-        menu.addItem(selectionItem)
+            keyEquivalent: "4",
+            target: appDelegate
+        ))
 
         menu.addItem(NSMenuItem.separator())
 
         // Recent Captures submenu
-        let recentItem = NSMenuItem(
-            title: NSLocalizedString("menu.recent.captures", tableName: "Localizable", bundle: .main, comment: "Recent Captures"),
-            action: nil,
-            keyEquivalent: ""
+        let recentItem = createMenuItem(
+            titleKey: "menu.recent.captures",
+            comment: "Recent Captures",
+            action: nil
         )
         recentCapturesMenu = buildRecentCapturesMenu()
         recentItem.submenu = recentCapturesMenu
@@ -103,39 +101,57 @@ final class MenuBarController {
         menu.addItem(NSMenuItem.separator())
 
         // Translation History
-        let historyItem = NSMenuItem(
-            title: NSLocalizedString("menu.translation.history", tableName: "Localizable", bundle: .main, comment: "Translation History"),
+        menu.addItem(createMenuItem(
+            titleKey: "menu.translation.history",
+            comment: "Translation History",
             action: #selector(AppDelegate.openHistory),
-            keyEquivalent: "h"
-        )
-        historyItem.keyEquivalentModifierMask = [.command, .shift]
-        historyItem.target = appDelegate
-        menu.addItem(historyItem)
+            keyEquivalent: "h",
+            target: appDelegate
+        ))
 
         menu.addItem(NSMenuItem.separator())
 
         // Settings
-        let settingsItem = NSMenuItem(
-            title: NSLocalizedString("menu.settings", tableName: "Localizable", bundle: .main, comment: "Settings..."),
+        menu.addItem(createMenuItem(
+            titleKey: "menu.settings",
+            comment: "Settings...",
             action: #selector(AppDelegate.openSettings),
-            keyEquivalent: ","
-        )
-        settingsItem.keyEquivalentModifierMask = [.command]
-        settingsItem.target = appDelegate
-        menu.addItem(settingsItem)
+            keyEquivalent: ",",
+            modifierMask: [.command],
+            target: appDelegate
+        ))
 
         menu.addItem(NSMenuItem.separator())
 
         // Quit
-        let quitItem = NSMenuItem(
-            title: NSLocalizedString("menu.quit", tableName: "Localizable", bundle: .main, comment: "Quit ScreenTranslate"),
+        menu.addItem(createMenuItem(
+            titleKey: "menu.quit",
+            comment: "Quit ScreenTranslate",
             action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q"
-        )
-        quitItem.keyEquivalentModifierMask = [.command]
-        menu.addItem(quitItem)
+            keyEquivalent: "q",
+            modifierMask: [.command]
+        ))
 
         return menu
+    }
+
+    /// Creates a localized menu item with common properties
+    private func createMenuItem(
+        titleKey: String,
+        comment: String,
+        action: Selector?,
+        keyEquivalent: String = "",
+        modifierMask: NSEvent.ModifierFlags = [.command, .shift],
+        target: AnyObject? = nil
+    ) -> NSMenuItem {
+        let item = NSMenuItem(
+            title: NSLocalizedString(titleKey, tableName: "Localizable", bundle: .main, comment: comment),
+            action: action,
+            keyEquivalent: keyEquivalent
+        )
+        item.keyEquivalentModifierMask = modifierMask
+        item.target = target
+        return item
     }
 
     /// Builds the recent captures submenu
@@ -159,7 +175,12 @@ final class MenuBarController {
 
         if captures.isEmpty {
             let emptyItem = NSMenuItem(
-                title: NSLocalizedString("menu.recent.captures.empty", tableName: "Localizable", bundle: .main, comment: "No Recent Captures"),
+                title: NSLocalizedString(
+                    "menu.recent.captures.empty",
+                    tableName: "Localizable",
+                    bundle: .main,
+                    comment: "No Recent Captures"
+                ),
                 action: nil,
                 keyEquivalent: ""
             )
@@ -176,7 +197,12 @@ final class MenuBarController {
             menu.addItem(NSMenuItem.separator())
 
             let clearItem = NSMenuItem(
-                title: NSLocalizedString("menu.recent.captures.clear", tableName: "Localizable", bundle: .main, comment: "Clear Recent"),
+                title: NSLocalizedString(
+                    "menu.recent.captures.clear",
+                    tableName: "Localizable",
+                    bundle: .main,
+                    comment: "Clear Recent"
+                ),
                 action: #selector(clearRecentCaptures),
                 keyEquivalent: ""
             )

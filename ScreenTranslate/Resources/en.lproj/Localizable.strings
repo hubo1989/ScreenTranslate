@@ -123,6 +123,8 @@
 /* Recognized Text */
 "preview.recognized.text" = "Recognized Text:";
 "preview.translation" = "Translation:";
+"preview.results.panel" = "Text Results";
+"preview.copy.text" = "Copy text";
 
 /* Toolbar Tooltips */
 "preview.tooltip.crop" = "Crop (C)";
@@ -132,6 +134,11 @@
 "preview.tooltip.save" = "Save (⌘S or Enter)";
 "preview.tooltip.ocr" = "Recognize Text (OCR)";
 "preview.tooltip.translate" = "Translate Text";
+"preview.tooltip.ocr.then.translate" = "Recognizing text...";
+"preview.tooltip.show.translation" = "Show Translation Overlay";
+"preview.tooltip.hide.translation" = "Hide Translation Overlay";
+"preview.tooltip.save.with.translations" = "Save Image with Translations";
+"preview.tooltip.copy.with.translations" = "Copy Image with Translations";
 "preview.tooltip.dismiss" = "Dismiss (Escape)";
 "preview.tooltip.delete" = "Delete selected annotation";
 
@@ -191,6 +198,17 @@
 "button.reset" = "Reset";
 "button.save" = "Save";
 "button.delete" = "Delete";
+
+/* Save Success */
+"save.success.title" = "Saved Successfully";
+"save.success.message" = "Saved to %@";
+"save.with.translations.message" = "Choose where to save the translated image";
+
+/* No Translations Error */
+"error.no.translations" = "No translations available. Please translate the text first.";
+
+/* Copy Success */
+"copy.success.message" = "Copied to clipboard";
 
 
 /* ========================================

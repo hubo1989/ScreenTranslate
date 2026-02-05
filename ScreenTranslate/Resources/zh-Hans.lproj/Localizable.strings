@@ -123,6 +123,8 @@
 /* 识别文本 */
 "preview.recognized.text" = "识别文本：";
 "preview.translation" = "翻译结果：";
+"preview.results.panel" = "文本结果";
+"preview.copy.text" = "复制文本";
 
 /* 工具栏提示 */
 "preview.tooltip.crop" = "裁剪 (C)";
@@ -132,6 +134,11 @@
 "preview.tooltip.save" = "保存 (⌘S 或 回车)";
 "preview.tooltip.ocr" = "识别文字 (OCR)";
 "preview.tooltip.translate" = "翻译文本";
+"preview.tooltip.ocr.then.translate" = "正在识别文字...";
+"preview.tooltip.show.translation" = "显示翻译覆盖层";
+"preview.tooltip.hide.translation" = "隐藏翻译覆盖层";
+"preview.tooltip.save.with.translations" = "保存带译文的图片";
+"preview.tooltip.copy.with.translations" = "复制带译文的图片";
 "preview.tooltip.dismiss" = "关闭 (Escape)";
 "preview.tooltip.delete" = "删除选中的标注";
 
@@ -191,6 +198,17 @@
 "button.reset" = "重置";
 "button.save" = "保存";
 "button.delete" = "删除";
+
+/* 保存成功 */
+"save.success.title" = "保存成功";
+"save.success.message" = "已保存到 %@";
+"save.with.translations.message" = "选择保存带译文图片的位置";
+
+/* 无翻译错误 */
+"error.no.translations" = "没有可用的翻译。请先翻译文本。";
+
+/* 复制成功 */
+"copy.success.message" = "已复制到剪贴板";
 
 
 /* ========================================

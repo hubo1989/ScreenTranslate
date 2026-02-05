@@ -181,149 +181,123 @@ final class PreviewWindow: NSPanel {
 
     /// Handle key events for shortcuts
     override func keyDown(with event: NSEvent) {
-        // Check for Escape key to dismiss or deselect
-        if event.keyCode == 53 { // Escape
-            Task { @MainActor in
-                if viewModel.selectedAnnotationIndex != nil {
-                    // First deselect annotation
-                    viewModel.deselectAnnotation()
-                } else if viewModel.selectedTool != nil {
-                    // Then deselect tool
-                    viewModel.selectTool(nil)
-                } else {
-                    // Finally dismiss
-                    viewModel.dismiss()
-                }
-            }
-            return
-        }
+        guard !handleSpecialKeys(event) else { return }
+        super.keyDown(with: event)
+    }
 
-        // Check for Delete/Backspace to delete selected annotation
-        if event.keyCode == 51 || event.keyCode == 117 { // Backspace or Delete
-            Task { @MainActor in
-                if viewModel.selectedAnnotationIndex != nil {
-                    viewModel.deleteSelectedAnnotation()
-                }
-            }
-            return
-        }
+    private func handleSpecialKeys(_ event: NSEvent) -> Bool {
+        if handleEscape(event) { return true }
+        if handleDelete(event) { return true }
+        if handleReturn(event) { return true }
+        if handleCommandShortcuts(event) { return true }
+        if handleToolShortcuts(event) { return true }
+        return false
+    }
 
-        // Check for Enter/Return key - apply crop if in crop mode, otherwise save
-        if event.keyCode == 36 || event.keyCode == 76 { // Return or Enter (numpad)
-            Task { @MainActor in
-                if viewModel.isCropMode && viewModel.cropRect != nil {
-                    viewModel.applyCrop()
-                } else {
-                    viewModel.saveScreenshot()
-                }
+    private func handleEscape(_ event: NSEvent) -> Bool {
+        guard event.keyCode == 53 else { return false }
+        Task { @MainActor in
+            if viewModel.selectedAnnotationIndex != nil {
+                viewModel.deselectAnnotation()
+            } else if viewModel.selectedTool != nil {
+                viewModel.selectTool(nil)
+            } else {
+                viewModel.dismiss()
             }
-            return
         }
+        return true
+    }
 
-        // Check for Cmd+S to save
-        if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "s" {
-            Task { @MainActor in
+    private func handleDelete(_ event: NSEvent) -> Bool {
+        guard event.keyCode == 51 || event.keyCode == 117 else { return false }
+        Task { @MainActor in
+            if viewModel.selectedAnnotationIndex != nil {
+                viewModel.deleteSelectedAnnotation()
+            }
+        }
+        return true
+    }
+
+    private func handleReturn(_ event: NSEvent) -> Bool {
+        guard event.keyCode == 36 || event.keyCode == 76 else { return false }
+        Task { @MainActor in
+            if viewModel.isCropMode && viewModel.cropRect != nil {
+                viewModel.applyCrop()
+            } else {
                 viewModel.saveScreenshot()
             }
-            return
         }
+        return true
+    }
 
-        // Check for Cmd+C to copy and dismiss
-        if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "c" {
+    private func handleCommandShortcuts(_ event: NSEvent) -> Bool {
+        guard event.modifierFlags.contains(.command) else { return false }
+        let char = event.charactersIgnoringModifiers?.lowercased()
+
+        switch char {
+        case "s":
+            Task { @MainActor in viewModel.saveScreenshot() }
+            return true
+        case "c":
             Task { @MainActor in
                 viewModel.copyToClipboard()
                 viewModel.dismiss()
             }
-            return
-        }
-
-        // Check for Cmd+Z to undo
-        if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "z" {
+            return true
+        case "z":
             if event.modifierFlags.contains(.shift) {
-                Task { @MainActor in
-                    viewModel.redo()
-                }
+                Task { @MainActor in viewModel.redo() }
             } else {
-                Task { @MainActor in
-                    viewModel.undo()
-                }
+                Task { @MainActor in viewModel.undo() }
             }
-            return
+            return true
+        default:
+            return false
         }
-
-        // Check for tool shortcuts (R, D, A, T) and Escape to deselect
-        if let char = event.charactersIgnoringModifiers?.lowercased().first {
-            switch char {
-            case "r":
-                Task { @MainActor in
-                    if viewModel.selectedTool == .rectangle {
-                        viewModel.selectTool(nil)
-                    } else {
-                        viewModel.selectTool(.rectangle)
-                    }
-                }
-                return
-            case "d":
-                Task { @MainActor in
-                    if viewModel.selectedTool == .freehand {
-                        viewModel.selectTool(nil)
-                    } else {
-                        viewModel.selectTool(.freehand)
-                    }
-                }
-                return
-            case "a":
-                Task { @MainActor in
-                    if viewModel.selectedTool == .arrow {
-                        viewModel.selectTool(nil)
-                    } else {
-                        viewModel.selectTool(.arrow)
-                    }
-                }
-                return
-            case "t":
-                Task { @MainActor in
-                    if viewModel.selectedTool == .text {
-                        viewModel.selectTool(nil)
-                    } else {
-                        viewModel.selectTool(.text)
-                    }
-                }
-                return
-            case "1", "2", "3", "4":
-                // Number keys to quickly select tools (1=Rectangle, 2=Freehand, 3=Arrow, 4=Text)
-                let toolIndex = Int(String(char))! - 1
-                let tools = AnnotationToolType.allCases
-                if toolIndex < tools.count {
-                    Task { @MainActor in
-                        let tool = tools[toolIndex]
-                        if viewModel.selectedTool == tool {
-                            viewModel.selectTool(nil)
-                        } else {
-                            viewModel.selectTool(tool)
-                        }
-                    }
-                }
-                return
-            case "c":
-                // C key to toggle crop mode (when not combined with Cmd)
-                if !event.modifierFlags.contains(.command) {
-                    Task { @MainActor in
-                        viewModel.toggleCropMode()
-                    }
-                    return
-                }
-            default:
-                break
-            }
-        }
-
-        super.keyDown(with: event)
     }
 
-    override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        // Allow standard keyboard equivalents for tab navigation
-        return super.performKeyEquivalent(with: event)
+    private func handleToolShortcuts(_ event: NSEvent) -> Bool {
+        guard let char = event.charactersIgnoringModifiers?.lowercased().first else { return false }
+
+        if char == "c" && !event.modifierFlags.contains(.command) {
+            Task { @MainActor in viewModel.toggleCropMode() }
+            return true
+        }
+
+        switch char {
+        case "r":
+            Task { @MainActor in toggleTool(.rectangle) }
+            return true
+        case "d":
+            Task { @MainActor in toggleTool(.freehand) }
+            return true
+        case "a":
+            Task { @MainActor in toggleTool(.arrow) }
+            return true
+        case "t":
+            Task { @MainActor in toggleTool(.text) }
+            return true
+        case "1", "2", "3", "4":
+            if let digit = Int(String(char)) {
+                let toolIndex = digit - 1
+                let tools = AnnotationToolType.allCases
+                if toolIndex < tools.count {
+                    Task { @MainActor in toggleTool(tools[toolIndex]) }
+                }
+            }
+            return true
+        default:
+            return false
+        }
+    }
+
+    @MainActor
+    private func toggleTool(_ tool: AnnotationToolType) {
+        if viewModel.selectedTool == tool {
+            viewModel.selectTool(nil)
+        } else {
+            viewModel.selectTool(tool)
+        }
     }
 
     override var canBecomeKey: Bool {
