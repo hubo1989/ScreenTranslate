@@ -84,6 +84,13 @@ actor TranslationEngine {
     /// Whether a translation operation is currently in progress
     private var isProcessing = false
 
+    // MARK: - Internal Error Types
+
+    private struct TranslationTimeout: Error {}
+    private struct AppleTranslationError: Error {
+        let nsError: NSError
+    }
+
     // MARK: - Configuration
 
     /// Translation configuration options
@@ -141,76 +148,18 @@ actor TranslationEngine {
         }
 
         // Check language availability before attempting translation
-        let languageStatus = await Self.checkLanguageAvailability(
-            target: effectiveTargetLanguage.localeLanguage
-        )
-
-        switch languageStatus {
-        case .installed:
-            break
-        case .supported(let languageName):
-            throw TranslationEngineError.languageNotInstalled(
-                language: languageName,
-                downloadInstructions: NSLocalizedString(
-                    "error.translation.language.download.instructions",
-                    comment: ""
-                )
-            )
-        case .unsupported(let languageName):
-            throw TranslationEngineError.unsupportedLanguagePair(
-                source: NSLocalizedString("translation.auto.detected", comment: ""),
-                target: languageName
-            )
-        }
+        try await validateLanguageAvailability(for: effectiveTargetLanguage)
 
         // Perform translation with signpost for profiling
         os_signpost(.begin, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
         let startTime = CFAbsoluteTimeGetCurrent()
 
-        // Define timeout error type
-        struct TranslationTimeout: Error {}
-
-        struct AppleTranslationError: Error {
-            let nsError: NSError
-        }
-
         do {
-            // Perform translation with timeout
-            let response: TranslationSession.Response = try await withThrowingTaskGroup(
-                of: Result<TranslationSession.Response, any Error>.self
-            ) { group in
-                // Translation task
-                group.addTask { [text, effectiveTargetLanguage] in
-                    do {
-                        let session = TranslationSession(
-                            installedSource: effectiveTargetLanguage.localeLanguage,
-                            target: nil
-                        )
-                        let result = try await session.translate(text)
-                        return .success(result)
-                    } catch let error as NSError {
-                        if error.domain == "TranslationErrorDomain" {
-                            return .failure(AppleTranslationError(nsError: error))
-                        }
-                        return .failure(error)
-                    } catch {
-                        return .failure(error)
-                    }
-                }
-
-                // Timeout task
-                _ = group.addTaskUnlessCancelled { [timeout = config.timeout] in
-                    try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                    return .failure(TranslationTimeout())
-                }
-
-                // Wait for first completed task
-                guard let result = try await group.next() else {
-                    throw TranslationTimeout()
-                }
-                group.cancelAll()
-                return try result.get()
-            }
+            let response = try await performTranslation(
+                text: text,
+                target: effectiveTargetLanguage,
+                timeout: config.timeout
+            )
 
             let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
             os_signpost(.end, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
@@ -225,27 +174,9 @@ actor TranslationEngine {
                 sourceLanguage: response.sourceLanguage.minimalIdentifier,
                 targetLanguage: response.targetLanguage.minimalIdentifier
             )
-
-        } catch is TranslationTimeout {
-            os_signpost(.end, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
-            throw TranslationEngineError.timeout
-
-        } catch let error as AppleTranslationError {
-            os_signpost(.end, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
-            if error.nsError.code == 16 {
-                throw TranslationEngineError.languageNotInstalled(
-                    language: effectiveTargetLanguage.localizedName,
-                    downloadInstructions: NSLocalizedString(
-                        "error.translation.language.download.instructions",
-                        comment: ""
-                    )
-                )
-            }
-            throw TranslationEngineError.translationFailed(underlying: error.nsError)
-
         } catch {
             os_signpost(.end, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
-            throw TranslationEngineError.translationFailed(underlying: error)
+            throw mapTranslationError(error, targetLanguage: effectiveTargetLanguage)
         }
     }
 
@@ -273,6 +204,93 @@ actor TranslationEngine {
     }
 
     // MARK: - Private Methods
+
+    /// Validates if the target language is available and installed
+    private func validateLanguageAvailability(for language: TranslationLanguage) async throws {
+        let languageStatus = await Self.checkLanguageAvailability(
+            target: language.localeLanguage
+        )
+
+        switch languageStatus {
+        case .installed:
+            break
+        case .supported(let languageName):
+            throw TranslationEngineError.languageNotInstalled(
+                language: languageName,
+                downloadInstructions: NSLocalizedString(
+                    "error.translation.language.download.instructions",
+                    comment: ""
+                )
+            )
+        case .unsupported(let languageName):
+            throw TranslationEngineError.unsupportedLanguagePair(
+                source: NSLocalizedString("translation.auto.detected", comment: ""),
+                target: languageName
+            )
+        }
+    }
+
+    /// Performs the actual translation with a timeout
+    private func performTranslation(
+        text: String,
+        target: TranslationLanguage,
+        timeout: TimeInterval
+    ) async throws -> TranslationSession.Response {
+        try await withThrowingTaskGroup(
+            of: Result<TranslationSession.Response, any Error>.self
+        ) { group in
+            group.addTask { [text, target] in
+                do {
+                    let session = TranslationSession(
+                        installedSource: Locale.Language(identifier: "en"),
+                        target: target.localeLanguage
+                    )
+                    let result = try await session.translate(text)
+                    return .success(result)
+                } catch let error as NSError {
+                    if error.domain == "TranslationErrorDomain" {
+                        return .failure(AppleTranslationError(nsError: error))
+                    }
+                    return .failure(error)
+                } catch {
+                    return .failure(error)
+                }
+            }
+
+            _ = group.addTaskUnlessCancelled {
+                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+                return .failure(TranslationTimeout())
+            }
+
+            guard let result = try await group.next() else {
+                throw TranslationTimeout()
+            }
+            group.cancelAll()
+            return try result.get()
+        }
+    }
+
+    /// Maps internal and framework errors to TranslationEngineError
+    private func mapTranslationError(_ error: Error, targetLanguage: TranslationLanguage) -> Error {
+        if error is TranslationTimeout {
+            return TranslationEngineError.timeout
+        }
+
+        if let appleError = error as? AppleTranslationError {
+            if appleError.nsError.code == 16 {
+                return TranslationEngineError.languageNotInstalled(
+                    language: targetLanguage.localizedName,
+                    downloadInstructions: NSLocalizedString(
+                        "error.translation.language.download.instructions",
+                        comment: ""
+                    )
+                )
+            }
+            return TranslationEngineError.translationFailed(underlying: appleError.nsError)
+        }
+
+        return TranslationEngineError.translationFailed(underlying: error)
+    }
 
     /// Returns the system's target language based on user preferences
     private static func systemTargetLanguage() -> TranslationLanguage {

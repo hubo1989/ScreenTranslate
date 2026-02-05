@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import os
 
 /// Manages display selection UI when multiple displays are connected.
 /// Provides a popup menu for the user to select which display to capture.
@@ -143,18 +144,14 @@ final class DisplaySelector: NSObject, NSMenuDelegate {
         let index = sender.tag
         if index >= 0 && index < currentDisplays.count {
             selectedDisplay = currentDisplays[index]
-            #if DEBUG
-            print("Display item clicked: \(selectedDisplay?.name ?? "nil")")
-            #endif
+            Logger.ui.debug("Display item clicked: \(self.selectedDisplay?.name ?? "nil")")
         }
     }
 
     /// Called when cancel item is clicked
     @objc func cancelItemClicked(_ sender: NSMenuItem) {
         selectedDisplay = nil
-        #if DEBUG
-        print("Cancel item clicked")
-        #endif
+        Logger.ui.debug("Cancel item clicked")
     }
 
     // MARK: - NSMenuDelegate
@@ -165,9 +162,7 @@ final class DisplaySelector: NSObject, NSMenuDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
-            #if DEBUG
-            print("Menu did close (delayed), selectedDisplay: \(self.selectedDisplay?.name ?? "nil")")
-            #endif
+            Logger.ui.debug("Menu did close (delayed), selectedDisplay: \(self.selectedDisplay?.name ?? "nil")")
 
             // Complete the selection based on what was selected
             if let display = self.selectedDisplay {

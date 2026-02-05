@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// OCR engine types supported by the application
 enum OCREngineType: String, CaseIterable, Sendable, Codable {
@@ -80,11 +81,10 @@ enum PaddleOCRChecker {
                     "\(NSHomeDirectory())/.local/bin/paddleocr"
                 ]
                 
-                print("[PaddleOCRChecker] Checking paths: \(possiblePaths)")
+                Logger.ocr.debug("[PaddleOCRChecker] Checking paths: \(possiblePaths)")
                 
-                for path in possiblePaths {
-                    if FileManager.default.isExecutableFile(atPath: path) {
-                        print("[PaddleOCRChecker] Found executable at: \(path)")
+                for path in possiblePaths where FileManager.default.isExecutableFile(atPath: path) {
+                    Logger.ocr.debug("[PaddleOCRChecker] Found executable at: \(path)")
                         
                         let task = Process()
                         task.executableURL = URL(fileURLWithPath: path)
@@ -106,22 +106,21 @@ enum PaddleOCRChecker {
                             
                             let data = pipe.fileHandleForReading.readDataToEndOfFile()
                             let output = String(data: data, encoding: .utf8) ?? ""
-                            print("[PaddleOCRChecker] Version output: \(output)")
+                            Logger.ocr.debug("Version output: \(output)")
                             
                             let versionLine = output.components(separatedBy: .newlines)
                                 .first { $0.contains("paddleocr") }?
                                 .trimmingCharacters(in: .whitespaces)
                             
-                            print("[PaddleOCRChecker] Found: path=\(path), version=\(versionLine ?? "unknown")")
+                            Logger.ocr.info("Found: path=\(path), version=\(versionLine ?? "unknown")")
                             continuation.resume(returning: (true, path, versionLine))
                             return
                         } catch {
-                            print("[PaddleOCRChecker] Error running \(path): \(error)")
+                            Logger.ocr.error("Error running \(path): \(error.localizedDescription)")
                         }
-                    }
                 }
                 
-                print("[PaddleOCRChecker] Not found in any known path")
+                Logger.ocr.info("Not found in any known path")
                 continuation.resume(returning: (false, nil, nil))
             }
         }

@@ -22,10 +22,10 @@ struct ArrowTool: AnnotationTool {
     }
 
     var currentAnnotation: Annotation? {
-        guard isActive else { return nil }
-        guard drawingState.points.count >= 2 else { return nil }
+        guard isActive,
+              drawingState.points.count >= 2,
+              let end = drawingState.points.last else { return nil }
         let start = drawingState.startPoint
-        let end = drawingState.points.last!
         return .arrow(ArrowAnnotation(startPoint: start, endPoint: end, style: strokeStyle))
     }
 

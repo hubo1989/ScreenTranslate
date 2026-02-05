@@ -1,0 +1,196 @@
+import AppKit
+import SwiftUI
+
+struct GeneralSettingsContent: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            Label(localized("settings.section.permissions"), systemImage: "lock.shield")
+                .font(.headline)
+            PermissionRow(viewModel: viewModel)
+        }
+        .macos26LiquidGlass()
+
+        VStack(alignment: .leading, spacing: 20) {
+            Label(localized("settings.save.location"), systemImage: "folder")
+                .font(.headline)
+            SaveLocationPicker(viewModel: viewModel)
+            Divider().opacity(0.1)
+            AppLanguagePicker()
+        }
+        .macos26LiquidGlass()
+    }
+}
+
+// MARK: - Permission Row
+
+struct PermissionRow: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            PermissionItem(
+                icon: "record.circle",
+                title: localized("settings.permission.screen.recording"),
+                hint: localized("settings.permission.screen.recording.hint"),
+                isGranted: viewModel.hasScreenRecordingPermission,
+                isChecking: viewModel.isCheckingPermissions,
+                onGrant: { viewModel.requestScreenRecordingPermission() }
+            )
+
+            Divider()
+
+            PermissionItem(
+                icon: "folder",
+                title: localized("settings.save.location"),
+                hint: localized("settings.save.location.message"),
+                isGranted: viewModel.hasFolderAccessPermission,
+                isChecking: viewModel.isCheckingPermissions,
+                onGrant: { viewModel.requestFolderAccess() }
+            )
+
+            HStack {
+                Spacer()
+                Button {
+                    viewModel.checkPermissions()
+                } label: {
+                    Label(localized("action.reset"), systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+    }
+}
+
+struct PermissionItem: View {
+    let icon: String
+    let title: String
+    let hint: String
+    let isGranted: Bool
+    let isChecking: Bool
+    let onGrant: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20)
+                    Text(title)
+                }
+
+                Spacer()
+
+                if isChecking {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    HStack(spacing: 8) {
+                        if isGranted {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                            Text(localized("settings.permission.granted"))
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.red)
+
+                            Button {
+                                onGrant()
+                            } label: {
+                                Text(localized("settings.permission.grant"))
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+                    }
+                }
+            }
+
+            if !isGranted && !isChecking {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            Text("""
+                \(title), \
+                \(isGranted ? localized("settings.permission.granted") : localized("settings.permission.required"))
+                """)
+        )
+    }
+}
+
+// MARK: - Save Location Picker
+
+struct SaveLocationPicker: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(viewModel.saveLocationPath)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+
+            Spacer()
+
+            Button {
+                viewModel.selectSaveLocation()
+            } label: {
+                Text(localized("settings.save.location.choose"))
+            }
+
+            Button {
+                viewModel.revealSaveLocation()
+            } label: {
+                Image(systemName: "folder")
+            }
+            .help(localized("settings.save.location.reveal"))
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(localized("settings.save.location")): \(viewModel.saveLocationPath)"))
+    }
+}
+
+// MARK: - App Language Picker
+
+struct AppLanguagePicker: View {
+    @State private var selectedLanguage: AppLanguage = .system
+    @State private var isInitialized = false
+
+    var body: some View {
+        HStack {
+            Text(localized("settings.language"))
+
+            Spacer()
+
+            Picker("", selection: $selectedLanguage) {
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.displayName)
+                        .tag(language)
+                }
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(minWidth: 120)
+            .onChange(of: selectedLanguage) { _, newValue in
+                guard isInitialized else { return }
+                Task { @MainActor in
+                    LanguageManager.shared.currentLanguage = newValue
+                }
+            }
+        }
+        .onAppear {
+            selectedLanguage = LanguageManager.shared.currentLanguage
+            isInitialized = true
+        }
+    }
+}

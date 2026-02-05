@@ -105,17 +105,7 @@ actor CaptureManager {
         await screenDetector.invalidateCache()
 
         // Get the SCDisplay for this display
-        let scContent: SCShareableContent
-        do {
-            scContent = try await SCShareableContent.current
-        } catch {
-            throw ScreenTranslateError.captureFailure(underlying: error)
-        }
-
-        guard let scDisplay = scContent.displays.first(where: { $0.displayID == display.id }) else {
-            // Display was disconnected
-            throw ScreenTranslateError.displayDisconnected(displayName: display.name)
-        }
+        let scDisplay = try await getSCDisplay(for: display)
 
         // Configure capture
         let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
@@ -139,9 +129,7 @@ actor CaptureManager {
         let captureLatency = (CFAbsoluteTimeGetCurrent() - captureStartTime) * 1000
         os_signpost(.end, log: Self.performanceLog, name: "FullScreenCapture", signpostID: Self.signpostID)
 
-        #if DEBUG
-        print("Capture latency: \(String(format: "%.1f", captureLatency))ms")
-        #endif
+        Logger.capture.info("Capture latency: \(String(format: "%.1f", captureLatency))ms")
 
         // Create screenshot with metadata
         let screenshot = Screenshot(
@@ -186,59 +174,11 @@ actor CaptureManager {
         await screenDetector.invalidateCache()
 
         // Get the SCDisplay for this display
-        let scContent: SCShareableContent
-        do {
-            scContent = try await SCShareableContent.current
-        } catch {
-            throw ScreenTranslateError.captureFailure(underlying: error)
-        }
+        let scDisplay = try await getSCDisplay(for: display)
 
-        guard let scDisplay = scContent.displays.first(where: { $0.displayID == display.id }) else {
-            // Display was disconnected
-            throw ScreenTranslateError.displayDisconnected(displayName: display.name)
-        }
-
-        // Configure capture for the full display first
+        // Configure capture
         let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
-        let config = SCStreamConfiguration()
-        
-        // sourceRect is in POINTS (same coordinate system as display.frame)
-        // NOT in pixels! ScreenCaptureKit handles the scaling internally.
-        let clampedX = min(max(rect.origin.x, 0), display.frame.width - 1)
-        let clampedY = min(max(rect.origin.y, 0), display.frame.height - 1)
-        let clampedWidth = min(rect.width, display.frame.width - clampedX)
-        let clampedHeight = min(rect.height, display.frame.height - clampedY)
-
-        let sourceRect = CGRect(
-            x: clampedX,
-            y: clampedY,
-            width: clampedWidth,
-            height: clampedHeight
-        )
-
-        config.sourceRect = sourceRect
-        
-        // Output size should be in PIXELS for crisp capture
-        let outputWidth = Int(clampedWidth * display.scaleFactor)
-        let outputHeight = Int(clampedHeight * display.scaleFactor)
-        config.width = outputWidth
-        config.height = outputHeight
-        
-        // High quality settings
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 1)
-        config.pixelFormat = kCVPixelFormatType_32BGRA
-        config.showsCursor = false
-        config.colorSpaceName = CGColorSpace.sRGB
-
-        #if DEBUG
-        print("=== CAPTURE MANAGER DEBUG ===")
-        print("[CAP-1] Input rect (points): \(rect)")
-        print("[CAP-2] display.frame (points): \(display.frame)")
-        print("[CAP-3] display.scaleFactor: \(display.scaleFactor)")
-        print("[CAP-4] sourceRect (points, clamped): \(sourceRect)")
-        print("[CAP-5] outputSize (pixels): \(outputWidth)x\(outputHeight)")
-        print("=== END CAPTURE MANAGER DEBUG ===")
-        #endif
+        let config = createRegionCaptureConfiguration(for: rect, display: display)
 
         // Perform capture with signpost for profiling
         os_signpost(.begin, log: Self.performanceLog, name: "RegionCapture", signpostID: Self.signpostID)
@@ -258,18 +198,14 @@ actor CaptureManager {
         let captureLatency = (CFAbsoluteTimeGetCurrent() - captureStartTime) * 1000
         os_signpost(.end, log: Self.performanceLog, name: "RegionCapture", signpostID: Self.signpostID)
 
-        #if DEBUG
-        print("Region capture latency: \(String(format: "%.1f", captureLatency))ms")
-        #endif
+        Logger.capture.info("Region capture latency: \(String(format: "%.1f", captureLatency))ms")
 
         // Create screenshot with metadata
-        let screenshot = Screenshot(
+        return Screenshot(
             image: cgImage,
             captureDate: Date(),
             sourceDisplay: display
         )
-
-        return screenshot
     }
 
     // MARK: - Display Enumeration
@@ -307,6 +243,71 @@ actor CaptureManager {
 
         // Color settings for accurate reproduction
         config.colorSpaceName = CGColorSpace.sRGB
+
+        return config
+    }
+
+    /// Retrieves the SCDisplay corresponding to the given DisplayInfo.
+    /// - Parameter display: The display to find
+    /// - Returns: The matching SCDisplay
+    /// - Throws: ScreenTranslateError if display not found or content retrieval fails
+    private func getSCDisplay(for display: DisplayInfo) async throws -> SCDisplay {
+        let scContent: SCShareableContent
+        do {
+            scContent = try await SCShareableContent.current
+        } catch {
+            throw ScreenTranslateError.captureFailure(underlying: error)
+        }
+
+        guard let scDisplay = scContent.displays.first(where: { $0.displayID == display.id }) else {
+            throw ScreenTranslateError.displayDisconnected(displayName: display.name)
+        }
+        return scDisplay
+    }
+
+    /// Creates a capture configuration for a specific region.
+    /// - Parameters:
+    ///   - rect: The region to capture in points
+    ///   - display: The display to capture from
+    /// - Returns: Configured SCStreamConfiguration
+    private func createRegionCaptureConfiguration(for rect: CGRect, display: DisplayInfo) -> SCStreamConfiguration {
+        let config = SCStreamConfiguration()
+        
+        // sourceRect is in POINTS (same coordinate system as display.frame)
+        let clampedX = min(max(rect.origin.x, 0), display.frame.width - 1)
+        let clampedY = min(max(rect.origin.y, 0), display.frame.height - 1)
+        let clampedWidth = min(rect.width, display.frame.width - clampedX)
+        let clampedHeight = min(rect.height, display.frame.height - clampedY)
+
+        let sourceRect = CGRect(
+            x: clampedX,
+            y: clampedY,
+            width: clampedWidth,
+            height: clampedHeight
+        )
+
+        config.sourceRect = sourceRect
+        
+        // Output size should be in PIXELS for crisp capture
+        let outputWidth = Int(clampedWidth * display.scaleFactor)
+        let outputHeight = Int(clampedHeight * display.scaleFactor)
+        config.width = outputWidth
+        config.height = outputHeight
+        
+        // High quality settings
+        config.minimumFrameInterval = CMTime(value: 1, timescale: 1)
+        config.pixelFormat = kCVPixelFormatType_32BGRA
+        config.showsCursor = false
+        config.colorSpaceName = CGColorSpace.sRGB
+
+        // Debug logging
+        Logger.capture.debug("=== CAPTURE MANAGER DEBUG ===")
+        Logger.capture.debug("[CAP-1] Input rect (points): \(String(describing: rect))")
+        Logger.capture.debug("[CAP-2] display.frame (points): \(String(describing: display.frame))")
+        Logger.capture.debug("[CAP-3] display.scaleFactor: \(display.scaleFactor)")
+        Logger.capture.debug("[CAP-4] sourceRect (points, clamped): \(String(describing: sourceRect))")
+        Logger.capture.debug("[CAP-5] outputSize (pixels): \(outputWidth)x\(outputHeight)")
+        Logger.capture.debug("=== END CAPTURE MANAGER DEBUG ===")
 
         return config
     }

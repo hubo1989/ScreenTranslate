@@ -74,7 +74,7 @@ final class SettingsWindowController: NSObject {
             hostingView.topAnchor.constraint(equalTo: containerView.topAnchor),
             hostingView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             hostingView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
         ])
 
         window.center()
@@ -116,8 +116,7 @@ final class SettingsWindowController: NSObject {
     private func installKeyEventMonitor() {
         removeKeyEventMonitor()
 
-        keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) {
-            [weak self] event in
+        keyEventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self = self, let viewModel = self.viewModel else {
                 return event
             }

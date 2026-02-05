@@ -101,7 +101,9 @@ extension DisplayInfo {
     @MainActor
     var matchingScreen: NSScreen? {
         NSScreen.screens.first { screen in
-            guard let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID else {
+            let deviceDescription = screen.deviceDescription
+            let screenNumberKey = NSDeviceDescriptionKey("NSScreenNumber")
+            guard let screenNumber = deviceDescription[screenNumberKey] as? CGDirectDisplayID else {
                 return false
             }
             return screenNumber == id

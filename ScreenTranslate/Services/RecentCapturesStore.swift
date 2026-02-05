@@ -149,8 +149,12 @@ final class RecentCapturesStore: ObservableObject {
         // Convert to JPEG data
         let nsImage = NSImage(cgImage: thumbnailImage, size: NSSize(width: newWidth, height: newHeight))
         guard let tiffData = nsImage.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
-              let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: Self.thumbnailQuality]) else {
+              let bitmap = NSBitmapImageRep(data: tiffData) else {
+            return nil
+        }
+        
+        let properties: [NSBitmapImageRep.PropertyKey: Any] = [.compressionFactor: Self.thumbnailQuality]
+        guard let jpegData = bitmap.representation(using: .jpeg, properties: properties) else {
             return nil
         }
 

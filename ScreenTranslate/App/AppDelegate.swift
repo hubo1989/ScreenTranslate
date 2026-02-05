@@ -1,4 +1,5 @@
 import AppKit
+import os
 
 /// Application delegate responsible for menu bar setup, hotkey registration, and app lifecycle.
 /// Runs on the main actor to ensure thread-safe UI operations.
@@ -22,11 +23,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         recentCapturesStore = RecentCapturesStore(settings: settings)
 
         // Set up menu bar
-        menuBarController = MenuBarController(
-            appDelegate: self,
-            recentCapturesStore: recentCapturesStore!
-        )
-        menuBarController?.setup()
+        if let store = recentCapturesStore {
+            menuBarController = MenuBarController(
+                appDelegate: self,
+                recentCapturesStore: store
+            )
+            menuBarController?.setup()
+        }
 
         // Register global hotkeys
         Task {
@@ -41,9 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Check PaddleOCR availability in background (non-blocking)
         PaddleOCRChecker.checkAvailabilityAsync()
 
-        #if DEBUG
-        print("ScreenTranslate launched - settings loaded from: \(settings.saveLocation.path)")
-        #endif
+        Logger.general.info("ScreenTranslate launched - settings loaded from: \(self.settings.saveLocation.path)")
     }
 
     /// Checks if this is the first launch and shows onboarding if needed.
@@ -76,7 +77,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func showPermissionExplanationAlert() {
         let alert = NSAlert()
         alert.alertStyle = .informational
-        alert.messageText = NSLocalizedString("permission.prompt.title", comment: "Screen Recording Permission Required")
+        alert.messageText = NSLocalizedString(
+            "permission.prompt.title",
+            comment: "Screen Recording Permission Required"
+        )
         alert.informativeText = NSLocalizedString("permission.prompt.message", comment: "")
         alert.addButton(withTitle: NSLocalizedString("permission.prompt.continue", comment: "Continue"))
         alert.addButton(withTitle: NSLocalizedString("permission.prompt.later", comment: "Later"))
@@ -99,9 +103,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Remove menu bar item
         menuBarController?.teardown()
 
-        #if DEBUG
-        print("ScreenTranslate terminating")
-        #endif
+        Logger.general.info("ScreenTranslate terminating")
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
@@ -130,13 +132,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.captureFullScreen()
                 }
             }
-            #if DEBUG
-            print("Registered full screen hotkey: \(settings.fullScreenShortcut.displayString)")
-            #endif
+            Logger.ui.info("Registered full screen hotkey: \(self.settings.fullScreenShortcut.displayString)")
         } catch {
-            #if DEBUG
-            print("Failed to register full screen hotkey: \(error)")
-            #endif
+            Logger.ui.error("Failed to register full screen hotkey: \(error.localizedDescription)")
         }
 
         // Register selection capture hotkey
@@ -148,13 +146,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.captureSelection()
                 }
             }
-            #if DEBUG
-            print("Registered selection hotkey: \(settings.selectionShortcut.displayString)")
-            #endif
+            Logger.ui.info("Registered selection hotkey: \(self.settings.selectionShortcut.displayString)")
         } catch {
-            #if DEBUG
-            print("Failed to register selection hotkey: \(error)")
-            #endif
+            Logger.ui.error("Failed to register selection hotkey: \(error.localizedDescription)")
         }
     }
 
@@ -187,15 +181,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func captureFullScreen() {
         // Prevent overlapping captures
         guard !isCaptureInProgress else {
-            #if DEBUG
-            print("Capture already in progress, ignoring request")
-            #endif
+            Logger.capture.debug("Capture already in progress, ignoring request")
             return
         }
 
-        #if DEBUG
-        print("Full screen capture triggered via hotkey or menu")
-        #endif
+        Logger.capture.info("Full screen capture triggered via hotkey or menu")
 
         isCaptureInProgress = true
 
@@ -208,22 +198,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
                 // Select display (shows menu if multiple)
                 guard let selectedDisplay = await displaySelector.selectDisplay(from: displays) else {
-                    #if DEBUG
-                    print("Display selection cancelled")
-                    #endif
+                    Logger.capture.debug("Display selection cancelled")
                     return
                 }
 
-                #if DEBUG
-                print("Capturing display: \(selectedDisplay.name)")
-                #endif
+                Logger.capture.info("Capturing display: \(selectedDisplay.name)")
 
                 // Perform capture
                 let screenshot = try await CaptureManager.shared.captureFullScreen(display: selectedDisplay)
 
-                #if DEBUG
-                print("Capture successful: \(screenshot.formattedDimensions)")
-                #endif
+                Logger.capture.info("Capture successful: \(screenshot.formattedDimensions)")
 
                 // Show preview window
                 PreviewWindowController.shared.showPreview(for: screenshot) { [weak self] savedURL in
@@ -243,15 +227,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func captureSelection() {
         // Prevent overlapping captures
         guard !isCaptureInProgress else {
-            #if DEBUG
-            print("Capture already in progress, ignoring request")
-            #endif
+            Logger.capture.debug("Capture already in progress, ignoring request")
             return
         }
 
-        #if DEBUG
-        print("Selection capture triggered via hotkey or menu")
-        #endif
+        Logger.capture.info("Selection capture triggered via hotkey or menu")
 
         isCaptureInProgress = true
 
@@ -277,9 +257,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             } catch {
                 isCaptureInProgress = false
-                #if DEBUG
-                print("Failed to present selection overlay: \(error)")
-                #endif
+                Logger.capture.error("Failed to present selection overlay: \(error.localizedDescription)")
                 showCaptureError(.captureFailure(underlying: error))
             }
         }
@@ -290,16 +268,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         defer { isCaptureInProgress = false }
 
         do {
-            #if DEBUG
-            print("Selection complete: \(Int(rect.width))×\(Int(rect.height)) on \(display.name)")
-            #endif
+            Logger.capture.info("Selection complete: \(Int(rect.width))×\(Int(rect.height)) on \(display.name)")
 
             // Capture the selected region
             let screenshot = try await CaptureManager.shared.captureRegion(rect, from: display)
 
-            #if DEBUG
-            print("Region capture successful: \(screenshot.formattedDimensions)")
-            #endif
+            Logger.capture.info("Region capture successful: \(screenshot.formattedDimensions)")
 
             await MainActor.run {
                 PreviewWindowController.shared.showPreview(for: screenshot) { [weak self] savedURL in
@@ -316,25 +290,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleSelectionCancel() {
         isCaptureInProgress = false
-        #if DEBUG
-        print("Selection cancelled by user")
-        #endif
+        Logger.capture.debug("Selection cancelled by user")
     }
 
     /// Opens the settings window
     @objc func openSettings() {
-        #if DEBUG
-        print("Opening settings window")
-        #endif
+        Logger.ui.debug("Opening settings window")
 
         SettingsWindowController.shared.showSettings(appDelegate: self)
     }
 
     /// Opens the translation history window
     @objc func openHistory() {
-        #if DEBUG
-        print("Opening translation history window")
-        #endif
+        Logger.ui.debug("Opening translation history window")
 
         HistoryWindowController.shared.showHistory()
     }
@@ -343,9 +311,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Shows an error alert for capture failures
     private func showCaptureError(_ error: ScreenTranslateError) {
-        #if DEBUG
-        print("Capture error: \(error)")
-        #endif
+        Logger.general.error("Capture error: \(error.localizedDescription)")
 
         let alert = NSAlert()
         alert.alertStyle = .warning
@@ -354,20 +320,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch error {
         case .permissionDenied:
-            alert.addButton(withTitle: NSLocalizedString("error.permission.open.settings", comment: "Open System Settings"))
+            let openSettingsTitle = NSLocalizedString(
+                "error.permission.open.settings",
+                comment: "Open System Settings"
+            )
+            alert.addButton(withTitle: openSettingsTitle)
             alert.addButton(withTitle: NSLocalizedString("error.dismiss", comment: "Dismiss"))
 
             let response = alert.runModal()
             if response == .alertFirstButtonReturn {
                 // Open System Settings > Privacy > Screen Recording
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                let urlString = "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+                if let url = URL(string: urlString) {
                     NSWorkspace.shared.open(url)
                 }
             }
 
         case .displayDisconnected:
             // Offer to retry capture on a different display
-            alert.addButton(withTitle: NSLocalizedString("error.retry.capture", comment: "Retry"))
+            alert.addButton(withTitle: NSLocalizedString(
+                "error.retry.capture",
+                comment: "Retry"
+            ))
             alert.addButton(withTitle: NSLocalizedString("error.dismiss", comment: "Dismiss"))
 
             let response = alert.runModal()

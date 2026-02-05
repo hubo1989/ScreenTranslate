@@ -41,7 +41,7 @@ protocol AnnotationTool {
 extension AnnotationTool {
     var textStyle: TextStyle {
         get { .default }
-        set { }
+        set { _ = newValue }
     }
 }
 

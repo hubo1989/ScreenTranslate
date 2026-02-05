@@ -1,14 +1,15 @@
 {
   "id": "a20df592-ec5b-40bd-a063-3eba28eb5847",
-  "status": "running",
+  "status": "completed",
   "startedAt": "2026-02-04T13:33:38.591Z",
-  "updatedAt": "2026-02-05T01:01:55.497Z",
+  "updatedAt": "2026-02-05T01:06:58.110Z",
   "agentPlugin": "opencode",
   "trackerPlugin": "json",
   "prdPath": "./tasks/prd.json",
-  "currentIteration": 10,
+  "currentIteration": 11,
   "maxIterations": 11,
   "totalTasks": 0,
-  "tasksCompleted": 10,
-  "cwd": "/Users/hubo/.superset/worktrees/screentranslate/featrefactor-translate"
+  "tasksCompleted": 11,
+  "cwd": "/Users/hubo/.superset/worktrees/screentranslate/featrefactor-translate",
+  "endedAt": "2026-02-05T01:06:58.110Z"
 }
