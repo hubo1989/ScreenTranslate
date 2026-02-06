@@ -33,14 +33,15 @@
         "框选区域最小尺寸限制（避免误触）"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-001"
       ],
       "labels": [
         "ui",
         "capture"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-003",
@@ -340,6 +341,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T12:35:48.216Z"
+    "updatedAt": "2026-02-06T12:36:52.380Z"
   }
 }

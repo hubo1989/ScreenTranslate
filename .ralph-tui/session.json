@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T12:35:48.217Z",
-  "currentIteration": 0,
+  "updatedAt": "2026-02-06T12:36:52.381Z",
+  "currentIteration": 1,
   "maxIterations": 10,
-  "tasksCompleted": 0,
+  "tasksCompleted": 1,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -17,8 +17,8 @@
       {
         "id": "US-001",
         "title": "创建独立翻译入口",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-002",
@@ -112,7 +112,18 @@
       }
     ]
   },
-  "iterations": [],
+  "iterations": [
+    {
+      "iteration": 1,
+      "status": "completed",
+      "taskId": "US-001",
+      "taskTitle": "创建独立翻译入口",
+      "taskCompleted": true,
+      "durationMs": 332518,
+      "startedAt": "2026-02-06T12:30:15.697Z",
+      "endedAt": "2026-02-06T12:35:48.215Z"
+    }
+  ],
   "skippedTaskIds": [],
   "cwd": "/Users/hubo/.superset/worktrees/screentranslate/featscreencoderkiss-translator",
   "activeTaskIds": [],
