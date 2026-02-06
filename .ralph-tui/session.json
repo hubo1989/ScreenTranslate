@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T12:57:06.562Z",
-  "currentIteration": 7,
+  "updatedAt": "2026-02-06T12:59:22.918Z",
+  "currentIteration": 8,
   "maxIterations": 10,
-  "tasksCompleted": 7,
+  "tasksCompleted": 8,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -71,8 +71,8 @@
       {
         "id": "US-010",
         "title": "创建 TranslationService 编排层",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-011",
@@ -182,6 +182,16 @@
       "durationMs": 206964,
       "startedAt": "2026-02-06T12:48:56.260Z",
       "endedAt": "2026-02-06T12:52:23.224Z"
+    },
+    {
+      "iteration": 8,
+      "status": "completed",
+      "taskId": "US-010",
+      "taskTitle": "创建 TranslationService 编排层",
+      "taskCompleted": true,
+      "durationMs": 282271,
+      "startedAt": "2026-02-06T12:52:24.289Z",
+      "endedAt": "2026-02-06T12:57:06.560Z"
     }
   ],
   "skippedTaskIds": [],

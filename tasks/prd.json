@@ -225,14 +225,15 @@
         "样式支持用户配置"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-003"
       ],
       "labels": [
         "model",
         "ui"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-012",
@@ -347,6 +348,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T12:57:06.561Z"
+    "updatedAt": "2026-02-06T12:59:22.917Z"
   }
 }
