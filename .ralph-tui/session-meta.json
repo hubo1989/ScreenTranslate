@@ -1,15 +1,14 @@
 {
-  "id": "a20df592-ec5b-40bd-a063-3eba28eb5847",
-  "status": "completed",
-  "startedAt": "2026-02-04T13:33:38.591Z",
-  "updatedAt": "2026-02-05T01:06:58.110Z",
+  "id": "b8011752-1334-42a7-a6b0-de9bc46cef49",
+  "status": "running",
+  "startedAt": "2026-02-06T12:30:11.077Z",
+  "updatedAt": "2026-02-06T12:30:11.077Z",
   "agentPlugin": "opencode",
   "trackerPlugin": "json",
   "prdPath": "./tasks/prd.json",
-  "currentIteration": 11,
-  "maxIterations": 11,
+  "currentIteration": 0,
+  "maxIterations": 10,
   "totalTasks": 0,
-  "tasksCompleted": 11,
-  "cwd": "/Users/hubo/.superset/worktrees/screentranslate/featrefactor-translate",
-  "endedAt": "2026-02-05T01:06:58.110Z"
+  "tasksCompleted": 0,
+  "cwd": "/Users/hubo/.superset/worktrees/screentranslate/featscreencoderkiss-translator"
 }

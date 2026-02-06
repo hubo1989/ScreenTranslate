@@ -1,193 +1,345 @@
 {
-  "name": "截图翻译流程优化与显示重构",
-  "branchName": "feat/refactor-translate",
+  "name": "ScreenCoder 双语翻译模式",
+  "branchName": "feature/screencoder-kiss-translator",
   "userStories": [
     {
       "id": "US-001",
-      "title": "翻译按钮始终可点击",
-      "description": "As a user, I want to click the translate button at any time so that I don't have to wait for OCR to complete first.",
+      "title": "创建独立翻译入口",
+      "description": "As a user, I want a dedicated shortcut and menu entry for translation mode so that I can translate screen content without going through the screenshot annotation flow.",
       "acceptanceCriteria": [
-        "翻译按钮在截图完成后立即可用（不再等待 OCR）",
-        "TranslateButtonView 移除对 ocrCompleted 状态的依赖",
-        "按钮样式始终为可点击状态"
+        "新增全局快捷键（如 ⌘⇧T）触发翻译模式",
+        "菜单栏添加「翻译模式」入口",
+        "快捷键可在设置中自定义",
+        "触发后进入区域框选状态（复用现有 SelectionOverlayView 或新建）"
       ],
       "priority": 1,
       "passes": true,
       "dependsOn": [],
+      "labels": [
+        "entry-point",
+        "hotkey"
+      ],
       "completionNotes": "Completed by agent"
     },
     {
       "id": "US-002",
-      "title": "点击翻译自动触发 OCR",
-      "description": "As a user, I want clicking translate to automatically perform OCR first (if not done) so that the workflow is seamless.",
+      "title": "实现区域框选捕获",
+      "description": "As a user, I want to select a screen region for translation so that I can choose exactly what content to translate.",
       "acceptanceCriteria": [
-        "点击翻译时检查 OCR 是否已完成",
-        "若未完成，先执行 OCR，完成后自动继续翻译",
-        "若已完成，直接进行翻译",
-        "显示适当的加载状态（如\"正在识别并翻译...\"）",
-        "OCR 或翻译失败时显示错误提示"
+        "触发翻译模式后显示全屏半透明遮罩",
+        "用户可拖拽框选任意矩形区域",
+        "框选完成后捕获该区域为 CGImage",
+        "支持 ESC 取消框选",
+        "框选区域最小尺寸限制（避免误触）"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
       "dependsOn": [
         "US-001"
       ],
-      "completionNotes": "Completed by agent"
+      "labels": [
+        "ui",
+        "capture"
+      ]
     },
     {
       "id": "US-003",
-      "title": "读取翻译显示位置设置",
-      "description": "As a user, I want the app to respect my display preference setting so that translations appear where I configured.",
+      "title": "定义 TextSegment 和 ScreenAnalysisResult 模型",
+      "description": "As a developer, I want well-defined data models for text extraction results so that VLM output can be structured and passed through the pipeline.",
       "acceptanceCriteria": [
-        "找到并读取现有的翻译显示位置设置项",
-        "若设置项不存在，新增设置项（覆盖原文 / 原文下方）",
-        "翻译完成后根据设置决定显示方式",
-        "设置变更后立即生效"
+        "创建 TextSegment 结构体：id, text, boundingBox (CGRect, 归一化坐标 0-1), confidence",
+        "创建 ScreenAnalysisResult 结构体：segments, imageSize",
+        "所有模型遵循 Sendable 协议",
+        "添加必要的 Codable 支持（用于 JSON 解析）"
       ],
-      "priority": 2,
-      "passes": true,
-      "dependsOn": [
-        "US-002"
-      ],
-      "completionNotes": "Completed by agent"
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [],
+      "labels": [
+        "model",
+        "core"
+      ]
     },
     {
       "id": "US-004",
-      "title": "覆盖原文模式 - 内容感知填充",
-      "description": "As a user, I want the original text area to be intelligently filled before showing translation so that the result looks clean.",
+      "title": "实现 VLM Provider 协议",
+      "description": "As a developer, I want a unified protocol for VLM providers so that different vision models can be swapped without changing business logic.",
       "acceptanceCriteria": [
-        "使用 OCR 返回的文字块坐标定位原文区域",
-        "尝试使用 macOS 内容感知填充 API（如 Core Image 的 inpainting）",
-        "若无合适 API，fallback 到模糊滤镜或背景色填充",
-        "填充后在该区域渲染译文"
+        "创建 VLMProvider 协议，定义 analyze(image:) async throws -> ScreenAnalysisResult",
+        "协议包含 id, name, isAvailable 属性",
+        "支持配置项：apiKey, baseURL, modelName",
+        "定义标准化的 VLM Prompt 模板（提取文本+bbox 的 JSON 格式）"
       ],
-      "priority": 2,
-      "passes": true,
+      "priority": 1,
+      "passes": false,
       "dependsOn": [
         "US-003"
       ],
-      "completionNotes": "Completed by agent"
+      "labels": [
+        "protocol",
+        "vlm"
+      ]
     },
     {
       "id": "US-005",
-      "title": "覆盖原文模式 - 译文渲染",
-      "description": "As a user, I want translations to be rendered in place of original text so that I can see the translated content naturally.",
+      "title": "实现 OpenAI Vision Provider",
+      "description": "As a user, I want to use OpenAI GPT-4V/GPT-4o for text extraction so that I can leverage OpenAI's vision capabilities.",
       "acceptanceCriteria": [
-        "在填充后的区域绘制译文",
-        "译文字体大小根据区域高度自动调整",
-        "若译文较长，允许向右/下延伸超出原区域",
-        "译文颜色与背景形成足够对比"
+        "实现 OpenAIVLMProvider 遵循 VLMProvider 协议",
+        "支持配置：API Key, Base URL (可自定义), Model Name",
+        "正确处理 base64 图像编码",
+        "解析 JSON 响应为 ScreenAnalysisResult",
+        "处理 API 错误（rate limit, invalid key, timeout）"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "dependsOn": [
         "US-004"
       ],
-      "completionNotes": "Completed by agent"
+      "labels": [
+        "vlm",
+        "openai"
+      ]
     },
     {
       "id": "US-006",
-      "title": "原文下方模式 - 译文渲染",
-      "description": "As a user, I want translations to appear below each text block so that I can compare original and translated text.",
+      "title": "实现 Claude Vision Provider",
+      "description": "As a user, I want to use Claude Vision for text extraction so that I have an alternative to OpenAI.",
       "acceptanceCriteria": [
-        "在每个 OCR 识别的文字块下方显示对应译文",
-        "译文与原文对齐（左对齐或居中，视原文情况）",
-        "若译文较长，允许向右/下延伸",
-        "译文使用区分性样式（如不同颜色或半透明背景）"
+        "实现 ClaudeVLMProvider 遵循 VLMProvider 协议",
+        "支持配置：API Key, Base URL, Model Name",
+        "使用 Anthropic Messages API 格式",
+        "正确处理图像 media type 和 base64 编码",
+        "解析响应为 ScreenAnalysisResult"
       ],
       "priority": 2,
-      "passes": true,
+      "passes": false,
       "dependsOn": [
-        "US-003"
+        "US-004"
       ],
-      "completionNotes": "Completed by agent"
+      "labels": [
+        "vlm",
+        "claude"
+      ]
     },
     {
       "id": "US-007",
-      "title": "Preview 窗口图片渲染",
-      "description": "As a user, I want to see the translated result directly on the image in the Preview window so that I get immediate visual feedback.",
+      "title": "实现 Ollama Vision Provider",
+      "description": "As a user, I want to use local Ollama models for text extraction so that I can work offline without API costs.",
       "acceptanceCriteria": [
-        "在 ScreenshotPreviewView 中的图片上渲染译文",
-        "使用 overlay 或自定义绘制层实现",
-        "渲染层不影响原始截图数据",
-        "支持实时切换显示模式"
+        "实现 OllamaVLMProvider 遵循 VLMProvider 协议",
+        "支持配置：Base URL (默认 localhost:11434), Model Name (如 llava, qwen-vl)",
+        "使用 Ollama API 格式发送图像",
+        "实现连接检测（isAvailable）",
+        "解析响应为 ScreenAnalysisResult"
       ],
-      "priority": 2,
-      "passes": true,
+      "priority": 3,
+      "passes": false,
       "dependsOn": [
-        "US-005",
-        "US-006"
+        "US-004"
       ],
-      "completionNotes": "Completed by agent"
+      "labels": [
+        "vlm",
+        "ollama",
+        "local"
+      ]
     },
     {
       "id": "US-008",
-      "title": "保留底部面板作为备用",
-      "description": "As a user, I want the bottom results panel to remain available so that I can still see plain text results if needed.",
+      "title": "创建 ScreenCoder 引擎",
+      "description": "As a developer, I want a unified ScreenCoder engine that manages VLM providers so that the translation flow has a single entry point for text extraction.",
       "acceptanceCriteria": [
-        "保留 resultsPanel 组件和功能",
-        "面板可折叠或默认收起",
-        "面板仍显示原文和译文的纯文本版本",
-        "面板文本可复制"
+        "创建 ScreenCoderEngine actor/class",
+        "管理多个 VLM Provider 实例",
+        "根据用户配置选择当前 Provider",
+        "提供 analyze(image:) async throws -> ScreenAnalysisResult 方法",
+        "封装 Provider 切换逻辑"
       ],
-      "priority": 3,
-      "passes": true,
+      "priority": 1,
+      "passes": false,
       "dependsOn": [
+        "US-005",
+        "US-006",
         "US-007"
       ],
-      "completionNotes": "Completed by agent"
+      "labels": [
+        "engine",
+        "core"
+      ]
     },
     {
       "id": "US-009",
-      "title": "保存带译文的图片",
-      "description": "As a user, I want to save the image with translations so that I can keep a permanent copy.",
+      "title": "扩展 MTransServerProvider 翻译能力",
+      "description": "As a user, I want MTransServer to work as a translation provider so that I can use my local translation server.",
       "acceptanceCriteria": [
-        "添加\"保存图片\"按钮",
-        "将渲染后的图片（含译文）保存为 PNG/JPEG",
-        "提供文件保存对话框选择位置",
-        "保存成功后显示确认提示"
+        "确认现有 MTranServerEngine 可复用或需要适配",
+        "实现 TranslationProvider 协议（如需新建）",
+        "支持批量翻译接口 translate(texts:from:to:)",
+        "正确处理 MTransServer API（POST /translate）",
+        "实现连接状态检测"
       ],
-      "priority": 3,
-      "passes": true,
-      "dependsOn": [
-        "US-007"
-      ],
-      "completionNotes": "Completed by agent"
+      "priority": 2,
+      "passes": false,
+      "dependsOn": [],
+      "labels": [
+        "translation",
+        "mtrans"
+      ]
     },
     {
       "id": "US-010",
-      "title": "复制带译文的图片到剪贴板",
-      "description": "As a user, I want to copy the translated image to clipboard so that I can quickly paste it elsewhere.",
+      "title": "创建 TranslationService 编排层",
+      "description": "As a developer, I want a TranslationService that orchestrates multiple translation providers so that fallback logic is centralized.",
       "acceptanceCriteria": [
-        "添加\"复制图片\"按钮",
-        "将渲染后的图片（含译文）复制到系统剪贴板",
-        "复制成功后显示确认提示（如短暂的 toast）",
-        "支持直接粘贴到其他应用"
+        "创建 TranslationService actor/class",
+        "管理 AppleTranslationProvider 和 MTransServerProvider",
+        "根据用户配置选择首选 Provider",
+        "实现 fallback 逻辑：首选失败时切换备选",
+        "提供 translate(segments:to:) async throws -> [BilingualSegment]"
       ],
-      "priority": 3,
-      "passes": true,
+      "priority": 1,
+      "passes": false,
       "dependsOn": [
-        "US-007"
+        "US-009"
       ],
-      "completionNotes": "Completed by agent"
+      "labels": [
+        "translation",
+        "service"
+      ]
     },
     {
       "id": "US-011",
-      "title": "修复编辑框尺寸与原框选一致",
-      "description": "As a user, I want the screenshot editor to show the exact size I selected so that what I see matches what I captured.",
+      "title": "定义 BilingualSegment 和 OverlayStyle 模型",
+      "description": "As a developer, I want models for bilingual content and rendering style so that the overlay renderer has structured input.",
       "acceptanceCriteria": [
-        "ScreenshotPreviewView 中图片显示为原始尺寸（1:1）",
-        "移除任何缩放逻辑或固定尺寸约束",
-        "若图片超出窗口，使用 ScrollView 允许滚动查看",
-        "窗口大小可调整，图片始终保持原始比例"
+        "创建 BilingualSegment 结构体：original (TextSegment), translated (String)",
+        "创建 OverlayStyle 结构体：translationFont, translationColor, backgroundColor, padding",
+        "提供合理的默认样式值",
+        "样式支持用户配置"
+      ],
+      "priority": 2,
+      "passes": false,
+      "dependsOn": [
+        "US-003"
+      ],
+      "labels": [
+        "model",
+        "ui"
+      ]
+    },
+    {
+      "id": "US-012",
+      "title": "实现 OverlayRenderer 双语渲染",
+      "description": "As a developer, I want an OverlayRenderer that draws bilingual content on the original image so that users see translations in context.",
+      "acceptanceCriteria": [
+        "创建 OverlayRenderer 类",
+        "输入：原始 CGImage + [BilingualSegment] + OverlayStyle",
+        "输出：NSImage（双语对照图）",
+        "在每个原文位置下方绘制译文",
+        "译文带半透明背景提高可读性",
+        "长文本自动换行处理"
+      ],
+      "priority": 2,
+      "passes": false,
+      "dependsOn": [
+        "US-011"
+      ],
+      "labels": [
+        "renderer",
+        "ui"
+      ]
+    },
+    {
+      "id": "US-013",
+      "title": "创建双语对照展示窗口",
+      "description": "As a user, I want a dedicated window to display bilingual translation results so that I can review and interact with translations.",
+      "acceptanceCriteria": [
+        "创建 BilingualResultWindow (NSWindow/SwiftUI)",
+        "显示渲染后的双语对照图像",
+        "支持图像缩放和滚动",
+        "提供「复制图片」按钮",
+        "提供「保存图片」按钮",
+        "窗口可调整大小",
+        "ESC 或关闭按钮关闭窗口"
+      ],
+      "priority": 2,
+      "passes": false,
+      "dependsOn": [
+        "US-012"
+      ],
+      "labels": [
+        "window",
+        "ui"
+      ]
+    },
+    {
+      "id": "US-014",
+      "title": "实现 TranslationFlowController 主流程",
+      "description": "As a developer, I want a TranslationFlowController that orchestrates the entire translation flow so that all components work together.",
+      "acceptanceCriteria": [
+        "创建 TranslationFlowController",
+        "流程：接收 CGImage → ScreenCoder 提取 → TranslationService 翻译 → OverlayRenderer 渲染 → 显示窗口",
+        "处理各阶段错误并显示用户友好提示",
+        "显示处理进度指示器",
+        "支持取消正在进行的翻译"
       ],
       "priority": 1,
-      "passes": true,
+      "passes": false,
+      "dependsOn": [
+        "US-002",
+        "US-008",
+        "US-010",
+        "US-013"
+      ],
+      "labels": [
+        "controller",
+        "core"
+      ]
+    },
+    {
+      "id": "US-015",
+      "title": "添加 VLM 和翻译配置 UI",
+      "description": "As a user, I want settings UI to configure VLM providers and translation preferences so that I can customize the translation behavior.",
+      "acceptanceCriteria": [
+        "在设置中添加「翻译模式」配置区",
+        "VLM 配置：选择 Provider (OpenAI/Claude/Ollama)",
+        "VLM 配置：API Key, Base URL, Model Name 输入框",
+        "翻译配置：首选引擎 (Apple/MTransServer)",
+        "翻译配置：MTransServer URL",
+        "翻译配置：Fallback 开关",
+        "配置持久化到 SettingsManager"
+      ],
+      "priority": 2,
+      "passes": false,
       "dependsOn": [],
-      "completionNotes": "Completed by agent"
+      "labels": [
+        "settings",
+        "ui"
+      ]
+    },
+    {
+      "id": "US-016",
+      "title": "集成快捷键到 AppDelegate",
+      "description": "As a user, I want the translation shortcut to work globally so that I can trigger translation from any app.",
+      "acceptanceCriteria": [
+        "在 AppDelegate 或 HotKeyManager 注册翻译模式快捷键",
+        "快捷键触发 TranslationFlowController 启动框选",
+        "与现有快捷键不冲突",
+        "快捷键禁用/启用状态正确响应"
+      ],
+      "priority": 1,
+      "passes": false,
+      "dependsOn": [
+        "US-014",
+        "US-015"
+      ],
+      "labels": [
+        "integration",
+        "hotkey"
+      ]
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-05T01:06:45.276Z"
+    "updatedAt": "2026-02-06T12:35:48.216Z"
   }
 }

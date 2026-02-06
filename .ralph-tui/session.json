@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
+  "status": "running",
+  "startedAt": "2026-02-06T12:30:12.739Z",
+  "updatedAt": "2026-02-06T12:35:48.217Z",
+  "currentIteration": 0,
+  "maxIterations": 10,
+  "tasksCompleted": 0,
+  "isPaused": false,
+  "agentPlugin": "opencode",
+  "trackerState": {
+    "plugin": "json",
+    "prdPath": "./tasks/prd.json",
+    "totalTasks": 16,
+    "tasks": [
+      {
+        "id": "US-001",
+        "title": "创建独立翻译入口",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-002",
+        "title": "实现区域框选捕获",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-003",
+        "title": "定义 TextSegment 和 ScreenAnalysisResult 模型",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-004",
+        "title": "实现 VLM Provider 协议",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-005",
+        "title": "实现 OpenAI Vision Provider",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-006",
+        "title": "实现 Claude Vision Provider",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-007",
+        "title": "实现 Ollama Vision Provider",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-008",
+        "title": "创建 ScreenCoder 引擎",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-009",
+        "title": "扩展 MTransServerProvider 翻译能力",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-010",
+        "title": "创建 TranslationService 编排层",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-011",
+        "title": "定义 BilingualSegment 和 OverlayStyle 模型",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-012",
+        "title": "实现 OverlayRenderer 双语渲染",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-013",
+        "title": "创建双语对照展示窗口",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-014",
+        "title": "实现 TranslationFlowController 主流程",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-015",
+        "title": "添加 VLM 和翻译配置 UI",
+        "status": "open",
+        "completedInSession": false
+      },
+      {
+        "id": "US-016",
+        "title": "集成快捷键到 AppDelegate",
+        "status": "open",
+        "completedInSession": false
+      }
+    ]
+  },
+  "iterations": [],
+  "skippedTaskIds": [],
+  "cwd": "/Users/hubo/.superset/worktrees/screentranslate/featscreencoderkiss-translator",
+  "activeTaskIds": [],
+  "subagentPanelVisible": false
+}
