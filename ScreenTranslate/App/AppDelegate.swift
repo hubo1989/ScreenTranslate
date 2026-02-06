@@ -375,9 +375,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
             Logger.capture.info("Translation capture successful: \(screenshot.formattedDimensions)")
 
-            await MainActor.run {
-                PreviewWindowController.shared.showPreview(for: screenshot)
-            }
+            TranslationFlowController.shared.startTranslation(image: screenshot.image)
 
         } catch let error as ScreenTranslateError {
             showCaptureError(error)
