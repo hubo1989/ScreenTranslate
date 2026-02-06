@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T12:38:31.869Z",
-  "currentIteration": 2,
+  "updatedAt": "2026-02-06T12:41:58.824Z",
+  "currentIteration": 3,
   "maxIterations": 10,
-  "tasksCompleted": 2,
+  "tasksCompleted": 3,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -29,8 +29,8 @@
       {
         "id": "US-003",
         "title": "定义 TextSegment 和 ScreenAnalysisResult 模型",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-004",
@@ -132,6 +132,16 @@
       "durationMs": 63094,
       "startedAt": "2026-02-06T12:35:49.285Z",
       "endedAt": "2026-02-06T12:36:52.379Z"
+    },
+    {
+      "iteration": 3,
+      "status": "completed",
+      "taskId": "US-003",
+      "taskTitle": "定义 TextSegment 和 ScreenAnalysisResult 模型",
+      "taskCompleted": true,
+      "durationMs": 98423,
+      "startedAt": "2026-02-06T12:36:53.445Z",
+      "endedAt": "2026-02-06T12:38:31.868Z"
     }
   ],
   "skippedTaskIds": [],

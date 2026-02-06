@@ -73,14 +73,15 @@
         "定义标准化的 VLM Prompt 模板（提取文本+bbox 的 JSON 格式）"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-003"
       ],
       "labels": [
         "protocol",
         "vlm"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-005",
@@ -342,6 +343,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T12:38:31.868Z"
+    "updatedAt": "2026-02-06T12:41:58.822Z"
   }
 }
