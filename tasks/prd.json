@@ -54,12 +54,13 @@
         "添加必要的 Codable 支持（用于 JSON 解析）"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "dependsOn": [],
       "labels": [
         "model",
         "core"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-004",
@@ -341,6 +342,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T12:36:52.380Z"
+    "updatedAt": "2026-02-06T12:38:31.868Z"
   }
 }

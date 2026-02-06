@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T12:36:52.381Z",
-  "currentIteration": 1,
+  "updatedAt": "2026-02-06T12:38:31.869Z",
+  "currentIteration": 2,
   "maxIterations": 10,
-  "tasksCompleted": 1,
+  "tasksCompleted": 2,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -23,8 +23,8 @@
       {
         "id": "US-002",
         "title": "实现区域框选捕获",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-003",
@@ -122,6 +122,16 @@
       "durationMs": 332518,
       "startedAt": "2026-02-06T12:30:15.697Z",
       "endedAt": "2026-02-06T12:35:48.215Z"
+    },
+    {
+      "iteration": 2,
+      "status": "completed",
+      "taskId": "US-002",
+      "taskTitle": "实现区域框选捕获",
+      "taskCompleted": true,
+      "durationMs": 63094,
+      "startedAt": "2026-02-06T12:35:49.285Z",
+      "endedAt": "2026-02-06T12:36:52.379Z"
     }
   ],
   "skippedTaskIds": [],
