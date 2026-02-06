@@ -3,7 +3,7 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T12:59:24.002Z",
+  "updatedAt": "2026-02-06T13:02:07.407Z",
   "currentIteration": 9,
   "maxIterations": 10,
   "tasksCompleted": 9,
@@ -206,8 +206,6 @@
   ],
   "skippedTaskIds": [],
   "cwd": "/Users/hubo/.superset/worktrees/screentranslate/featscreencoderkiss-translator",
-  "activeTaskIds": [
-    "US-012"
-  ],
+  "activeTaskIds": [],
   "subagentPanelVisible": false
 }

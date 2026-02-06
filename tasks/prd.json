@@ -248,14 +248,15 @@
         "长文本自动换行处理"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-011"
       ],
       "labels": [
         "renderer",
         "ui"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-013",
@@ -348,6 +349,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T12:59:23.985Z"
+    "updatedAt": "2026-02-06T13:02:07.406Z"
   }
 }
