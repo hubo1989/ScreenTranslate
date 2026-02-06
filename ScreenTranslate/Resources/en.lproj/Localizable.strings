@@ -82,6 +82,7 @@
 "menu.capture.full.screen" = "Capture Full Screen";
 "menu.capture.fullscreen" = "Capture Full Screen";
 "menu.capture.selection" = "Capture Selection";
+"menu.translation.mode" = "Translation Mode";
 "menu.recent.captures" = "Recent Captures";
 "menu.recent.captures.empty" = "No Recent Captures";
 "menu.recent.captures.clear" = "Clear Recent";
@@ -262,6 +263,7 @@
 "settings.shortcuts" = "Keyboard Shortcuts";
 "settings.shortcut.fullscreen" = "Full Screen Capture";
 "settings.shortcut.selection" = "Selection Capture";
+"settings.shortcut.translation.mode" = "Translation Mode";
 "settings.shortcut.recording" = "Press keys...";
 "settings.shortcut.reset" = "Reset to default";
 "settings.shortcut.error.no.modifier" = "Shortcuts must include Command, Control, or Option";

@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var recentCapturesStore: RecentCapturesStore?
     private var fullScreenHotkeyRegistration: HotkeyManager.Registration?
     private var selectionHotkeyRegistration: HotkeyManager.Registration?
+    private var translationModeHotkeyRegistration: HotkeyManager.Registration?
     private let settings = AppSettings.shared
     private let displaySelector = DisplaySelector()
     private var isCaptureInProgress = false
@@ -150,6 +151,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             Logger.ui.error("Failed to register selection hotkey: \(error.localizedDescription)")
         }
+
+        // Register translation mode hotkey
+        do {
+            translationModeHotkeyRegistration = try await hotkeyManager.register(
+                shortcut: settings.translationModeShortcut
+            ) { [weak self] in
+                Task { @MainActor in
+                    self?.startTranslationMode()
+                }
+            }
+            Logger.ui.info("Registered translation mode hotkey: \(self.settings.translationModeShortcut.displayString)")
+        } catch {
+            Logger.ui.error("Failed to register translation mode hotkey: \(error.localizedDescription)")
+        }
     }
 
     /// Unregisters all global hotkeys
@@ -164,6 +179,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let registration = selectionHotkeyRegistration {
             await hotkeyManager.unregister(registration)
             selectionHotkeyRegistration = nil
+        }
+
+        if let registration = translationModeHotkeyRegistration {
+            await hotkeyManager.unregister(registration)
+            translationModeHotkeyRegistration = nil
         }
     }
 
@@ -305,6 +325,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Logger.ui.debug("Opening translation history window")
 
         HistoryWindowController.shared.showHistory()
+    }
+
+    /// Starts translation mode - presents region selection for translation
+    @objc func startTranslationMode() {
+        guard !isCaptureInProgress else {
+            Logger.capture.debug("Capture already in progress, ignoring translation mode request")
+            return
+        }
+
+        Logger.capture.info("Translation mode triggered via hotkey or menu")
+
+        isCaptureInProgress = true
+
+        Task {
+            do {
+                let overlayController = SelectionOverlayController.shared
+
+                overlayController.onSelectionComplete = { [weak self] rect, display in
+                    Task { @MainActor in
+                        await self?.handleTranslationSelection(rect: rect, display: display)
+                    }
+                }
+
+                overlayController.onSelectionCancel = { [weak self] in
+                    Task { @MainActor in
+                        self?.handleSelectionCancel()
+                    }
+                }
+
+                try await overlayController.presentOverlay()
+
+            } catch {
+                isCaptureInProgress = false
+                Logger.capture.error("Failed to present translation overlay: \(error.localizedDescription)")
+                showCaptureError(.captureFailure(underlying: error))
+            }
+        }
+    }
+
+    /// Handles translation mode selection completion
+    private func handleTranslationSelection(rect: CGRect, display: DisplayInfo) async {
+        defer { isCaptureInProgress = false }
+
+        do {
+            Logger.capture.info("Translation selection: \(Int(rect.width))×\(Int(rect.height)) on \(display.name)")
+
+            let screenshot = try await CaptureManager.shared.captureRegion(rect, from: display)
+
+            Logger.capture.info("Translation capture successful: \(screenshot.formattedDimensions)")
+
+            await MainActor.run {
+                PreviewWindowController.shared.showPreview(for: screenshot)
+            }
+
+        } catch let error as ScreenTranslateError {
+            showCaptureError(error)
+        } catch {
+            showCaptureError(.captureFailure(underlying: error))
+        }
     }
 
     // MARK: - Error Handling

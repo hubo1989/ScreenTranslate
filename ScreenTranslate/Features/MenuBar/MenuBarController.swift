@@ -86,6 +86,15 @@ final class MenuBarController {
             target: appDelegate
         ))
 
+        // Translation Mode
+        menu.addItem(createMenuItem(
+            titleKey: "menu.translation.mode",
+            comment: "Translation Mode",
+            action: #selector(AppDelegate.startTranslationMode),
+            keyEquivalent: "t",
+            target: appDelegate
+        ))
+
         menu.addItem(NSMenuItem.separator())
 
         // Recent Captures submenu

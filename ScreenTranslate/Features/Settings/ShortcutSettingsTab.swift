@@ -20,6 +20,14 @@ struct ShortcutSettingsContent: View {
                 onRecord: { viewModel.startRecordingSelectionShortcut() },
                 onReset: { viewModel.resetSelectionShortcut() }
             )
+            Divider().opacity(0.1)
+            ShortcutRecorder(
+                label: localized("settings.shortcut.translation.mode"),
+                shortcut: viewModel.translationModeShortcut,
+                isRecording: viewModel.isRecordingTranslationModeShortcut,
+                onRecord: { viewModel.startRecordingTranslationModeShortcut() },
+                onReset: { viewModel.resetTranslationModeShortcut() }
+            )
         }
         .macos26LiquidGlass()
     }

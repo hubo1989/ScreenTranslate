@@ -20,6 +20,7 @@ final class SettingsViewModel {
     /// Whether a shortcut is currently being recorded
     var isRecordingFullScreenShortcut = false
     var isRecordingSelectionShortcut = false
+    var isRecordingTranslationModeShortcut = false
 
     /// Temporary storage for shortcut recording
     var recordedShortcut: KeyboardShortcut?
@@ -108,6 +109,15 @@ final class SettingsViewModel {
         get { settings.selectionShortcut }
         set {
             settings.selectionShortcut = newValue
+            appDelegate?.updateHotkeys()
+        }
+    }
+
+    /// Translation mode shortcut
+    var translationModeShortcut: KeyboardShortcut {
+        get { settings.translationModeShortcut }
+        set {
+            settings.translationModeShortcut = newValue
             appDelegate?.updateHotkeys()
         }
     }
@@ -328,6 +338,15 @@ final class SettingsViewModel {
     func startRecordingSelectionShortcut() {
         isRecordingFullScreenShortcut = false
         isRecordingSelectionShortcut = true
+        isRecordingTranslationModeShortcut = false
+        recordedShortcut = nil
+    }
+
+    /// Starts recording a keyboard shortcut for translation mode
+    func startRecordingTranslationModeShortcut() {
+        isRecordingFullScreenShortcut = false
+        isRecordingSelectionShortcut = false
+        isRecordingTranslationModeShortcut = true
         recordedShortcut = nil
     }
 
@@ -335,6 +354,7 @@ final class SettingsViewModel {
     func cancelRecording() {
         isRecordingFullScreenShortcut = false
         isRecordingSelectionShortcut = false
+        isRecordingTranslationModeShortcut = false
         recordedShortcut = nil
     }
 
@@ -342,7 +362,7 @@ final class SettingsViewModel {
     /// - Parameter event: The key event
     /// - Returns: Whether the event was handled
     func handleKeyEvent(_ event: NSEvent) -> Bool {
-        guard isRecordingFullScreenShortcut || isRecordingSelectionShortcut else {
+        guard isRecordingFullScreenShortcut || isRecordingSelectionShortcut || isRecordingTranslationModeShortcut else {
             return false
         }
 
@@ -365,20 +385,26 @@ final class SettingsViewModel {
         }
 
         // Check for conflicts with other shortcuts
-        if isRecordingFullScreenShortcut && shortcut == selectionShortcut {
-            showError("This shortcut is already used for Selection Capture")
+        if isRecordingFullScreenShortcut && (shortcut == selectionShortcut || shortcut == translationModeShortcut) {
+            showError("This shortcut is already in use")
             return true
         }
-        if isRecordingSelectionShortcut && shortcut == fullScreenShortcut {
-            showError("This shortcut is already used for Full Screen Capture")
+        if isRecordingSelectionShortcut && (shortcut == fullScreenShortcut || shortcut == translationModeShortcut) {
+            showError("This shortcut is already in use")
+            return true
+        }
+        if isRecordingTranslationModeShortcut && (shortcut == fullScreenShortcut || shortcut == selectionShortcut) {
+            showError("This shortcut is already in use")
             return true
         }
 
         // Apply the shortcut
         if isRecordingFullScreenShortcut {
             fullScreenShortcut = shortcut
-        } else {
+        } else if isRecordingSelectionShortcut {
             selectionShortcut = shortcut
+        } else {
+            translationModeShortcut = shortcut
         }
 
         // End recording
@@ -394,6 +420,11 @@ final class SettingsViewModel {
     /// Resets selection shortcut to default
     func resetSelectionShortcut() {
         selectionShortcut = .selectionDefault
+    }
+
+    /// Resets translation mode shortcut to default
+    func resetTranslationModeShortcut() {
+        translationModeShortcut = .translationModeDefault
     }
 
     /// Resets all settings to defaults
