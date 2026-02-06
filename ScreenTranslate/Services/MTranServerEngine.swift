@@ -1,19 +1,21 @@
 import Foundation
 import os.log
 
-/// MTranServer engine implementation.
-/// Communicates with self-hosted MTranServer for translation.
-actor MTranServerEngine {
+actor MTranServerEngine: TranslationProvider {
+    // MARK: - TranslationProvider Properties
+
+    nonisolated let id = "mtranserver"
+    nonisolated let name = "MTransServer"
+
+    var isAvailable: Bool {
+        get async { await checkConnection() }
+    }
+
+    nonisolated var configuration: Configuration { .default }
+
     // MARK: - Properties
 
-    /// Shared instance for MTranServer operations
     static let shared = MTranServerEngine()
-
-    /// Whether MTranServer is available
-    var isAvailable: Bool { MTranServerChecker.isAvailable }
-
-    /// Maximum concurrent operations
-    private var isProcessing = false
 
     // MARK: - Configuration
 
@@ -59,17 +61,9 @@ actor MTranServerEngine {
         to targetLanguage: String,
         config: Configuration = .default
     ) async throws -> TranslationResult {
-        // Check availability
-        guard isAvailable else {
+        guard MTranServerChecker.isAvailable else {
             throw MTranServerError.notAvailable
         }
-
-        // Prevent concurrent operations
-        guard !isProcessing else {
-            throw MTranServerError.operationInProgress
-        }
-        isProcessing = true
-        defer { isProcessing = false }
 
         // Validate input
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -108,6 +102,44 @@ actor MTranServerEngine {
     /// - Throws: MTranServerError if translation fails
     func translate(_ text: String, to targetLanguage: String) async throws -> TranslationResult {
         try await translate(text, from: nil, to: targetLanguage, config: .default)
+    }
+
+    // MARK: - TranslationProvider Protocol
+
+    func translate(
+        text: String,
+        from sourceLanguage: String?,
+        to targetLanguage: String
+    ) async throws -> TranslationResult {
+        try await translate(text, from: sourceLanguage, to: targetLanguage, config: .default)
+    }
+
+    func translate(
+        texts: [String],
+        from sourceLanguage: String?,
+        to targetLanguage: String
+    ) async throws -> [TranslationResult] {
+        guard !texts.isEmpty else { return [] }
+
+        var results: [TranslationResult] = []
+        results.reserveCapacity(texts.count)
+
+        for text in texts {
+            let result = try await translate(
+                text,
+                from: sourceLanguage,
+                to: targetLanguage,
+                config: .default
+            )
+            results.append(result)
+        }
+
+        return results
+    }
+
+    func checkConnection() async -> Bool {
+        MTranServerChecker.resetCache()
+        return MTranServerChecker.isAvailable
     }
 
     // MARK: - Private Methods
