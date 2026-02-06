@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T12:52:23.225Z",
-  "currentIteration": 6,
+  "updatedAt": "2026-02-06T12:57:06.562Z",
+  "currentIteration": 7,
   "maxIterations": 10,
-  "tasksCompleted": 6,
+  "tasksCompleted": 7,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -65,8 +65,8 @@
       {
         "id": "US-009",
         "title": "扩展 MTransServerProvider 翻译能力",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-010",
@@ -172,6 +172,16 @@
       "durationMs": 171304,
       "startedAt": "2026-02-06T12:46:03.891Z",
       "endedAt": "2026-02-06T12:48:55.195Z"
+    },
+    {
+      "iteration": 7,
+      "status": "completed",
+      "taskId": "US-009",
+      "taskTitle": "扩展 MTransServerProvider 翻译能力",
+      "taskCompleted": true,
+      "durationMs": 206964,
+      "startedAt": "2026-02-06T12:48:56.260Z",
+      "endedAt": "2026-02-06T12:52:23.224Z"
     }
   ],
   "skippedTaskIds": [],
