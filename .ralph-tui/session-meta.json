@@ -1,14 +1,14 @@
 {
-  "id": "b8011752-1334-42a7-a6b0-de9bc46cef49",
+  "id": "dfe8c9c7-6384-41c0-a6a1-de9cc4ef8d88",
   "status": "running",
-  "startedAt": "2026-02-06T12:30:11.077Z",
-  "updatedAt": "2026-02-06T13:46:29.392Z",
+  "startedAt": "2026-02-06T13:57:48.980Z",
+  "updatedAt": "2026-02-06T13:57:48.980Z",
   "agentPlugin": "opencode",
   "trackerPlugin": "json",
-  "prdPath": "./tasks/prd.json",
-  "currentIteration": 11,
-  "maxIterations": 12,
+  "prdPath": "tasks/prd.json",
+  "currentIteration": 0,
+  "maxIterations": 10,
   "totalTasks": 0,
-  "tasksCompleted": 11,
+  "tasksCompleted": 0,
   "cwd": "/Users/hubo/.superset/worktrees/screentranslate/featscreencoderkiss-translator"
 }
