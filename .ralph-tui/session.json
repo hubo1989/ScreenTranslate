@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T12:46:02.828Z",
-  "currentIteration": 4,
+  "updatedAt": "2026-02-06T12:48:55.196Z",
+  "currentIteration": 5,
   "maxIterations": 10,
-  "tasksCompleted": 4,
+  "tasksCompleted": 5,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -41,8 +41,8 @@
       {
         "id": "US-005",
         "title": "实现 OpenAI Vision Provider",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-006",
@@ -152,6 +152,16 @@
       "durationMs": 205881,
       "startedAt": "2026-02-06T12:38:32.941Z",
       "endedAt": "2026-02-06T12:41:58.822Z"
+    },
+    {
+      "iteration": 5,
+      "status": "completed",
+      "taskId": "US-005",
+      "taskTitle": "实现 OpenAI Vision Provider",
+      "taskCompleted": true,
+      "durationMs": 242943,
+      "startedAt": "2026-02-06T12:41:59.884Z",
+      "endedAt": "2026-02-06T12:46:02.827Z"
     }
   ],
   "skippedTaskIds": [],
