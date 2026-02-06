@@ -1,0 +1,93 @@
+import AppKit
+import Observation
+
+@MainActor
+@Observable
+final class BilingualResultViewModel {
+    private(set) var image: CGImage
+    private(set) var scale: CGFloat = 1.0
+    var copySuccessMessage: String?
+    var saveSuccessMessage: String?
+    var errorMessage: String?
+
+    private let minScale: CGFloat = 0.1
+    private let maxScale: CGFloat = 5.0
+    private let scaleStep: CGFloat = 0.1
+
+    var imageWidth: Int { image.width }
+    var imageHeight: Int { image.height }
+
+    var dimensionsText: String {
+        "\(imageWidth) × \(imageHeight)"
+    }
+
+    init(image: CGImage) {
+        self.image = image
+    }
+
+    func updateImage(_ newImage: CGImage) {
+        self.image = newImage
+        self.scale = 1.0
+    }
+
+    func zoomIn() {
+        let newScale = min(scale + scaleStep, maxScale)
+        if newScale != scale {
+            scale = newScale
+        }
+    }
+
+    func zoomOut() {
+        let newScale = max(scale - scaleStep, minScale)
+        if newScale != scale {
+            scale = newScale
+        }
+    }
+
+    func resetZoom() {
+        scale = 1.0
+    }
+
+    func copyToClipboard() {
+        do {
+            try ClipboardService.shared.copy(image)
+            showCopySuccess()
+        } catch {
+            errorMessage = String(localized: "bilingualResult.copyFailed")
+        }
+    }
+
+    func saveImage() {
+        let savePanel = NSSavePanel()
+        savePanel.allowedContentTypes = [.png]
+        savePanel.nameFieldStringValue = ImageExporter.shared.generateFilename(format: .png)
+        savePanel.canCreateDirectories = true
+
+        guard savePanel.runModal() == .OK, let url = savePanel.url else {
+            return
+        }
+
+        do {
+            try ImageExporter.shared.save(image, annotations: [], to: url, format: .png, quality: 1.0)
+            showSaveSuccess()
+        } catch {
+            errorMessage = String(localized: "bilingualResult.saveFailed")
+        }
+    }
+
+    private func showCopySuccess() {
+        copySuccessMessage = String(localized: "bilingualResult.copySuccess")
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            copySuccessMessage = nil
+        }
+    }
+
+    private func showSaveSuccess() {
+        saveSuccessMessage = String(localized: "bilingualResult.saveSuccess")
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            saveSuccessMessage = nil
+        }
+    }
+}

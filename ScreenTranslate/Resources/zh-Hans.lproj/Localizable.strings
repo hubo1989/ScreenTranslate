@@ -455,3 +455,19 @@
 "accessibility.settings.button" = "设置";
 "accessibility.capture.button" = "截图";
 "accessibility.translate.button" = "翻译";
+
+
+/* ========================================
+   双语对照窗口
+   ======================================== */
+
+"bilingualResult.window.title" = "双语对照";
+"bilingualResult.copy" = "复制";
+"bilingualResult.save" = "保存";
+"bilingualResult.zoomIn" = "放大";
+"bilingualResult.zoomOut" = "缩小";
+"bilingualResult.resetZoom" = "重置缩放";
+"bilingualResult.copySuccess" = "已复制到剪贴板";
+"bilingualResult.saveSuccess" = "保存成功";
+"bilingualResult.copyFailed" = "复制图片失败";
+"bilingualResult.saveFailed" = "保存图片失败";

@@ -455,3 +455,19 @@
 "accessibility.settings.button" = "Settings";
 "accessibility.capture.button" = "Capture";
 "accessibility.translate.button" = "Translate";
+
+
+/* ========================================
+   Bilingual Result Window
+   ======================================== */
+
+"bilingualResult.window.title" = "Bilingual Translation";
+"bilingualResult.copy" = "Copy";
+"bilingualResult.save" = "Save";
+"bilingualResult.zoomIn" = "Zoom In";
+"bilingualResult.zoomOut" = "Zoom Out";
+"bilingualResult.resetZoom" = "Reset Zoom";
+"bilingualResult.copySuccess" = "Copied to clipboard";
+"bilingualResult.saveSuccess" = "Saved successfully";
+"bilingualResult.copyFailed" = "Failed to copy image";
+"bilingualResult.saveFailed" = "Failed to save image";
