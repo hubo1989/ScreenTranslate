@@ -342,7 +342,7 @@
         "快捷键禁用/启用状态正确响应"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-014",
         "US-015"
@@ -350,10 +350,11 @@
       "labels": [
         "integration",
         "hotkey"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T14:07:01.815Z"
+    "updatedAt": "2026-02-06T14:09:39.287Z"
   }
 }

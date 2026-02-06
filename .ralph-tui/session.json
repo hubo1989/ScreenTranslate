@@ -3,10 +3,10 @@
   "sessionId": "dfe8c9c7-6384-41c0-a6a1-de9cc4ef8d88",
   "status": "running",
   "startedAt": "2026-02-06T13:57:50.638Z",
-  "updatedAt": "2026-02-06T14:07:01.816Z",
-  "currentIteration": 2,
+  "updatedAt": "2026-02-06T14:09:39.288Z",
+  "currentIteration": 3,
   "maxIterations": 10,
-  "tasksCompleted": 2,
+  "tasksCompleted": 3,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -95,8 +95,8 @@
       {
         "id": "US-014",
         "title": "实现 TranslationFlowController 主流程",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-015",
@@ -132,6 +132,16 @@
       "durationMs": 146394,
       "startedAt": "2026-02-06T14:01:00.451Z",
       "endedAt": "2026-02-06T14:03:26.845Z"
+    },
+    {
+      "iteration": 3,
+      "status": "completed",
+      "taskId": "US-014",
+      "taskTitle": "实现 TranslationFlowController 主流程",
+      "taskCompleted": true,
+      "durationMs": 213899,
+      "startedAt": "2026-02-06T14:03:27.915Z",
+      "endedAt": "2026-02-06T14:07:01.814Z"
     }
   ],
   "skippedTaskIds": [],
