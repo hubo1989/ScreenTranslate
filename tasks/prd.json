@@ -296,7 +296,7 @@
         "支持取消正在进行的翻译"
       ],
       "priority": 1,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-002",
         "US-008",
@@ -306,7 +306,8 @@
       "labels": [
         "controller",
         "core"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-015",
@@ -353,6 +354,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T14:03:26.846Z"
+    "updatedAt": "2026-02-06T14:07:01.815Z"
   }
 }
