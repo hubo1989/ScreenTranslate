@@ -38,6 +38,15 @@ final class AppSettings {
         static let paddleOCRServerAddress = prefix + "paddleOCRServerAddress"
         static let mtranServerHost = prefix + "mtranServerHost"
         static let mtranServerPort = prefix + "mtranServerPort"
+        // VLM Configuration
+        static let vlmProvider = prefix + "vlmProvider"
+        static let vlmAPIKey = prefix + "vlmAPIKey"
+        static let vlmBaseURL = prefix + "vlmBaseURL"
+        static let vlmModelName = prefix + "vlmModelName"
+        // Translation Workflow Configuration
+        static let preferredTranslationEngine = prefix + "preferredTranslationEngine"
+        static let mtranServerURL = prefix + "mtranServerURL"
+        static let translationFallbackEnabled = prefix + "translationFallbackEnabled"
     }
 
     // MARK: - Properties
@@ -155,6 +164,38 @@ final class AppSettings {
         didSet { save(mtranServerPort, forKey: Keys.mtranServerPort) }
     }
 
+    // MARK: - VLM Configuration
+
+    var vlmProvider: VLMProviderType {
+        didSet { save(vlmProvider.rawValue, forKey: Keys.vlmProvider) }
+    }
+
+    var vlmAPIKey: String {
+        didSet { save(vlmAPIKey, forKey: Keys.vlmAPIKey) }
+    }
+
+    var vlmBaseURL: String {
+        didSet { save(vlmBaseURL, forKey: Keys.vlmBaseURL) }
+    }
+
+    var vlmModelName: String {
+        didSet { save(vlmModelName, forKey: Keys.vlmModelName) }
+    }
+
+    // MARK: - Translation Workflow Configuration
+
+    var preferredTranslationEngine: PreferredTranslationEngine {
+        didSet { save(preferredTranslationEngine.rawValue, forKey: Keys.preferredTranslationEngine) }
+    }
+
+    var mtranServerURL: String {
+        didSet { save(mtranServerURL, forKey: Keys.mtranServerURL) }
+    }
+
+    var translationFallbackEnabled: Bool {
+        didSet { save(translationFallbackEnabled, forKey: Keys.translationFallbackEnabled) }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -222,6 +263,17 @@ final class AppSettings {
         paddleOCRServerAddress = defaults.string(forKey: Keys.paddleOCRServerAddress) ?? ""
         mtranServerHost = defaults.string(forKey: Keys.mtranServerHost) ?? "localhost"
         mtranServerPort = defaults.object(forKey: Keys.mtranServerPort) as? Int ?? 8989
+
+        vlmProvider = defaults.string(forKey: Keys.vlmProvider)
+            .flatMap { VLMProviderType(rawValue: $0) } ?? .openai
+        vlmAPIKey = defaults.string(forKey: Keys.vlmAPIKey) ?? ""
+        vlmBaseURL = defaults.string(forKey: Keys.vlmBaseURL) ?? VLMProviderType.openai.defaultBaseURL
+        vlmModelName = defaults.string(forKey: Keys.vlmModelName) ?? VLMProviderType.openai.defaultModelName
+
+        preferredTranslationEngine = defaults.string(forKey: Keys.preferredTranslationEngine)
+            .flatMap { PreferredTranslationEngine(rawValue: $0) } ?? .apple
+        mtranServerURL = defaults.string(forKey: Keys.mtranServerURL) ?? "http://localhost:8989"
+        translationFallbackEnabled = defaults.object(forKey: Keys.translationFallbackEnabled) as? Bool ?? true
 
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }

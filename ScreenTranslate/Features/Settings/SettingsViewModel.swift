@@ -186,6 +186,53 @@ final class SettingsViewModel {
         TranslationLanguage.allCases.filter { $0 != .auto }
     }
 
+    // MARK: - VLM Configuration
+
+    var vlmProvider: VLMProviderType {
+        get { settings.vlmProvider }
+        set {
+            settings.vlmProvider = newValue
+            if vlmBaseURL.isEmpty || vlmBaseURL == settings.vlmProvider.defaultBaseURL {
+                vlmBaseURL = newValue.defaultBaseURL
+            }
+            if vlmModelName.isEmpty || vlmModelName == settings.vlmProvider.defaultModelName {
+                vlmModelName = newValue.defaultModelName
+            }
+        }
+    }
+
+    var vlmAPIKey: String {
+        get { settings.vlmAPIKey }
+        set { settings.vlmAPIKey = newValue }
+    }
+
+    var vlmBaseURL: String {
+        get { settings.vlmBaseURL }
+        set { settings.vlmBaseURL = newValue }
+    }
+
+    var vlmModelName: String {
+        get { settings.vlmModelName }
+        set { settings.vlmModelName = newValue }
+    }
+
+    // MARK: - Translation Workflow Configuration
+
+    var preferredTranslationEngine: PreferredTranslationEngine {
+        get { settings.preferredTranslationEngine }
+        set { settings.preferredTranslationEngine = newValue }
+    }
+
+    var mtranServerURL: String {
+        get { settings.mtranServerURL }
+        set { settings.mtranServerURL = newValue }
+    }
+
+    var translationFallbackEnabled: Bool {
+        get { settings.translationFallbackEnabled }
+        set { settings.translationFallbackEnabled = newValue }
+    }
+
     // MARK: - Validation Ranges
 
     /// Valid range for stroke width

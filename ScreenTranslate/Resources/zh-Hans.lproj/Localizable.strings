@@ -448,6 +448,39 @@
 
 
 /* ========================================
+   VLM 配置
+   ======================================== */
+
+"settings.vlm.title" = "VLM 配置";
+"settings.vlm.provider" = "提供商";
+"settings.vlm.apiKey" = "API 密钥";
+"settings.vlm.apiKey.optional" = "本地提供商无需 API 密钥";
+"settings.vlm.baseURL" = "Base URL";
+"settings.vlm.model" = "模型名称";
+
+"vlm.provider.openai" = "OpenAI";
+"vlm.provider.claude" = "Claude";
+"vlm.provider.ollama" = "Ollama";
+"vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
+"vlm.provider.claude.description" = "Anthropic Claude Vision API";
+"vlm.provider.ollama.description" = "本地 Ollama 服务器";
+
+
+/* ========================================
+   翻译工作流配置
+   ======================================== */
+
+"settings.translation.workflow.title" = "翻译工作流";
+"settings.translation.preferred" = "首选引擎";
+"settings.translation.mtran.url" = "MTransServer URL";
+"settings.translation.fallback" = "回退";
+"settings.translation.fallback.description" = "首选引擎失败时使用 Apple 翻译作为回退";
+
+"translation.preferred.apple.description" = "内置 macOS 翻译，支持离线使用";
+"translation.preferred.mtran.description" = "自托管翻译服务器，翻译质量更好";
+
+
+/* ========================================
    无障碍标签
    ======================================== */
 
