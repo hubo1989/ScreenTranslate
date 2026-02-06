@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T12:41:58.824Z",
-  "currentIteration": 3,
+  "updatedAt": "2026-02-06T12:46:02.828Z",
+  "currentIteration": 4,
   "maxIterations": 10,
-  "tasksCompleted": 3,
+  "tasksCompleted": 4,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -35,8 +35,8 @@
       {
         "id": "US-004",
         "title": "实现 VLM Provider 协议",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-005",
@@ -142,6 +142,16 @@
       "durationMs": 98423,
       "startedAt": "2026-02-06T12:36:53.445Z",
       "endedAt": "2026-02-06T12:38:31.868Z"
+    },
+    {
+      "iteration": 4,
+      "status": "completed",
+      "taskId": "US-004",
+      "taskTitle": "实现 VLM Provider 协议",
+      "taskCompleted": true,
+      "durationMs": 205881,
+      "startedAt": "2026-02-06T12:38:32.941Z",
+      "endedAt": "2026-02-06T12:41:58.822Z"
     }
   ],
   "skippedTaskIds": [],

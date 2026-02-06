@@ -95,14 +95,15 @@
         "处理 API 错误（rate limit, invalid key, timeout）"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-004"
       ],
       "labels": [
         "vlm",
         "openai"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-006",
@@ -343,6 +344,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T12:41:58.822Z"
+    "updatedAt": "2026-02-06T12:46:02.827Z"
   }
 }
