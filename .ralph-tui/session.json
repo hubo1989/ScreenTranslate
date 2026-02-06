@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T12:59:22.918Z",
-  "currentIteration": 8,
+  "updatedAt": "2026-02-06T12:59:24.002Z",
+  "currentIteration": 9,
   "maxIterations": 10,
-  "tasksCompleted": 8,
+  "tasksCompleted": 9,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -77,8 +77,8 @@
       {
         "id": "US-011",
         "title": "定义 BilingualSegment 和 OverlayStyle 模型",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-012",
@@ -192,10 +192,22 @@
       "durationMs": 282271,
       "startedAt": "2026-02-06T12:52:24.289Z",
       "endedAt": "2026-02-06T12:57:06.560Z"
+    },
+    {
+      "iteration": 9,
+      "status": "completed",
+      "taskId": "US-011",
+      "taskTitle": "定义 BilingualSegment 和 OverlayStyle 模型",
+      "taskCompleted": true,
+      "durationMs": 135291,
+      "startedAt": "2026-02-06T12:57:07.626Z",
+      "endedAt": "2026-02-06T12:59:22.917Z"
     }
   ],
   "skippedTaskIds": [],
   "cwd": "/Users/hubo/.superset/worktrees/screentranslate/featscreencoderkiss-translator",
-  "activeTaskIds": [],
+  "activeTaskIds": [
+    "US-012"
+  ],
   "subagentPanelVisible": false
 }
