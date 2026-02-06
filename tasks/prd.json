@@ -272,14 +272,15 @@
         "ESC 或关闭按钮关闭窗口"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "dependsOn": [
         "US-012"
       ],
       "labels": [
         "window",
         "ui"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-014",
@@ -349,6 +350,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T13:02:07.406Z"
+    "updatedAt": "2026-02-06T13:32:09.285Z"
   }
 }

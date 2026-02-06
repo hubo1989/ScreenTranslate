@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T13:02:07.407Z",
-  "currentIteration": 9,
+  "updatedAt": "2026-02-06T13:32:09.286Z",
+  "currentIteration": 10,
   "maxIterations": 10,
-  "tasksCompleted": 9,
+  "tasksCompleted": 10,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -83,8 +83,8 @@
       {
         "id": "US-012",
         "title": "实现 OverlayRenderer 双语渲染",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-013",
@@ -202,6 +202,16 @@
       "durationMs": 135291,
       "startedAt": "2026-02-06T12:57:07.626Z",
       "endedAt": "2026-02-06T12:59:22.917Z"
+    },
+    {
+      "iteration": 10,
+      "status": "completed",
+      "taskId": "US-012",
+      "taskTitle": "实现 OverlayRenderer 双语渲染",
+      "taskCompleted": true,
+      "durationMs": 163421,
+      "startedAt": "2026-02-06T12:59:23.985Z",
+      "endedAt": "2026-02-06T13:02:07.406Z"
     }
   ],
   "skippedTaskIds": [],
