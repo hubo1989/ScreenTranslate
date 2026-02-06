@@ -3,10 +3,10 @@
   "sessionId": "b8011752-1334-42a7-a6b0-de9bc46cef49",
   "status": "running",
   "startedAt": "2026-02-06T12:30:12.739Z",
-  "updatedAt": "2026-02-06T13:32:09.286Z",
-  "currentIteration": 10,
+  "updatedAt": "2026-02-06T13:52:19.002Z",
+  "currentIteration": 11,
   "maxIterations": 10,
-  "tasksCompleted": 10,
+  "tasksCompleted": 11,
   "isPaused": false,
   "agentPlugin": "opencode",
   "trackerState": {
@@ -89,8 +89,8 @@
       {
         "id": "US-013",
         "title": "创建双语对照展示窗口",
-        "status": "open",
-        "completedInSession": false
+        "status": "completed",
+        "completedInSession": true
       },
       {
         "id": "US-014",
@@ -212,6 +212,16 @@
       "durationMs": 163421,
       "startedAt": "2026-02-06T12:59:23.985Z",
       "endedAt": "2026-02-06T13:02:07.406Z"
+    },
+    {
+      "iteration": 11,
+      "status": "completed",
+      "taskId": "US-013",
+      "taskTitle": "创建双语对照展示窗口",
+      "taskCompleted": true,
+      "durationMs": 270261,
+      "startedAt": "2026-02-06T13:27:39.023Z",
+      "endedAt": "2026-02-06T13:32:09.284Z"
     }
   ],
   "skippedTaskIds": [],

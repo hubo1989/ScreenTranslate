@@ -320,12 +320,13 @@
         "配置持久化到 SettingsManager"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "dependsOn": [],
       "labels": [
         "settings",
         "ui"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-016",
@@ -350,6 +351,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-06T13:32:09.285Z"
+    "updatedAt": "2026-02-06T13:52:19.001Z"
   }
 }
