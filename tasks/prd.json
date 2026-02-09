@@ -84,11 +84,12 @@
         "ESC 键在窗口高亮状态下正确取消并关闭覆盖层"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "",
       "dependsOn": [
         "US-003"
-      ]
+      ],
+      "completionNotes": "Completed by agent"
     },
     {
       "id": "US-005",
@@ -111,6 +112,6 @@
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-09T07:13:53.663Z"
+    "updatedAt": "2026-02-09T07:16:55.287Z"
   }
 }
