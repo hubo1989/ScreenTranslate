@@ -156,13 +156,32 @@ final class SelectionOverlayView: NSView {
     var selectionCurrent: NSPoint?
 
     /// Currently highlighted window rect (in view coordinates, nil if no window under cursor)
-    private var highlightedWindowRect: CGRect?
+    private var highlightedWindowRect: CGRect? {
+        didSet {
+            // Only trigger display update when rect actually changes
+            if oldValue != highlightedWindowRect {
+                needsDisplay = true
+            }
+        }
+    }
 
     /// Window detector for detecting windows under cursor
     private let windowDetector = WindowDetector.shared
 
+    /// Cached window list for current interaction (refreshed on mouseDown)
+    private var cachedWindows: [WindowInfo] = []
+
     /// Whether the user is currently dragging
     private var isDragging = false
+
+    /// Last mouse moved timestamp for throttling
+    private var lastMouseMovedTime: TimeInterval = 0
+
+    /// Throttle interval for window detection (16ms ≈ 60fps)
+    private let windowDetectionThrottleInterval: TimeInterval = 0.016
+
+    /// Minimum window size to highlight (10x10 pixels)
+    private let minimumWindowSize: CGFloat = 10
 
     /// Dim overlay color
     private let dimColor = NSColor.black.withAlphaComponent(0.3)
@@ -428,9 +447,13 @@ final class SelectionOverlayView: NSView {
         let point = convert(event.locationInWindow, from: nil)
         mouseDownPoint = point
 
-        // Invalidate window cache when starting interaction to get fresh window list
+        // Refresh window cache when starting interaction to get fresh window list
         Task {
             await windowDetector.invalidateCache()
+            let windows = await windowDetector.visibleWindows()
+            await MainActor.run {
+                self.cachedWindows = windows
+            }
         }
 
         // Don't start selection yet - wait to determine if it's a click or drag
@@ -593,6 +616,8 @@ final class SelectionOverlayView: NSView {
         selectionCurrent = nil
         isDragging = false
         highlightedWindowRect = nil
+        cachedWindows = []
+        lastMouseMovedTime = 0
         needsDisplay = true
     }
 
@@ -608,14 +633,21 @@ final class SelectionOverlayView: NSView {
 
         // Only detect windows when not dragging
         if !isDragging {
-            updateHighlightedWindow(at: point)
+            // Throttle window detection to ~60fps (16ms)
+            let currentTime = Date.timeIntervalSinceReferenceDate
+            if currentTime - lastMouseMovedTime >= windowDetectionThrottleInterval {
+                lastMouseMovedTime = currentTime
+                updateHighlightedWindow(at: point)
+            }
         }
 
+        // Always update crosshair position (not throttled)
         needsDisplay = true
     }
 
     /// Updates the highlighted window based on the current mouse position.
     /// Detects the window under the cursor and converts its frame to view coordinates.
+    /// Uses cached window list for performance and handles multi-display scenarios.
     /// - Parameter point: The current mouse position in view coordinates
     private func updateHighlightedWindow(at point: NSPoint) {
         guard let window = self.window else {
@@ -631,24 +663,33 @@ final class SelectionOverlayView: NSView {
         // Convert from Cocoa coordinates (origin at bottom-left) to Quartz coordinates (origin at top-left)
         let quartzPoint = WindowDetector.cocoaToQuartz(screenPoint, on: window.screen)
 
-        // Get window at the point (WindowDetector is an actor, so we use Task)
-        Task {
-            if let windowInfo = await windowDetector.windowUnderPoint(quartzPoint) {
-                // Convert window frame from Quartz to Cocoa coordinates
-                let cocoaFrame = WindowDetector.quartzToCocoa(windowInfo.frame, on: window.screen)
-
-                // Convert from screen coordinates to view coordinates
-                await MainActor.run {
-                    let viewFrame = self.convertFromScreen(cocoaFrame)
-                    self.highlightedWindowRect = viewFrame
-                    self.needsDisplay = true
-                }
-            } else {
-                await MainActor.run {
-                    self.highlightedWindowRect = nil
-                    self.needsDisplay = true
-                }
+        // Search in cached windows (sorted by Z-order, front to back)
+        // Use the first window that contains the point
+        if let windowInfo = cachedWindows.first(where: { $0.frame.contains(quartzPoint) }) {
+            // Skip windows smaller than minimum size
+            guard windowInfo.frame.width >= minimumWindowSize &&
+                  windowInfo.frame.height >= minimumWindowSize else {
+                highlightedWindowRect = nil
+                return
             }
+
+            // Convert window frame from Quartz to Cocoa coordinates
+            let cocoaFrame = WindowDetector.quartzToCocoa(windowInfo.frame, on: window.screen)
+
+            // Convert from screen coordinates to view coordinates
+            var viewFrame = self.convertFromScreen(cocoaFrame)
+
+            // Clip the highlight rect to the visible screen bounds
+            viewFrame = viewFrame.intersection(self.bounds)
+
+            // Only set if the clipped rect is still valid
+            if !viewFrame.isEmpty {
+                highlightedWindowRect = viewFrame
+            } else {
+                highlightedWindowRect = nil
+            }
+        } else {
+            highlightedWindowRect = nil
         }
     }
 
@@ -693,13 +734,10 @@ final class SelectionOverlayView: NSView {
     override var acceptsFirstResponder: Bool { true }
 
     override func keyDown(with event: NSEvent) {
-        // Escape key cancels selection
+        // Escape key cancels selection and closes overlay
         if event.keyCode == 53 { // Escape
-            isDragging = false
-            selectionStart = nil
-            selectionCurrent = nil
-            highlightedWindowRect = nil
-            delegate?.selectionOverlayDidCancel()
+            // Reset all state including window highlight
+            resetStateAndCancel()
             return
         }
 
