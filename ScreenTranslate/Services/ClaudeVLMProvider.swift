@@ -69,6 +69,9 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
         }
     }
 
+    /// Maximum number of continuation attempts when response is truncated
+    private let maxContinuationAttempts = 3
+
     func analyze(image: CGImage) async throws -> ScreenAnalysisResult {
         guard let imageData = image.jpegData(quality: 0.85), !imageData.isEmpty else {
             throw VLMProviderError.imageEncodingFailed
@@ -76,17 +79,108 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
         let base64Image = imageData.base64EncodedString()
         let imageSize = CGSize(width: image.width, height: image.height)
-        let request = try buildRequest(base64Image: base64Image)
-        let responseData = try await executeRequest(request)
-        let vlmResponse = try parseClaudeResponse(responseData)
+
+        // Use multi-turn conversation with continuation support
+        let vlmResponse = try await analyzeWithContinuation(
+            base64Image: base64Image,
+            imageSize: imageSize,
+            maxAttempts: maxContinuationAttempts
+        )
 
         return vlmResponse.toScreenAnalysisResult(imageSize: imageSize)
     }
 
-    // MARK: - Private Methods
+    /// Performs analysis with automatic continuation on truncation
+    private func analyzeWithContinuation(
+        base64Image: String,
+        imageSize: CGSize,
+        maxAttempts: Int
+    ) async throws -> VLMAnalysisResponse {
+        var accumulatedContent = ""
+        var conversationHistory: [ClaudeMessage] = [
+            ClaudeMessage(
+                role: "user",
+                content: [
+                    .image(ClaudeImageContent(
+                        source: ClaudeImageSource(
+                            type: "base64",
+                            mediaType: "image/jpeg",
+                            data: base64Image
+                        )
+                    )),
+                    .text(VLMPromptTemplate.userPrompt),
+                ]
+            ),
+        ]
 
-    /// Builds the URLRequest for Anthropic Messages API
-    private func buildRequest(base64Image: String) throws -> URLRequest {
+        for attempt in 0..<maxAttempts {
+            let request = try buildRequest(
+                messages: conversationHistory,
+                isContinuation: attempt > 0
+            )
+            let responseData = try await executeRequest(request)
+
+            let (content, isTruncated, stopReason) = try extractContentAndStatus(from: responseData)
+
+            accumulatedContent += content
+
+            print("[ClaudeVLMProvider] Attempt \(attempt + 1)/\(maxAttempts): received \(content.count) chars, stop_reason=\(stopReason ?? "unknown")")
+
+            if !isTruncated {
+                // Complete response received
+                return try parseVLMContent(accumulatedContent)
+            }
+
+            // Response truncated, need to continue
+            print("[ClaudeVLMProvider] Response truncated, requesting continuation...")
+
+            // Add assistant's partial response to conversation
+            conversationHistory.append(ClaudeMessage(
+                role: "assistant",
+                content: [.text(content)]
+            ))
+
+            // Request continuation
+            conversationHistory.append(ClaudeMessage(
+                role: "user",
+                content: [.text("Continue from where you left off. Output ONLY the remaining JSON content.")]
+            ))
+        }
+
+        print("[ClaudeVLMProvider] Max continuation attempts reached, attempting to parse accumulated content")
+
+        // Try to parse accumulated content even if incomplete
+        do {
+            return try parseVLMContent(accumulatedContent)
+        } catch {
+            // Last resort: try partial parsing
+            return try parsePartialVLMContent(accumulatedContent)
+        }
+    }
+
+    /// Extracts content text and truncation status from Claude response
+    private func extractContentAndStatus(from data: Data) throws -> (content: String, isTruncated: Bool, stopReason: String?) {
+        if let errorResponse = try? JSONDecoder().decode(ClaudeErrorResponse.self, from: data),
+           errorResponse.type == "error" {
+            throw VLMProviderError.invalidResponse(errorResponse.error.message)
+        }
+
+        let decoder = JSONDecoder()
+        let claudeResponse = try decoder.decode(ClaudeMessagesResponse.self, from: data)
+
+        guard let contentBlocks = claudeResponse.content,
+              let textBlock = contentBlocks.first(where: { $0.type == "text" }),
+              let content = textBlock.text
+        else {
+            throw VLMProviderError.invalidResponse("No text content in response")
+        }
+
+        let isTruncated = claudeResponse.stopReason == "max_tokens"
+        return (content, isTruncated, claudeResponse.stopReason)
+    }
+
+    /// Builds request with custom messages and continuation settings
+    private func buildRequest(messages: [ClaudeMessage], isContinuation: Bool) throws -> URLRequest {
         let endpoint = configuration.baseURL.appendingPathComponent("v1/messages")
 
         var request = URLRequest(url: endpoint)
@@ -96,25 +190,14 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
         request.setValue(Self.apiVersion, forHTTPHeaderField: "anthropic-version")
         request.timeoutInterval = timeout
 
+        // Use higher max_tokens for continuation requests to minimize truncation
+        let maxTokens = isContinuation ? 16384 : 8192
+
         let requestBody = ClaudeMessagesRequest(
             model: configuration.modelName,
-            maxTokens: 16384,
+            maxTokens: maxTokens,
             system: VLMPromptTemplate.systemPrompt,
-            messages: [
-                ClaudeMessage(
-                    role: "user",
-                    content: [
-                        .image(ClaudeImageContent(
-                            source: ClaudeImageSource(
-                                type: "base64",
-                                mediaType: "image/jpeg",
-                                data: base64Image
-                            )
-                        )),
-                        .text(VLMPromptTemplate.userPrompt),
-                    ]
-                ),
-            ]
+            messages: messages
         )
 
         let encoder = JSONEncoder()
@@ -123,6 +206,8 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
         return request
     }
+
+    // MARK: - Private Methods
 
     /// Executes the HTTP request with timeout handling
     private func executeRequest(_ request: URLRequest) async throws -> Data {
@@ -205,47 +290,6 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
             return nil
         }
         return errorResponse.error.message
-    }
-
-    /// Parses Claude response and extracts VLM analysis
-    private func parseClaudeResponse(_ data: Data) throws -> VLMAnalysisResponse {
-        if let errorResponse = try? JSONDecoder().decode(ClaudeErrorResponse.self, from: data),
-           errorResponse.type == "error" {
-            throw VLMProviderError.invalidResponse(errorResponse.error.message)
-        }
-
-        let decoder = JSONDecoder()
-
-        let claudeResponse: ClaudeMessagesResponse
-        do {
-            claudeResponse = try decoder.decode(ClaudeMessagesResponse.self, from: data)
-        } catch {
-            throw VLMProviderError.parsingFailed("Failed to decode Claude response: \(error.localizedDescription)")
-        }
-
-        // Check if response was truncated due to max_tokens
-        let isTruncated = claudeResponse.stopReason == "max_tokens"
-        if isTruncated {
-            print("[ClaudeVLMProvider] Warning: Response truncated due to max_tokens limit, attempting partial parse")
-        }
-
-        guard let contentBlocks = claudeResponse.content,
-              let textBlock = contentBlocks.first(where: { $0.type == "text" }),
-              let content = textBlock.text
-        else {
-            throw VLMProviderError.invalidResponse("No text content in response")
-        }
-
-        do {
-            return try parseVLMContent(content)
-        } catch {
-            // If truncated and parsing failed, try to extract partial JSON
-            if isTruncated {
-                print("[ClaudeVLMProvider] Full parse failed on truncated response, attempting partial recovery")
-                return try parsePartialVLMContent(content)
-            }
-            throw error
-        }
     }
 
     /// Parses the VLM JSON content from assistant message
