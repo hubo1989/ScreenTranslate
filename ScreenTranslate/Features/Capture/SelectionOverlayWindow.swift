@@ -647,7 +647,6 @@ final class SelectionOverlayView: NSView {
 
     /// Updates the highlighted window based on the current mouse position.
     /// Detects the window under the cursor and converts its frame to view coordinates.
-    /// Uses cached window list for performance and handles multi-display scenarios.
     /// - Parameter point: The current mouse position in view coordinates
     private func updateHighlightedWindow(at point: NSPoint) {
         guard let window = self.window else {
@@ -664,33 +663,41 @@ final class SelectionOverlayView: NSView {
         let screenHeight = window.screen?.frame.height ?? NSScreen.main?.frame.height ?? 0
         let quartzPoint = WindowDetector.cocoaToQuartz(screenPoint, screenHeight: screenHeight)
 
-        // Search in cached windows (sorted by Z-order, front to back)
-        // Use the first window that contains the point
-        if let windowInfo = cachedWindows.first(where: { $0.frame.contains(quartzPoint) }) {
-            // Skip windows smaller than minimum size
-            guard windowInfo.frame.width >= minimumWindowSize &&
-                  windowInfo.frame.height >= minimumWindowSize else {
-                highlightedWindowRect = nil
-                return
-            }
+        // Find window under point using WindowDetector (synchronous call)
+        // WindowDetector has its own internal cache for performance
+        Task {
+            if let windowInfo = await windowDetector.windowUnderPoint(quartzPoint) {
+                // Skip windows smaller than minimum size
+                guard windowInfo.frame.width >= minimumWindowSize &&
+                      windowInfo.frame.height >= minimumWindowSize else {
+                    await MainActor.run {
+                        highlightedWindowRect = nil
+                    }
+                    return
+                }
 
-            // Convert window frame from Quartz to Cocoa coordinates
-            let cocoaFrame = WindowDetector.quartzToCocoa(windowInfo.frame, screenHeight: screenHeight)
+                // Convert window frame from Quartz to Cocoa coordinates
+                let cocoaFrame = WindowDetector.quartzToCocoa(windowInfo.frame, screenHeight: screenHeight)
 
-            // Convert from screen coordinates to view coordinates
-            var viewFrame = self.convertFromScreen(cocoaFrame)
+                // Convert from screen coordinates to view coordinates
+                var viewFrame = self.convertFromScreen(cocoaFrame)
 
-            // Clip the highlight rect to the visible screen bounds
-            viewFrame = viewFrame.intersection(self.bounds)
+                // Clip the highlight rect to the visible screen bounds
+                viewFrame = viewFrame.intersection(self.bounds)
 
-            // Only set if the clipped rect is still valid
-            if !viewFrame.isEmpty {
-                highlightedWindowRect = viewFrame
+                // Only set if the clipped rect is still valid
+                await MainActor.run {
+                    if !viewFrame.isEmpty {
+                        highlightedWindowRect = viewFrame
+                    } else {
+                        highlightedWindowRect = nil
+                    }
+                }
             } else {
-                highlightedWindowRect = nil
+                await MainActor.run {
+                    highlightedWindowRect = nil
+                }
             }
-        } else {
-            highlightedWindowRect = nil
         }
     }
 

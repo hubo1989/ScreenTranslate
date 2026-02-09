@@ -104,7 +104,7 @@ actor WindowDetector {
     /// Returns all visible windows sorted by Z-order (front to back).
     /// Filters out system windows (Dock, Menu Bar) and own app's overlay windows.
     /// - Returns: Array of WindowInfo for all visible windows
-    func visibleWindows() -> [WindowInfo] {
+    func visibleWindows() async -> [WindowInfo] {
         // Check cache validity
         if let lastTime = lastEnumerationTime,
            Date().timeIntervalSince(lastTime) < cacheValidityDuration,
@@ -134,8 +134,8 @@ actor WindowDetector {
     /// Searches through visible windows in Z-order and returns the first match.
     /// - Parameter point: Point in global screen coordinates (Quartz coordinate system)
     /// - Returns: WindowInfo for the window at the point, or nil if none found
-    func windowUnderPoint(_ point: CGPoint) -> WindowInfo? {
-        let windows = visibleWindows()
+    func windowUnderPoint(_ point: CGPoint) async -> WindowInfo? {
+        let windows = await visibleWindows()
 
         // Search in Z-order (already sorted front to back)
         return windows.first { window in
@@ -150,8 +150,8 @@ actor WindowDetector {
     /// Useful for finding windows within a selection area.
     /// - Parameter rect: Rectangle in global screen coordinates
     /// - Returns: Array of WindowInfo intersecting the rect, sorted by Z-order
-    func windowsIntersecting(_ rect: CGRect) -> [WindowInfo] {
-        let windows = visibleWindows()
+    func windowsIntersecting(_ rect: CGRect) async -> [WindowInfo] {
+        let windows = await visibleWindows()
 
         return windows.filter { window in
             window.frame.intersects(rect)
@@ -161,8 +161,8 @@ actor WindowDetector {
     /// Returns the window with the specified window ID.
     /// - Parameter windowID: The CGWindowID to find
     /// - Returns: WindowInfo for the specified window, or nil if not found
-    func window(withID windowID: CGWindowID) -> WindowInfo? {
-        let windows = visibleWindows()
+    func window(withID windowID: CGWindowID) async -> WindowInfo? {
+        let windows = await visibleWindows()
         return windows.first { $0.windowID == windowID }
     }
 
