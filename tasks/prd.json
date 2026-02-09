@@ -109,10 +109,10 @@
       "dependsOn": [
         "US-004"
       ],
-      "completionNotes": "代码审查验证通过：1) AppDelegate.captureSelection() 和 startTranslationMode() 都使用 SelectionOverlayController，功能一致；2) 坐标转换逻辑在 mouseUp 中正确处理 Quartz/Cocoa 坐标系；3) 多显示器支持通过每个显示器独立 OverlayWindow 实现；4) 性能优化包括 16ms 节流、缓存机制、增量渲染；5) 内存管理通过 resetState() 和 dismissOverlay() 正确释放"
+      "completionNotes": "Completed by agent"
     }
   ],
   "metadata": {
-    "updatedAt": "2026-02-09T07:16:56.371Z"
+    "updatedAt": "2026-02-09T07:19:42.285Z"
   }
 }
