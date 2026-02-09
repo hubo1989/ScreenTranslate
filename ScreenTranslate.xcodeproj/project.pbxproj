@@ -274,6 +274,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				EXCLUDED_SOURCE_FILE_NAMES = "**/CLAUDE.md";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "ScreenTranslate/Supporting Files/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -306,6 +307,7 @@
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
+				EXCLUDED_SOURCE_FILE_NAMES = "**/CLAUDE.md";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "ScreenTranslate/Supporting Files/Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
