@@ -59,11 +59,11 @@ enum TranslationFlowError: LocalizedError, Sendable, Equatable {
     var errorDescription: String? {
         switch self {
         case .analysisFailure(let message):
-            return String(localized: "translationFlow.error.analysis \(message)")
+            return String(format: NSLocalizedString("translationFlow.error.analysis", comment: ""), message)
         case .translationFailure(let message):
-            return String(localized: "translationFlow.error.translation \(message)")
+            return String(format: NSLocalizedString("translationFlow.error.translation", comment: ""), message)
         case .renderingFailure(let message):
-            return String(localized: "translationFlow.error.rendering \(message)")
+            return String(format: NSLocalizedString("translationFlow.error.rendering", comment: ""), message)
         case .cancelled:
             return String(localized: "translationFlow.error.cancelled")
         case .noTextFound:

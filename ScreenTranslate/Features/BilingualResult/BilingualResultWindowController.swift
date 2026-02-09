@@ -22,6 +22,7 @@ final class BilingualResultWindowController: NSObject {
 
         let newViewModel = BilingualResultViewModel(image: originalImage)
         newViewModel.isLoading = true
+        newViewModel.loadingMessage = message ?? String(localized: "bilingualResult.loading")
         self.viewModel = newViewModel
 
         let contentView = BilingualResultView(viewModel: newViewModel)

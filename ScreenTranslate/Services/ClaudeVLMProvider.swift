@@ -220,8 +220,6 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
         do {
             claudeResponse = try decoder.decode(ClaudeMessagesResponse.self, from: data)
         } catch {
-            let rawResponse = String(data: data, encoding: .utf8) ?? "<non-UTF8 data>"
-            print("[ClaudeVLMProvider] Failed to decode. Raw:\n\(rawResponse.prefix(500))")
             throw VLMProviderError.parsingFailed("Failed to decode Claude response: \(error.localizedDescription)")
         }
 

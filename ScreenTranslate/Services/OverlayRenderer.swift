@@ -139,7 +139,14 @@ struct OverlayRenderer: Sendable {
     }
 
     private func calculateTextHeight(_ text: String, font: CTFont, maxWidth: CGFloat) -> CGFloat {
-        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .left
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .paragraphStyle: paragraphStyle
+        ]
         let attrString = NSAttributedString(string: text, attributes: attributes)
         let framesetter = CTFramesetterCreateWithAttributedString(attrString)
         let size = CTFramesetterSuggestFrameSizeWithConstraints(
@@ -155,7 +162,7 @@ struct OverlayRenderer: Sendable {
     private func renderTranslation(_ text: String, in context: CGContext, at rect: CGRect, font: CTFont, color: CGColor) {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .left
-        paragraphStyle.lineBreakMode = .byTruncatingTail
+        paragraphStyle.lineBreakMode = .byWordWrapping
         
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
@@ -211,9 +218,10 @@ struct OverlayRenderer: Sendable {
                   cgY >= 0, cgY < Int(imageHeight) else { continue }
             
             let offset = cgY * bytesPerRow + sampleX * bytesPerPixel
-            let r = CGFloat(ptr[offset]) / 255.0
+            // ScreenCaptureKit uses BGRA format
+            let b = CGFloat(ptr[offset]) / 255.0
             let g = CGFloat(ptr[offset + 1]) / 255.0
-            let b = CGFloat(ptr[offset + 2]) / 255.0
+            let r = CGFloat(ptr[offset + 2]) / 255.0
             
             let distance = sqrt(pow(r - bgR, 2) + pow(g - bgG, 2) + pow(b - bgB, 2))
             
@@ -231,9 +239,10 @@ struct OverlayRenderer: Sendable {
               let data = dataProvider.data,
               let ptr = CFDataGetBytePtr(data) else { return nil }
         
-        let r = CGFloat(ptr[0]) / 255.0
+        // ScreenCaptureKit uses BGRA format
+        let b = CGFloat(ptr[0]) / 255.0
         let g = CGFloat(ptr[1]) / 255.0
-        let b = CGFloat(ptr[2]) / 255.0
+        let r = CGFloat(ptr[2]) / 255.0
         
         return CGColor(red: r, green: g, blue: b, alpha: 1.0)
     }

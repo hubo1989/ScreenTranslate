@@ -38,6 +38,7 @@ final class BilingualResultViewModel {
         self.image = image
         self.isLoading = false
         self.loadingMessage = ""
+        self.errorMessage = nil
         self.scale = 1.0
     }
 
@@ -48,6 +49,7 @@ final class BilingualResultViewModel {
 
     func updateImage(_ newImage: CGImage) {
         self.image = newImage
+        self.errorMessage = nil
         self.scale = 1.0
     }
 
