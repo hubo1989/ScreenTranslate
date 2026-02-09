@@ -98,7 +98,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
         let requestBody = ClaudeMessagesRequest(
             model: configuration.modelName,
-            maxTokens: 8192,
+            maxTokens: 16384,
             system: VLMPromptTemplate.systemPrompt,
             messages: [
                 ClaudeMessage(
@@ -224,11 +224,11 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
         }
 
         // Check if response was truncated due to max_tokens
-        if claudeResponse.stopReason == "max_tokens" {
-            print("[ClaudeVLMProvider] Response truncated due to max_tokens limit")
-            throw VLMProviderError.invalidResponse("Response truncated - image may have too much text")
+        let isTruncated = claudeResponse.stopReason == "max_tokens"
+        if isTruncated {
+            print("[ClaudeVLMProvider] Warning: Response truncated due to max_tokens limit, attempting partial parse")
         }
-        
+
         guard let contentBlocks = claudeResponse.content,
               let textBlock = contentBlocks.first(where: { $0.type == "text" }),
               let content = textBlock.text
@@ -236,7 +236,16 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
             throw VLMProviderError.invalidResponse("No text content in response")
         }
 
-        return try parseVLMContent(content)
+        do {
+            return try parseVLMContent(content)
+        } catch {
+            // If truncated and parsing failed, try to extract partial JSON
+            if isTruncated {
+                print("[ClaudeVLMProvider] Full parse failed on truncated response, attempting partial recovery")
+                return try parsePartialVLMContent(content)
+            }
+            throw error
+        }
     }
 
     /// Parses the VLM JSON content from assistant message
@@ -255,6 +264,43 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
                 "Failed to parse VLM response JSON: \(error.localizedDescription). Content: \(cleanedContent.prefix(200))..."
             )
         }
+    }
+
+    /// Attempts to parse partial/truncated VLM content by extracting valid JSON segments
+    private func parsePartialVLMContent(_ content: String) throws -> VLMAnalysisResponse {
+        let cleanedContent = extractJSON(from: content)
+
+        // Try to find the last complete textBlock object
+        // Look for the last complete "}]}" pattern which ends a text block
+        if let lastCompleteBlockEnd = cleanedContent.range(of: "}", options: .backwards) {
+            let truncatedContent = String(cleanedContent[..<lastCompleteBlockEnd.upperBound])
+
+            // Try to complete the JSON structure
+            var completedJSON = truncatedContent
+            if !truncatedContent.hasSuffix("]") {
+                completedJSON += "]"
+            }
+            if !completedJSON.hasSuffix("}") {
+                completedJSON += "}"
+            }
+
+            guard let jsonData = completedJSON.data(using: .utf8) else {
+                throw VLMProviderError.parsingFailed("Failed to convert partial content to data")
+            }
+
+            do {
+                let response = try JSONDecoder().decode(VLMAnalysisResponse.self, from: jsonData)
+                print("[ClaudeVLMProvider] Successfully parsed partial response with \(response.segments.count) segments")
+                return response
+            } catch {
+                // If that didn't work, return empty result with warning
+                print("[ClaudeVLMProvider] Partial parse failed, returning empty result")
+                return VLMAnalysisResponse(segments: [])
+            }
+        }
+
+        // Last resort: return empty result
+        return VLMAnalysisResponse(segments: [])
     }
 
     /// Extracts JSON from potentially markdown-wrapped content
