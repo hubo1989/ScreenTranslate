@@ -661,7 +661,8 @@ final class SelectionOverlayView: NSView {
         ).origin
 
         // Convert from Cocoa coordinates (origin at bottom-left) to Quartz coordinates (origin at top-left)
-        let quartzPoint = WindowDetector.cocoaToQuartz(screenPoint, on: window.screen)
+        let screenHeight = window.screen?.frame.height ?? NSScreen.main?.frame.height ?? 0
+        let quartzPoint = WindowDetector.cocoaToQuartz(screenPoint, screenHeight: screenHeight)
 
         // Search in cached windows (sorted by Z-order, front to back)
         // Use the first window that contains the point
@@ -674,7 +675,7 @@ final class SelectionOverlayView: NSView {
             }
 
             // Convert window frame from Quartz to Cocoa coordinates
-            let cocoaFrame = WindowDetector.quartzToCocoa(windowInfo.frame, on: window.screen)
+            let cocoaFrame = WindowDetector.quartzToCocoa(windowInfo.frame, screenHeight: screenHeight)
 
             // Convert from screen coordinates to view coordinates
             var viewFrame = self.convertFromScreen(cocoaFrame)

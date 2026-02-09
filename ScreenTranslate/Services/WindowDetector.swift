@@ -292,49 +292,28 @@ extension WindowDetector {
     /// to Quartz coordinate system (origin at top-left).
     /// - Parameters:
     ///   - point: Point in Cocoa coordinates
-    ///   - screen: The screen for reference (uses main screen if nil)
+    ///   - screenHeight: The screen height for conversion
     /// - Returns: Point in Quartz coordinates
-    @MainActor
-    static func cocoaToQuartz(_ point: CGPoint, on screen: NSScreen? = nil) -> CGPoint {
-        let targetScreen = screen ?? NSScreen.main
-        guard let targetScreen = targetScreen else {
-            return point
-        }
-
-        let screenHeight = targetScreen.frame.height
-        return CGPoint(x: point.x, y: screenHeight - point.y)
+    static func cocoaToQuartz(_ point: CGPoint, screenHeight: CGFloat) -> CGPoint {
+        CGPoint(x: point.x, y: screenHeight - point.y)
     }
 
     /// Converts a point from Quartz coordinate system (origin at top-left)
     /// to Cocoa coordinate system (origin at bottom-left).
     /// - Parameters:
     ///   - point: Point in Quartz coordinates
-    ///   - screen: The screen for reference (uses main screen if nil)
+    ///   - screenHeight: The screen height for conversion
     /// - Returns: Point in Cocoa coordinates
-    @MainActor
-    static func quartzToCocoa(_ point: CGPoint, on screen: NSScreen? = nil) -> CGPoint {
-        let targetScreen = screen ?? NSScreen.main
-        guard let targetScreen = targetScreen else {
-            return point
-        }
-
-        let screenHeight = targetScreen.frame.height
-        return CGPoint(x: point.x, y: screenHeight - point.y)
+    static func quartzToCocoa(_ point: CGPoint, screenHeight: CGFloat) -> CGPoint {
+        CGPoint(x: point.x, y: screenHeight - point.y)
     }
 
     /// Converts a rect from Cocoa coordinate system to Quartz coordinate system.
     /// - Parameters:
     ///   - rect: Rectangle in Cocoa coordinates
-    ///   - screen: The screen for reference (uses main screen if nil)
+    ///   - screenHeight: The screen height for conversion
     /// - Returns: Rectangle in Quartz coordinates
-    @MainActor
-    static func cocoaToQuartz(_ rect: CGRect, on screen: NSScreen? = nil) -> CGRect {
-        let targetScreen = screen ?? NSScreen.main
-        guard let targetScreen = targetScreen else {
-            return rect
-        }
-
-        let screenHeight = targetScreen.frame.height
+    static func cocoaToQuartz(_ rect: CGRect, screenHeight: CGFloat) -> CGRect {
         let y = screenHeight - rect.maxY
         return CGRect(x: rect.minX, y: y, width: rect.width, height: rect.height)
     }
@@ -342,17 +321,40 @@ extension WindowDetector {
     /// Converts a rect from Quartz coordinate system to Cocoa coordinate system.
     /// - Parameters:
     ///   - rect: Rectangle in Quartz coordinates
-    ///   - screen: The screen for reference (uses main screen if nil)
+    ///   - screenHeight: The screen height for conversion
     /// - Returns: Rectangle in Cocoa coordinates
-    @MainActor
-    static func quartzToCocoa(_ rect: CGRect, on screen: NSScreen? = nil) -> CGRect {
-        let targetScreen = screen ?? NSScreen.main
-        guard let targetScreen = targetScreen else {
-            return rect
-        }
-
-        let screenHeight = targetScreen.frame.height
+    static func quartzToCocoa(_ rect: CGRect, screenHeight: CGFloat) -> CGRect {
         let y = screenHeight - rect.maxY
         return CGRect(x: rect.minX, y: y, width: rect.width, height: rect.height)
+    }
+
+    // MARK: - Deprecated MainActor Methods
+
+    /// Converts a point from Cocoa coordinate system to Quartz coordinate system.
+    /// - Parameters:
+    ///   - point: Point in Cocoa coordinates
+    ///   - screen: The screen for reference (uses main screen if nil)
+    /// - Returns: Point in Quartz coordinates
+    @MainActor
+    static func cocoaToQuartz(_ point: CGPoint, on screen: NSScreen?) -> CGPoint {
+        let targetScreen = screen ?? NSScreen.main
+        guard let targetScreen = targetScreen else {
+            return point
+        }
+        return cocoaToQuartz(point, screenHeight: targetScreen.frame.height)
+    }
+
+    /// Converts a point from Quartz coordinate system to Cocoa coordinate system.
+    /// - Parameters:
+    ///   - point: Point in Quartz coordinates
+    ///   - screen: The screen for reference (uses main screen if nil)
+    /// - Returns: Point in Cocoa coordinates
+    @MainActor
+    static func quartzToCocoa(_ point: CGPoint, on screen: NSScreen?) -> CGPoint {
+        let targetScreen = screen ?? NSScreen.main
+        guard let targetScreen = targetScreen else {
+            return point
+        }
+        return quartzToCocoa(point, screenHeight: targetScreen.frame.height)
     }
 }
