@@ -201,14 +201,14 @@ final class SelectionOverlayView: NSView {
     /// Crosshair line color
     private let crosshairColor = NSColor.white.withAlphaComponent(0.8)
 
-    /// Window highlight fill color (blue with 8% alpha)
-    private let windowHighlightFillColor = NSColor.systemBlue.withAlphaComponent(0.08)
+    /// Window highlight fill color (blue with 15% alpha - brighter for better visibility)
+    private let windowHighlightFillColor = NSColor.systemBlue.withAlphaComponent(0.15)
 
-    /// Window highlight stroke color (blue with 50% alpha)
-    private let windowHighlightStrokeColor = NSColor.systemBlue.withAlphaComponent(0.5)
+    /// Window highlight stroke color (blue with 90% alpha - much brighter and more visible)
+    private let windowHighlightStrokeColor = NSColor.systemBlue.withAlphaComponent(0.9)
 
-    /// Window highlight stroke width
-    private let windowHighlightStrokeWidth: CGFloat = 2.0
+    /// Window highlight stroke width (thicker for better visibility)
+    private let windowHighlightStrokeWidth: CGFloat = 4.0
 
     /// Drag threshold for distinguishing click from drag (in points)
     private let dragThreshold: CGFloat = 4.0
