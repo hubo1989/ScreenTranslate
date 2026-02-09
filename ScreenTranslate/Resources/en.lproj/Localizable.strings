@@ -494,7 +494,42 @@
    Bilingual Result Window
    ======================================== */
 
+/* ========================================
+   Translation Flow
+   ======================================== */
+
+"translationFlow.phase.idle" = "Ready";
+"translationFlow.phase.analyzing" = "Analyzing image...";
+"translationFlow.phase.translating" = "Translating...";
+"translationFlow.phase.rendering" = "Rendering...";
+"translationFlow.phase.completed" = "Completed";
+"translationFlow.phase.failed" = "Failed";
+
+"translationFlow.error.title" = "Translation Error";
+"translationFlow.error.unknown" = "An unknown error occurred.";
+"translationFlow.error.analysis %@" = "Analysis failed: %@";
+"translationFlow.error.translation %@" = "Translation failed: %@";
+"translationFlow.error.rendering %@" = "Rendering failed: %@";
+"translationFlow.error.cancelled" = "Translation was cancelled.";
+"translationFlow.error.noTextFound" = "No text found in the selected area.";
+
+"translationFlow.recovery.analysis" = "Please try again with a clearer image.";
+"translationFlow.recovery.translation" = "Check your network connection and try again.";
+"translationFlow.recovery.rendering" = "Please try again.";
+"translationFlow.recovery.noTextFound" = "Try selecting an area with visible text.";
+
+"common.ok" = "OK";
+
+
+/* ========================================
+   Bilingual Result Window
+   ======================================== */
+
 "bilingualResult.window.title" = "Bilingual Translation";
+"bilingualResult.loading" = "Translating...";
+"bilingualResult.loading.analyzing" = "Analyzing image...";
+"bilingualResult.loading.translating" = "Translating text...";
+"bilingualResult.loading.rendering" = "Rendering result...";
 "bilingualResult.copy" = "Copy";
 "bilingualResult.save" = "Save";
 "bilingualResult.zoomIn" = "Zoom In";

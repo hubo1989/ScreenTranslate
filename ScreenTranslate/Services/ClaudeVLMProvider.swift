@@ -98,7 +98,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
         let requestBody = ClaudeMessagesRequest(
             model: configuration.modelName,
-            maxTokens: 4096,
+            maxTokens: 8192,
             system: VLMPromptTemplate.systemPrompt,
             messages: [
                 ClaudeMessage(
@@ -209,17 +209,30 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
     /// Parses Claude response and extracts VLM analysis
     private func parseClaudeResponse(_ data: Data) throws -> VLMAnalysisResponse {
+        if let errorResponse = try? JSONDecoder().decode(ClaudeErrorResponse.self, from: data),
+           errorResponse.type == "error" {
+            throw VLMProviderError.invalidResponse(errorResponse.error.message)
+        }
+
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
         let claudeResponse: ClaudeMessagesResponse
         do {
             claudeResponse = try decoder.decode(ClaudeMessagesResponse.self, from: data)
         } catch {
+            let rawResponse = String(data: data, encoding: .utf8) ?? "<non-UTF8 data>"
+            print("[ClaudeVLMProvider] Failed to decode. Raw:\n\(rawResponse.prefix(500))")
             throw VLMProviderError.parsingFailed("Failed to decode Claude response: \(error.localizedDescription)")
         }
 
-        guard let textBlock = claudeResponse.content.first(where: { $0.type == "text" }),
+        // Check if response was truncated due to max_tokens
+        if claudeResponse.stopReason == "max_tokens" {
+            print("[ClaudeVLMProvider] Response truncated due to max_tokens limit")
+            throw VLMProviderError.invalidResponse("Response truncated - image may have too much text")
+        }
+        
+        guard let contentBlocks = claudeResponse.content,
+              let textBlock = contentBlocks.first(where: { $0.type == "text" }),
               let content = textBlock.text
         else {
             throw VLMProviderError.invalidResponse("No text content in response")
@@ -329,11 +342,11 @@ private struct ClaudeImageSource: Encodable, Sendable {
 
 /// Claude Messages API response structure
 private struct ClaudeMessagesResponse: Decodable, Sendable {
-    let id: String
-    let type: String
-    let role: String
-    let content: [ClaudeResponseContentBlock]
-    let model: String
+    let id: String?
+    let type: String?
+    let role: String?
+    let content: [ClaudeResponseContentBlock]?
+    let model: String?
     let stopReason: String?
     let usage: ClaudeUsage?
 

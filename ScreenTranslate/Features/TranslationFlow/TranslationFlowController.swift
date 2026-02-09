@@ -149,6 +149,14 @@ final class TranslationFlowController {
         lastError = nil
         lastResult = nil
 
+        // Show loading window immediately with original image
+        await MainActor.run {
+            BilingualResultWindowController.shared.showLoading(
+                originalImage: image,
+                message: String(localized: "bilingualResult.loading.analyzing")
+            )
+        }
+
         // Phase 1: 分析图像
         currentPhase = .analyzing
 
@@ -186,12 +194,22 @@ final class TranslationFlowController {
             let texts = analysisResult.segments.map { $0.text }
 
             if #available(macOS 13.0, *) {
-                bilingualSegments = try await TranslationService.shared.translate(
+                let translatedSegments = try await TranslationService.shared.translate(
                     segments: texts,
                     to: targetLanguage,
                     preferredEngine: engine,
                     from: sourceLanguage
                 )
+                
+                // Merge bounding box info from VLM analysis back into translated segments
+                bilingualSegments = zip(analysisResult.segments, translatedSegments).map { original, translated in
+                    BilingualSegment(
+                        segment: original,
+                        translatedText: translated.translated,
+                        sourceLanguage: translated.sourceLanguage,
+                        targetLanguage: translated.targetLanguage
+                    )
+                }
             } else {
                 throw TranslationFlowError.translationFailure("macOS 13.0+ required")
             }
@@ -256,10 +274,12 @@ final class TranslationFlowController {
         guard let cgImage = renderedImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             return
         }
-        BilingualResultWindowController.shared.show(image: cgImage)
+        BilingualResultWindowController.shared.showResult(image: cgImage)
     }
 
     private func showErrorAlert(_ error: TranslationFlowError) {
+        NSApp.activate(ignoringOtherApps: true)
+        
         let alert = NSAlert()
         alert.messageText = String(localized: "translationFlow.error.title")
         alert.informativeText = error.errorDescription ?? String(localized: "translationFlow.error.unknown")

@@ -6,6 +6,8 @@ import Observation
 final class BilingualResultViewModel {
     private(set) var image: CGImage
     private(set) var scale: CGFloat = 1.0
+    var isLoading: Bool = false
+    var loadingMessage: String = ""
     var copySuccessMessage: String?
     var saveSuccessMessage: String?
     var errorMessage: String?
@@ -23,6 +25,25 @@ final class BilingualResultViewModel {
 
     init(image: CGImage) {
         self.image = image
+    }
+
+    func showLoading(originalImage: CGImage, message: String? = nil) {
+        self.image = originalImage
+        self.isLoading = true
+        self.loadingMessage = message ?? String(localized: "bilingualResult.loading")
+        self.errorMessage = nil
+    }
+
+    func showResult(image: CGImage) {
+        self.image = image
+        self.isLoading = false
+        self.loadingMessage = ""
+        self.scale = 1.0
+    }
+
+    func showError(_ message: String) {
+        self.isLoading = false
+        self.errorMessage = message
     }
 
     func updateImage(_ newImage: CGImage) {

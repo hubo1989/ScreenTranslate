@@ -7,25 +7,31 @@ struct BilingualResultView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ScrollView([.horizontal, .vertical], showsIndicators: true) {
-                Image(decorative: viewModel.image, scale: 1.0)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .scaleEffect(viewModel.scale)
-                    .frame(
-                        width: CGFloat(viewModel.imageWidth) * viewModel.scale,
-                        height: CGFloat(viewModel.imageHeight) * viewModel.scale
-                    )
-                    .onScrollWheelZoom { delta in
-                        if delta > 0 {
-                            viewModel.zoomIn()
-                        } else {
-                            viewModel.zoomOut()
+            ZStack {
+                ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                    Image(decorative: viewModel.image, scale: 1.0)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .scaleEffect(viewModel.scale)
+                        .frame(
+                            width: CGFloat(viewModel.imageWidth) * viewModel.scale,
+                            height: CGFloat(viewModel.imageHeight) * viewModel.scale
+                        )
+                        .onScrollWheelZoom { delta in
+                            if delta > 0 {
+                                viewModel.zoomIn()
+                            } else {
+                                viewModel.zoomOut()
+                            }
                         }
-                    }
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(nsColor: .windowBackgroundColor))
+
+                if viewModel.isLoading {
+                    loadingOverlay
+                }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(nsColor: .windowBackgroundColor))
 
             Divider()
 
@@ -120,6 +126,18 @@ struct BilingualResultView: View {
         .padding(.top, 20)
         .transition(.move(edge: .top).combined(with: .opacity))
         .animation(.easeInOut(duration: 0.3), value: message)
+    }
+
+    private var loadingOverlay: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.5)
+            Text(viewModel.loadingMessage)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.3))
     }
 }
 

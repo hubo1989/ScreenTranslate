@@ -494,7 +494,42 @@
    双语对照窗口
    ======================================== */
 
+/* ========================================
+   翻译流程
+   ======================================== */
+
+"translationFlow.phase.idle" = "就绪";
+"translationFlow.phase.analyzing" = "正在分析图像...";
+"translationFlow.phase.translating" = "正在翻译...";
+"translationFlow.phase.rendering" = "正在渲染...";
+"translationFlow.phase.completed" = "已完成";
+"translationFlow.phase.failed" = "失败";
+
+"translationFlow.error.title" = "翻译错误";
+"translationFlow.error.unknown" = "发生未知错误。";
+"translationFlow.error.analysis %@" = "分析失败：%@";
+"translationFlow.error.translation %@" = "翻译失败：%@";
+"translationFlow.error.rendering %@" = "渲染失败：%@";
+"translationFlow.error.cancelled" = "翻译已取消。";
+"translationFlow.error.noTextFound" = "选中区域未找到文字。";
+
+"translationFlow.recovery.analysis" = "请使用更清晰的图像重试。";
+"translationFlow.recovery.translation" = "请检查网络连接后重试。";
+"translationFlow.recovery.rendering" = "请重试。";
+"translationFlow.recovery.noTextFound" = "请尝试选择包含可见文字的区域。";
+
+"common.ok" = "好的";
+
+
+/* ========================================
+   双语对照窗口
+   ======================================== */
+
 "bilingualResult.window.title" = "双语对照";
+"bilingualResult.loading" = "翻译中...";
+"bilingualResult.loading.analyzing" = "正在分析图像...";
+"bilingualResult.loading.translating" = "正在翻译文本...";
+"bilingualResult.loading.rendering" = "正在渲染结果...";
 "bilingualResult.copy" = "复制";
 "bilingualResult.save" = "保存";
 "bilingualResult.zoomIn" = "放大";
