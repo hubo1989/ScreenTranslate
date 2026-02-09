@@ -155,6 +155,12 @@ final class SelectionOverlayView: NSView {
     /// Current selection end point (in window coordinates)
     var selectionCurrent: NSPoint?
 
+    /// Currently highlighted window rect (in view coordinates, nil if no window under cursor)
+    private var highlightedWindowRect: CGRect?
+
+    /// Window detector for detecting windows under cursor
+    private let windowDetector = WindowDetector.shared
+
     /// Whether the user is currently dragging
     private var isDragging = false
 
@@ -175,6 +181,15 @@ final class SelectionOverlayView: NSView {
 
     /// Crosshair line color
     private let crosshairColor = NSColor.white.withAlphaComponent(0.8)
+
+    /// Window highlight fill color (blue with 8% alpha)
+    private let windowHighlightFillColor = NSColor.systemBlue.withAlphaComponent(0.08)
+
+    /// Window highlight stroke color (blue with 50% alpha)
+    private let windowHighlightStrokeColor = NSColor.systemBlue.withAlphaComponent(0.5)
+
+    /// Window highlight stroke width
+    private let windowHighlightStrokeWidth: CGFloat = 2.0
 
     /// Tracking area for mouse moved events
     private var trackingArea: NSTrackingArea?
@@ -226,7 +241,7 @@ final class SelectionOverlayView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
-        // Draw dim overlay
+        // Draw dim overlay (with cutout for selection or highlighted window)
         drawDimOverlay(context: context)
 
         // If we have a selection, cut it out and draw the rectangle
@@ -234,34 +249,54 @@ final class SelectionOverlayView: NSView {
             let selectionRect = normalizedRect(from: start, to: current)
             drawSelectionRect(selectionRect, context: context)
             drawDimensionsLabel(for: selectionRect, context: context)
-        } else if let mousePos = mousePosition {
-            // Draw crosshair when not selecting
-            drawCrosshair(at: mousePos, context: context)
+        } else {
+            // Draw window highlight if there's a highlighted window
+            if let highlightRect = highlightedWindowRect {
+                drawWindowHighlight(highlightRect, context: context)
+                drawDimensionsLabel(for: highlightRect, context: context)
+            }
+
+            // Draw crosshair at mouse position
+            if let mousePos = mousePosition {
+                drawCrosshair(at: mousePos, context: context)
+            }
         }
     }
 
     /// Draws the semi-transparent dim overlay
+    /// When there's a selection or highlighted window, creates a cutout using even-odd fill rule
     private func drawDimOverlay(context: CGContext) {
-        if let start = selectionStart, let current = selectionCurrent {
-            // Draw dim with cutout for selection
-            let selectionRect = normalizedRect(from: start, to: current)
+        let hasSelection = selectionStart != nil && selectionCurrent != nil
+        let hasHighlightedWindow = highlightedWindowRect != nil && !isDragging
 
-            context.saveGState()
-
-            // Create path for the entire view minus the selection
-            context.addRect(bounds)
-            context.addRect(selectionRect)
-
-            // Use even-odd rule to create the cutout
-            context.setFillColor(dimColor.cgColor)
-            context.fillPath(using: .evenOdd)
-
-            context.restoreGState()
-        } else {
-            // Full dim when not selecting
+        guard hasSelection || hasHighlightedWindow else {
+            // Full dim when not selecting and no highlighted window
             dimColor.setFill()
             bounds.fill()
+            return
         }
+
+        context.saveGState()
+
+        // Create path for the entire view
+        context.addRect(bounds)
+
+        // Add cutout for selection if present
+        if let start = selectionStart, let current = selectionCurrent {
+            let selectionRect = normalizedRect(from: start, to: current)
+            context.addRect(selectionRect)
+        }
+
+        // Add cutout for highlighted window if present (and not dragging)
+        if !isDragging, let highlightRect = highlightedWindowRect {
+            context.addRect(highlightRect)
+        }
+
+        // Use even-odd rule to create the cutout
+        context.setFillColor(dimColor.cgColor)
+        context.fillPath(using: .evenOdd)
+
+        context.restoreGState()
     }
 
     /// Draws the selection rectangle with border
@@ -302,6 +337,19 @@ final class SelectionOverlayView: NSView {
 
         context.strokePath()
         context.restoreGState()
+    }
+
+    /// Draws the window highlight rectangle with border
+    private func drawWindowHighlight(_ rect: CGRect, context: CGContext) {
+        // Fill
+        windowHighlightFillColor.setFill()
+        rect.fill()
+
+        // Stroke
+        let strokePath = NSBezierPath(rect: rect)
+        strokePath.lineWidth = windowHighlightStrokeWidth
+        windowHighlightStrokeColor.setStroke()
+        strokePath.stroke()
     }
 
     /// Draws the dimensions label near the selection rectangle
@@ -383,6 +431,10 @@ final class SelectionOverlayView: NSView {
 
         let point = convert(event.locationInWindow, from: nil)
         selectionCurrent = point
+
+        // Clear window highlight during drag
+        highlightedWindowRect = nil
+
         needsDisplay = true
     }
 
@@ -457,13 +509,91 @@ final class SelectionOverlayView: NSView {
         // Reset state
         selectionStart = nil
         selectionCurrent = nil
+
+        // Re-enable window detection after selection ends
+        isDragging = false
+
+        // Update window highlight at current mouse position
+        if let event = NSApp.currentEvent {
+            let point = convert(event.locationInWindow, from: nil)
+            updateHighlightedWindow(at: point)
+        }
+
         needsDisplay = true
     }
 
     override func mouseMoved(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         mousePosition = point
+
+        // Only detect windows when not dragging
+        if !isDragging {
+            updateHighlightedWindow(at: point)
+        }
+
         needsDisplay = true
+    }
+
+    /// Updates the highlighted window based on the current mouse position.
+    /// Detects the window under the cursor and converts its frame to view coordinates.
+    /// - Parameter point: The current mouse position in view coordinates
+    private func updateHighlightedWindow(at point: NSPoint) {
+        guard let window = self.window else {
+            highlightedWindowRect = nil
+            return
+        }
+
+        // Convert point from view coordinates to screen coordinates (Cocoa)
+        let screenPoint = window.convertToScreen(
+            NSRect(origin: point, size: .zero)
+        ).origin
+
+        // Convert from Cocoa coordinates (origin at bottom-left) to Quartz coordinates (origin at top-left)
+        let quartzPoint = WindowDetector.cocoaToQuartz(screenPoint, on: window.screen)
+
+        // Get window at the point (WindowDetector is an actor, so we use Task)
+        Task {
+            if let windowInfo = await windowDetector.windowUnderPoint(quartzPoint) {
+                // Convert window frame from Quartz to Cocoa coordinates
+                let cocoaFrame = WindowDetector.quartzToCocoa(windowInfo.frame, on: window.screen)
+
+                // Convert from screen coordinates to view coordinates
+                await MainActor.run {
+                    let viewFrame = self.convertFromScreen(cocoaFrame)
+                    self.highlightedWindowRect = viewFrame
+                    self.needsDisplay = true
+                }
+            } else {
+                await MainActor.run {
+                    self.highlightedWindowRect = nil
+                    self.needsDisplay = true
+                }
+            }
+        }
+    }
+
+    /// Converts a rectangle from screen coordinates to view coordinates.
+    /// - Parameter screenRect: Rectangle in screen coordinates (Cocoa)
+    /// - Returns: Rectangle in view coordinates
+    private func convertFromScreen(_ screenRect: CGRect) -> CGRect {
+        guard let window = self.window else {
+            return screenRect
+        }
+
+        // Get the window's frame in screen coordinates
+        let windowFrame = window.frame
+
+        // View coordinates are relative to the window's content view
+        // The view's origin (0,0) is at the bottom-left of the window in Cocoa coordinates
+        let viewX = screenRect.origin.x - windowFrame.origin.x
+        let viewY = screenRect.origin.y - windowFrame.origin.y
+
+        return CGRect(
+            x: viewX,
+            y: viewY,
+            width: screenRect.width,
+            height: screenRect.height
+        )
     }
 
     override func mouseEntered(with event: NSEvent) {
@@ -488,6 +618,7 @@ final class SelectionOverlayView: NSView {
             isDragging = false
             selectionStart = nil
             selectionCurrent = nil
+            highlightedWindowRect = nil
             delegate?.selectionOverlayDidCancel()
             return
         }
