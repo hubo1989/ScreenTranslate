@@ -82,6 +82,7 @@
 "menu.capture.full.screen" = "全屏截图";
 "menu.capture.fullscreen" = "全屏截图";
 "menu.capture.selection" = "区域截图";
+"menu.translation.mode" = "翻译模式";
 "menu.recent.captures" = "最近截图";
 "menu.recent.captures.empty" = "没有最近截图";
 "menu.recent.captures.clear" = "清除最近截图";
@@ -262,6 +263,7 @@
 "settings.shortcuts" = "键盘快捷键";
 "settings.shortcut.fullscreen" = "全屏截图";
 "settings.shortcut.selection" = "区域截图";
+"settings.shortcut.translation.mode" = "翻译模式";
 "settings.shortcut.recording" = "按下快捷键...";
 "settings.shortcut.reset" = "恢复默认";
 "settings.shortcut.error.no.modifier" = "快捷键必须包含 Command、Control 或 Option";
@@ -446,6 +448,39 @@
 
 
 /* ========================================
+   VLM 配置
+   ======================================== */
+
+"settings.vlm.title" = "VLM 配置";
+"settings.vlm.provider" = "提供商";
+"settings.vlm.apiKey" = "API 密钥";
+"settings.vlm.apiKey.optional" = "本地提供商无需 API 密钥";
+"settings.vlm.baseURL" = "Base URL";
+"settings.vlm.model" = "模型名称";
+
+"vlm.provider.openai" = "OpenAI";
+"vlm.provider.claude" = "Claude";
+"vlm.provider.ollama" = "Ollama";
+"vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
+"vlm.provider.claude.description" = "Anthropic Claude Vision API";
+"vlm.provider.ollama.description" = "本地 Ollama 服务器";
+
+
+/* ========================================
+   翻译工作流配置
+   ======================================== */
+
+"settings.translation.workflow.title" = "翻译工作流";
+"settings.translation.preferred" = "首选引擎";
+"settings.translation.mtran.url" = "MTransServer URL";
+"settings.translation.fallback" = "回退";
+"settings.translation.fallback.description" = "首选引擎失败时使用 Apple 翻译作为回退";
+
+"translation.preferred.apple.description" = "内置 macOS 翻译，支持离线使用";
+"translation.preferred.mtran.description" = "自托管翻译服务器，翻译质量更好";
+
+
+/* ========================================
    无障碍标签
    ======================================== */
 
@@ -453,3 +488,54 @@
 "accessibility.settings.button" = "设置";
 "accessibility.capture.button" = "截图";
 "accessibility.translate.button" = "翻译";
+
+
+/* ========================================
+   双语对照窗口
+   ======================================== */
+
+/* ========================================
+   翻译流程
+   ======================================== */
+
+"translationFlow.phase.idle" = "就绪";
+"translationFlow.phase.analyzing" = "正在分析图像...";
+"translationFlow.phase.translating" = "正在翻译...";
+"translationFlow.phase.rendering" = "正在渲染...";
+"translationFlow.phase.completed" = "已完成";
+"translationFlow.phase.failed" = "失败";
+
+"translationFlow.error.title" = "翻译错误";
+"translationFlow.error.unknown" = "发生未知错误。";
+"translationFlow.error.analysis %@" = "分析失败：%@";
+"translationFlow.error.translation %@" = "翻译失败：%@";
+"translationFlow.error.rendering %@" = "渲染失败：%@";
+"translationFlow.error.cancelled" = "翻译已取消。";
+"translationFlow.error.noTextFound" = "选中区域未找到文字。";
+
+"translationFlow.recovery.analysis" = "请使用更清晰的图像重试。";
+"translationFlow.recovery.translation" = "请检查网络连接后重试。";
+"translationFlow.recovery.rendering" = "请重试。";
+"translationFlow.recovery.noTextFound" = "请尝试选择包含可见文字的区域。";
+
+"common.ok" = "好的";
+
+
+/* ========================================
+   双语对照窗口
+   ======================================== */
+
+"bilingualResult.window.title" = "双语对照";
+"bilingualResult.loading" = "翻译中...";
+"bilingualResult.loading.analyzing" = "正在分析图像...";
+"bilingualResult.loading.translating" = "正在翻译文本...";
+"bilingualResult.loading.rendering" = "正在渲染结果...";
+"bilingualResult.copy" = "复制";
+"bilingualResult.save" = "保存";
+"bilingualResult.zoomIn" = "放大";
+"bilingualResult.zoomOut" = "缩小";
+"bilingualResult.resetZoom" = "重置缩放";
+"bilingualResult.copySuccess" = "已复制到剪贴板";
+"bilingualResult.saveSuccess" = "保存成功";
+"bilingualResult.copyFailed" = "复制图片失败";
+"bilingualResult.saveFailed" = "保存图片失败";

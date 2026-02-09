@@ -82,6 +82,7 @@
 "menu.capture.full.screen" = "Capture Full Screen";
 "menu.capture.fullscreen" = "Capture Full Screen";
 "menu.capture.selection" = "Capture Selection";
+"menu.translation.mode" = "Translation Mode";
 "menu.recent.captures" = "Recent Captures";
 "menu.recent.captures.empty" = "No Recent Captures";
 "menu.recent.captures.clear" = "Clear Recent";
@@ -262,6 +263,7 @@
 "settings.shortcuts" = "Keyboard Shortcuts";
 "settings.shortcut.fullscreen" = "Full Screen Capture";
 "settings.shortcut.selection" = "Selection Capture";
+"settings.shortcut.translation.mode" = "Translation Mode";
 "settings.shortcut.recording" = "Press keys...";
 "settings.shortcut.reset" = "Reset to default";
 "settings.shortcut.error.no.modifier" = "Shortcuts must include Command, Control, or Option";
@@ -446,6 +448,39 @@
 
 
 /* ========================================
+   VLM Configuration
+   ======================================== */
+
+"settings.vlm.title" = "VLM Configuration";
+"settings.vlm.provider" = "Provider";
+"settings.vlm.apiKey" = "API Key";
+"settings.vlm.apiKey.optional" = "API Key is optional for local providers";
+"settings.vlm.baseURL" = "Base URL";
+"settings.vlm.model" = "Model Name";
+
+"vlm.provider.openai" = "OpenAI";
+"vlm.provider.claude" = "Claude";
+"vlm.provider.ollama" = "Ollama";
+"vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
+"vlm.provider.claude.description" = "Anthropic Claude Vision API";
+"vlm.provider.ollama.description" = "Local Ollama server";
+
+
+/* ========================================
+   Translation Workflow Configuration
+   ======================================== */
+
+"settings.translation.workflow.title" = "Translation Workflow";
+"settings.translation.preferred" = "Preferred Engine";
+"settings.translation.mtran.url" = "MTransServer URL";
+"settings.translation.fallback" = "Fallback";
+"settings.translation.fallback.description" = "Use Apple Translation as fallback when preferred engine fails";
+
+"translation.preferred.apple.description" = "Built-in macOS translation, works offline";
+"translation.preferred.mtran.description" = "Self-hosted translation server for better quality";
+
+
+/* ========================================
    Accessibility Labels
    ======================================== */
 
@@ -453,3 +488,54 @@
 "accessibility.settings.button" = "Settings";
 "accessibility.capture.button" = "Capture";
 "accessibility.translate.button" = "Translate";
+
+
+/* ========================================
+   Bilingual Result Window
+   ======================================== */
+
+/* ========================================
+   Translation Flow
+   ======================================== */
+
+"translationFlow.phase.idle" = "Ready";
+"translationFlow.phase.analyzing" = "Analyzing image...";
+"translationFlow.phase.translating" = "Translating...";
+"translationFlow.phase.rendering" = "Rendering...";
+"translationFlow.phase.completed" = "Completed";
+"translationFlow.phase.failed" = "Failed";
+
+"translationFlow.error.title" = "Translation Error";
+"translationFlow.error.unknown" = "An unknown error occurred.";
+"translationFlow.error.analysis %@" = "Analysis failed: %@";
+"translationFlow.error.translation %@" = "Translation failed: %@";
+"translationFlow.error.rendering %@" = "Rendering failed: %@";
+"translationFlow.error.cancelled" = "Translation was cancelled.";
+"translationFlow.error.noTextFound" = "No text found in the selected area.";
+
+"translationFlow.recovery.analysis" = "Please try again with a clearer image.";
+"translationFlow.recovery.translation" = "Check your network connection and try again.";
+"translationFlow.recovery.rendering" = "Please try again.";
+"translationFlow.recovery.noTextFound" = "Try selecting an area with visible text.";
+
+"common.ok" = "OK";
+
+
+/* ========================================
+   Bilingual Result Window
+   ======================================== */
+
+"bilingualResult.window.title" = "Bilingual Translation";
+"bilingualResult.loading" = "Translating...";
+"bilingualResult.loading.analyzing" = "Analyzing image...";
+"bilingualResult.loading.translating" = "Translating text...";
+"bilingualResult.loading.rendering" = "Rendering result...";
+"bilingualResult.copy" = "Copy";
+"bilingualResult.save" = "Save";
+"bilingualResult.zoomIn" = "Zoom In";
+"bilingualResult.zoomOut" = "Zoom Out";
+"bilingualResult.resetZoom" = "Reset Zoom";
+"bilingualResult.copySuccess" = "Copied to clipboard";
+"bilingualResult.saveSuccess" = "Saved successfully";
+"bilingualResult.copyFailed" = "Failed to copy image";
+"bilingualResult.saveFailed" = "Failed to save image";

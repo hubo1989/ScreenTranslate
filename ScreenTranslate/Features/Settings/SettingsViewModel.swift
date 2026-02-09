@@ -20,6 +20,7 @@ final class SettingsViewModel {
     /// Whether a shortcut is currently being recorded
     var isRecordingFullScreenShortcut = false
     var isRecordingSelectionShortcut = false
+    var isRecordingTranslationModeShortcut = false
 
     /// Temporary storage for shortcut recording
     var recordedShortcut: KeyboardShortcut?
@@ -112,6 +113,15 @@ final class SettingsViewModel {
         }
     }
 
+    /// Translation mode shortcut
+    var translationModeShortcut: KeyboardShortcut {
+        get { settings.translationModeShortcut }
+        set {
+            settings.translationModeShortcut = newValue
+            appDelegate?.updateHotkeys()
+        }
+    }
+
     /// Annotation stroke color
     var strokeColor: Color {
         get { settings.strokeColor.color }
@@ -174,6 +184,53 @@ final class SettingsViewModel {
     /// Available target languages for the current translation engine
     var availableTargetLanguages: [TranslationLanguage] {
         TranslationLanguage.allCases.filter { $0 != .auto }
+    }
+
+    // MARK: - VLM Configuration
+
+    var vlmProvider: VLMProviderType {
+        get { settings.vlmProvider }
+        set {
+            settings.vlmProvider = newValue
+            if vlmBaseURL.isEmpty || vlmBaseURL == settings.vlmProvider.defaultBaseURL {
+                vlmBaseURL = newValue.defaultBaseURL
+            }
+            if vlmModelName.isEmpty || vlmModelName == settings.vlmProvider.defaultModelName {
+                vlmModelName = newValue.defaultModelName
+            }
+        }
+    }
+
+    var vlmAPIKey: String {
+        get { settings.vlmAPIKey }
+        set { settings.vlmAPIKey = newValue }
+    }
+
+    var vlmBaseURL: String {
+        get { settings.vlmBaseURL }
+        set { settings.vlmBaseURL = newValue }
+    }
+
+    var vlmModelName: String {
+        get { settings.vlmModelName }
+        set { settings.vlmModelName = newValue }
+    }
+
+    // MARK: - Translation Workflow Configuration
+
+    var preferredTranslationEngine: PreferredTranslationEngine {
+        get { settings.preferredTranslationEngine }
+        set { settings.preferredTranslationEngine = newValue }
+    }
+
+    var mtranServerURL: String {
+        get { settings.mtranServerURL }
+        set { settings.mtranServerURL = newValue }
+    }
+
+    var translationFallbackEnabled: Bool {
+        get { settings.translationFallbackEnabled }
+        set { settings.translationFallbackEnabled = newValue }
     }
 
     // MARK: - Validation Ranges
@@ -328,6 +385,15 @@ final class SettingsViewModel {
     func startRecordingSelectionShortcut() {
         isRecordingFullScreenShortcut = false
         isRecordingSelectionShortcut = true
+        isRecordingTranslationModeShortcut = false
+        recordedShortcut = nil
+    }
+
+    /// Starts recording a keyboard shortcut for translation mode
+    func startRecordingTranslationModeShortcut() {
+        isRecordingFullScreenShortcut = false
+        isRecordingSelectionShortcut = false
+        isRecordingTranslationModeShortcut = true
         recordedShortcut = nil
     }
 
@@ -335,6 +401,7 @@ final class SettingsViewModel {
     func cancelRecording() {
         isRecordingFullScreenShortcut = false
         isRecordingSelectionShortcut = false
+        isRecordingTranslationModeShortcut = false
         recordedShortcut = nil
     }
 
@@ -342,7 +409,7 @@ final class SettingsViewModel {
     /// - Parameter event: The key event
     /// - Returns: Whether the event was handled
     func handleKeyEvent(_ event: NSEvent) -> Bool {
-        guard isRecordingFullScreenShortcut || isRecordingSelectionShortcut else {
+        guard isRecordingFullScreenShortcut || isRecordingSelectionShortcut || isRecordingTranslationModeShortcut else {
             return false
         }
 
@@ -365,20 +432,26 @@ final class SettingsViewModel {
         }
 
         // Check for conflicts with other shortcuts
-        if isRecordingFullScreenShortcut && shortcut == selectionShortcut {
-            showError("This shortcut is already used for Selection Capture")
+        if isRecordingFullScreenShortcut && (shortcut == selectionShortcut || shortcut == translationModeShortcut) {
+            showError("This shortcut is already in use")
             return true
         }
-        if isRecordingSelectionShortcut && shortcut == fullScreenShortcut {
-            showError("This shortcut is already used for Full Screen Capture")
+        if isRecordingSelectionShortcut && (shortcut == fullScreenShortcut || shortcut == translationModeShortcut) {
+            showError("This shortcut is already in use")
+            return true
+        }
+        if isRecordingTranslationModeShortcut && (shortcut == fullScreenShortcut || shortcut == selectionShortcut) {
+            showError("This shortcut is already in use")
             return true
         }
 
         // Apply the shortcut
         if isRecordingFullScreenShortcut {
             fullScreenShortcut = shortcut
-        } else {
+        } else if isRecordingSelectionShortcut {
             selectionShortcut = shortcut
+        } else {
+            translationModeShortcut = shortcut
         }
 
         // End recording
@@ -394,6 +467,11 @@ final class SettingsViewModel {
     /// Resets selection shortcut to default
     func resetSelectionShortcut() {
         selectionShortcut = .selectionDefault
+    }
+
+    /// Resets translation mode shortcut to default
+    func resetTranslationModeShortcut() {
+        translationModeShortcut = .translationModeDefault
     }
 
     /// Resets all settings to defaults

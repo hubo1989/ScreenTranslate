@@ -86,3 +86,6 @@ edashot/
 
 # Release builds
 release/
+
+# Ralph TUI session data
+.ralph-tui/

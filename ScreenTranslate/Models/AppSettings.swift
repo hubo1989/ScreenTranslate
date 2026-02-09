@@ -22,6 +22,7 @@ final class AppSettings {
         static let heicQuality = prefix + "heicQuality"
         static let fullScreenShortcut = prefix + "fullScreenShortcut"
         static let selectionShortcut = prefix + "selectionShortcut"
+        static let translationModeShortcut = prefix + "translationModeShortcut"
         static let strokeColor = prefix + "strokeColor"
         static let strokeWidth = prefix + "strokeWidth"
         static let textSize = prefix + "textSize"
@@ -37,6 +38,15 @@ final class AppSettings {
         static let paddleOCRServerAddress = prefix + "paddleOCRServerAddress"
         static let mtranServerHost = prefix + "mtranServerHost"
         static let mtranServerPort = prefix + "mtranServerPort"
+        // VLM Configuration
+        static let vlmProvider = prefix + "vlmProvider"
+        static let vlmAPIKey = prefix + "vlmAPIKey"
+        static let vlmBaseURL = prefix + "vlmBaseURL"
+        static let vlmModelName = prefix + "vlmModelName"
+        // Translation Workflow Configuration
+        static let preferredTranslationEngine = prefix + "preferredTranslationEngine"
+        static let mtranServerURL = prefix + "mtranServerURL"
+        static let translationFallbackEnabled = prefix + "translationFallbackEnabled"
     }
 
     // MARK: - Properties
@@ -69,6 +79,11 @@ final class AppSettings {
     /// Global hotkey for selection capture
     var selectionShortcut: KeyboardShortcut {
         didSet { saveShortcut(selectionShortcut, forKey: Keys.selectionShortcut) }
+    }
+
+    /// Global hotkey for translation mode
+    var translationModeShortcut: KeyboardShortcut {
+        didSet { saveShortcut(translationModeShortcut, forKey: Keys.translationModeShortcut) }
     }
 
     /// Default annotation stroke color
@@ -149,6 +164,38 @@ final class AppSettings {
         didSet { save(mtranServerPort, forKey: Keys.mtranServerPort) }
     }
 
+    // MARK: - VLM Configuration
+
+    var vlmProvider: VLMProviderType {
+        didSet { save(vlmProvider.rawValue, forKey: Keys.vlmProvider) }
+    }
+
+    var vlmAPIKey: String {
+        didSet { save(vlmAPIKey, forKey: Keys.vlmAPIKey) }
+    }
+
+    var vlmBaseURL: String {
+        didSet { save(vlmBaseURL, forKey: Keys.vlmBaseURL) }
+    }
+
+    var vlmModelName: String {
+        didSet { save(vlmModelName, forKey: Keys.vlmModelName) }
+    }
+
+    // MARK: - Translation Workflow Configuration
+
+    var preferredTranslationEngine: PreferredTranslationEngine {
+        didSet { save(preferredTranslationEngine.rawValue, forKey: Keys.preferredTranslationEngine) }
+    }
+
+    var mtranServerURL: String {
+        didSet { save(mtranServerURL, forKey: Keys.mtranServerURL) }
+    }
+
+    var translationFallbackEnabled: Bool {
+        didSet { save(translationFallbackEnabled, forKey: Keys.translationFallbackEnabled) }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -186,6 +233,8 @@ final class AppSettings {
             ?? KeyboardShortcut.fullScreenDefault
         selectionShortcut = Self.loadShortcut(forKey: Keys.selectionShortcut)
             ?? KeyboardShortcut.selectionDefault
+        translationModeShortcut = Self.loadShortcut(forKey: Keys.translationModeShortcut)
+            ?? KeyboardShortcut.translationModeDefault
 
         // Load annotation defaults
         strokeColor = Self.loadColor(forKey: Keys.strokeColor) ?? .red
@@ -214,6 +263,17 @@ final class AppSettings {
         paddleOCRServerAddress = defaults.string(forKey: Keys.paddleOCRServerAddress) ?? ""
         mtranServerHost = defaults.string(forKey: Keys.mtranServerHost) ?? "localhost"
         mtranServerPort = defaults.object(forKey: Keys.mtranServerPort) as? Int ?? 8989
+
+        vlmProvider = defaults.string(forKey: Keys.vlmProvider)
+            .flatMap { VLMProviderType(rawValue: $0) } ?? .openai
+        vlmAPIKey = defaults.string(forKey: Keys.vlmAPIKey) ?? ""
+        vlmBaseURL = defaults.string(forKey: Keys.vlmBaseURL) ?? VLMProviderType.openai.defaultBaseURL
+        vlmModelName = defaults.string(forKey: Keys.vlmModelName) ?? VLMProviderType.openai.defaultModelName
+
+        preferredTranslationEngine = defaults.string(forKey: Keys.preferredTranslationEngine)
+            .flatMap { PreferredTranslationEngine(rawValue: $0) } ?? .apple
+        mtranServerURL = defaults.string(forKey: Keys.mtranServerURL) ?? "http://localhost:8989"
+        translationFallbackEnabled = defaults.object(forKey: Keys.translationFallbackEnabled) as? Bool ?? true
 
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
@@ -256,6 +316,7 @@ final class AppSettings {
         heicQuality = 0.9
         fullScreenShortcut = .fullScreenDefault
         selectionShortcut = .selectionDefault
+        translationModeShortcut = .translationModeDefault
         strokeColor = .red
         strokeWidth = 2.0
         textSize = 14.0
