@@ -96,7 +96,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
         imageSize: CGSize,
         maxAttempts: Int
     ) async throws -> VLMAnalysisResponse {
-        var accumulatedContent = ""
+        var allSegments: [VLMTextSegment] = []
         var conversationHistory: [ClaudeMessage] = [
             ClaudeMessage(
                 role: "user",
@@ -122,13 +122,34 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
             let (content, isTruncated, stopReason) = try extractContentAndStatus(from: responseData)
 
-            accumulatedContent += content
-
             print("[ClaudeVLMProvider] Attempt \(attempt + 1)/\(maxAttempts): received \(content.count) chars, stop_reason=\(stopReason ?? "unknown")")
 
-            if !isTruncated {
-                // Complete response received
-                return try parseVLMContent(accumulatedContent)
+            // Try to parse this response
+            do {
+                let response = try parseVLMContent(content)
+                allSegments.append(contentsOf: response.segments)
+                print("[ClaudeVLMProvider] Parsed \(response.segments.count) segments from this response")
+
+                if !isTruncated {
+                    // Complete - return merged result
+                    print("[ClaudeVLMProvider] Complete response received, total \(allSegments.count) segments")
+                    return VLMAnalysisResponse(segments: allSegments)
+                }
+            } catch {
+                print("[ClaudeVLMProvider] Parse error on attempt \(attempt + 1): \(error)")
+
+                // Try partial parsing for truncated response
+                if isTruncated {
+                    if let partial = try? parsePartialVLMContent(content) {
+                        allSegments.append(contentsOf: partial.segments)
+                        print("[ClaudeVLMProvider] Partial parse recovered \(partial.segments.count) segments")
+                    }
+                }
+
+                // If not truncated but parse failed, this is a real error
+                if !isTruncated {
+                    throw error
+                }
             }
 
             // Response truncated, need to continue
@@ -140,22 +161,15 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
                 content: [.text(content)]
             ))
 
-            // Request continuation
+            // Request continuation - ask for complete output this time
             conversationHistory.append(ClaudeMessage(
                 role: "user",
-                content: [.text("Continue from where you left off. Output ONLY the remaining JSON content.")]
+                content: [.text("Continue from where you left off. Return the complete JSON with all remaining segments.")]
             ))
         }
 
-        print("[ClaudeVLMProvider] Max continuation attempts reached, attempting to parse accumulated content")
-
-        // Try to parse accumulated content even if incomplete
-        do {
-            return try parseVLMContent(accumulatedContent)
-        } catch {
-            // Last resort: try partial parsing
-            return try parsePartialVLMContent(accumulatedContent)
-        }
+        print("[ClaudeVLMProvider] Max continuation attempts reached, returning \(allSegments.count) accumulated segments")
+        return VLMAnalysisResponse(segments: allSegments)
     }
 
     /// Extracts content text and truncation status from Claude response
