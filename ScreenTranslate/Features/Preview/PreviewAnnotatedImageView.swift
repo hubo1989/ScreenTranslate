@@ -30,13 +30,6 @@ struct PreviewAnnotatedImageView: View {
             )
             .frame(width: imageSize.width, height: imageSize.height)
 
-            ImmersiveTranslationView(
-                image: viewModel.image,
-                ocrResult: viewModel.ocrResult,
-                translations: viewModel.translations,
-                isVisible: viewModel.isTranslationOverlayVisible
-            )
-
             if viewModel.isWaitingForTextInput,
                let inputPosition = viewModel.textInputPosition {
                 textInputField(at: inputPosition)

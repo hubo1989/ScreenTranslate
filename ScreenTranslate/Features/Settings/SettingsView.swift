@@ -7,63 +7,54 @@ struct SettingsView: View {
     @State private var selectedTab: SettingsTab = .general
 
     var body: some View {
-        ZStack {
-            MeshGradientView()
-
-            NavigationSplitView {
-                List(SettingsTab.allCases, selection: $selectedTab) { tab in
-                    NavigationLink(value: tab) {
-                        Label {
-                            Text(tab.displayName)
-                        } icon: {
-                            Image(systemName: tab.icon)
-                                .macos26IconGlow(color: tab.color)
-                        }
-                    }
-                    .listRowBackground(Color.clear)
-                    .padding(.vertical, 4)
-                }
-                .listStyle(.sidebar)
-                .scrollContentBackground(.hidden)
-                .padding(.top, 40)
-                .background(
-                    VisualEffectView(material: .sidebar, blendingMode: .withinWindow).opacity(0.5))
-            } detail: {
-                VStack(spacing: 0) {
-                    HStack {
-                        Text(selectedTab.displayName)
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
-                        Spacer()
-                    }
-                    .padding(.horizontal, 30)
-                    .padding(.top, 44)
-                    .padding(.bottom, 20)
-
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            switch selectedTab {
-                            case .general:
-                                GeneralSettingsContent(viewModel: viewModel)
-                            case .engines:
-                                EngineSettingsContent(viewModel: viewModel)
-                            case .languages:
-                                LanguageSettingsContent(viewModel: viewModel)
-                            case .shortcuts:
-                                ShortcutSettingsContent(viewModel: viewModel)
-                            case .advanced:
-                                AdvancedSettingsContent(viewModel: viewModel)
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 40)
+        NavigationSplitView {
+            List(SettingsTab.allCases, selection: $selectedTab) { tab in
+                NavigationLink(value: tab) {
+                    Label {
+                        Text(tab.displayName)
+                    } icon: {
+                        Image(systemName: tab.icon)
+                            .foregroundStyle(tab.color)
                     }
                 }
-                .background(
-                    VisualEffectView(material: .windowBackground, blendingMode: .withinWindow)
-                        .opacity(0.3))
+                .padding(.vertical, 4)
             }
+            .listStyle(.sidebar)
+            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+        } detail: {
+            VStack(spacing: 0) {
+                HStack {
+                    Text(selectedTab.displayName)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                    Spacer()
+                }
+                .padding(.horizontal, 30)
+                .padding(.top, 44)
+                .padding(.bottom, 20)
+
+                ScrollView {
+                    VStack(spacing: 24) {
+                        switch selectedTab {
+                        case .general:
+                            GeneralSettingsContent(viewModel: viewModel)
+                        case .engines:
+                            EngineSettingsContent(viewModel: viewModel)
+                        case .languages:
+                            LanguageSettingsContent(viewModel: viewModel)
+                        case .shortcuts:
+                            ShortcutSettingsContent(viewModel: viewModel)
+                        case .advanced:
+                            AdvancedSettingsContent(viewModel: viewModel)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 40)
+                }
+            }
+            .background(Color(.windowBackgroundColor))
         }
         .frame(width: 800, height: 600)
+        .background(Color(.windowBackgroundColor))
         .id(refreshID)
         .onReceive(
             NotificationCenter.default.publisher(for: LanguageManager.languageDidChangeNotification)

@@ -43,12 +43,13 @@ final class PreviewViewModel {
     var isCropSelecting: Bool = false
     var cropStartPoint: CGPoint?
     var errorMessage: String?
-    var isTranslationOverlayVisible: Bool = false
 
     var isSaving: Bool = false
     var isCopying: Bool = false
-    var isCopyingWithTranslations: Bool = false
     var copySuccessMessage: String?
+
+    var isSavingWithTranslations: Bool = false
+    var saveSuccessMessage: String?
 
     @ObservationIgnored
     var onDismiss: (() -> Void)?
@@ -75,10 +76,7 @@ final class PreviewViewModel {
     let translationEngine = TranslationEngine.shared
 
     var ocrResult: OCRResult?
-    var translations: [TranslationResult] = []
     var isPerformingOCR: Bool = false
-    var isPerformingTranslation: Bool = false
-    var isPerformingOCRThenTranslation: Bool = false
     var ocrTranslationError: String?
 
     // MARK: - Annotation Tools
@@ -196,11 +194,6 @@ final class PreviewViewModel {
     private let maxUndoLevels = 50
 
     var imageSizeChangeCounter: Int = 0
-
-    // MARK: - Save with Translations
-
-    var isSavingWithTranslations: Bool = false
-    var saveSuccessMessage: String?
 
     // MARK: - Initialization
 
@@ -349,16 +342,8 @@ final class PreviewViewModel {
         ocrResult?.hasResults ?? false
     }
 
-    var hasTranslationResults: Bool {
-        !translations.isEmpty
-    }
-
     var combinedOCRText: String {
         ocrResult?.fullText ?? ""
-    }
-
-    var combinedTranslatedText: String {
-        translations.map { $0.translatedText }.joined(separator: "\n")
     }
 }
 

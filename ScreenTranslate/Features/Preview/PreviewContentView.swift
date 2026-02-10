@@ -29,7 +29,7 @@ struct PreviewContentView: View {
                 .padding(.vertical, 10)
                 .background(.bar)
 
-            if viewModel.hasOCRResults || viewModel.hasTranslationResults {
+            if viewModel.hasOCRResults {
                 Divider()
                 PreviewResultsPanel(viewModel: viewModel, isExpanded: $isResultsPanelExpanded)
                     .padding(.horizontal, 16)

@@ -65,45 +65,18 @@ struct MeshGradientView: View {
 }
 
 extension View {
-    /// Applies the advanced macOS 26 Liquid Glass effect
+    /// Standard macOS 26 grouped card style
     func macos26LiquidGlass(cornerRadius: CGFloat = DesignSystem.Radii.card) -> some View {
         self
             .padding(20)
-            .background {
-                ZStack {
-                    // Deep Glass Material
-                    VisualEffectView(material: .selection, blendingMode: .withinWindow)
-                        .opacity(0.4)
-                        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-                    
-                    // Specular Highlight (Inner edge)
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(
-                            LinearGradient(
-                                colors: [.white.opacity(0.4), .clear, .white.opacity(0.1)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.2
-                        )
-                    
-                    // Iridescent Refraction (Center edge)
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(
-                            AngularGradient(
-                                colors: [
-                                    .blue.opacity(0.2),
-                                    .purple.opacity(0.2),
-                                    .cyan.opacity(0.2),
-                                    .blue.opacity(0.2)
-                                ],
-                                center: .center
-                            ),
-                            lineWidth: 0.5
-                        )
-                }
-            }
-            .shadow(color: .black.opacity(0.25), radius: 25, x: 0, y: 12)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color(.controlBackgroundColor))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .stroke(Color.black.opacity(0.05), lineWidth: 0.5)
+            )
     }
     
     /// Icon glow for macOS 26

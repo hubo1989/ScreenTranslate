@@ -74,7 +74,8 @@ final class MenuBarController {
             comment: "Capture Full Screen",
             action: #selector(AppDelegate.captureFullScreen),
             keyEquivalent: "3",
-            target: appDelegate
+            target: appDelegate,
+            imageName: "camera.fill"
         ))
 
         // Capture Selection
@@ -83,7 +84,8 @@ final class MenuBarController {
             comment: "Capture Selection",
             action: #selector(AppDelegate.captureSelection),
             keyEquivalent: "4",
-            target: appDelegate
+            target: appDelegate,
+            imageName: "crop"
         ))
 
         // Translation Mode
@@ -92,7 +94,8 @@ final class MenuBarController {
             comment: "Translation Mode",
             action: #selector(AppDelegate.startTranslationMode),
             keyEquivalent: "t",
-            target: appDelegate
+            target: appDelegate,
+            imageName: "character"
         ))
 
         menu.addItem(NSMenuItem.separator())
@@ -101,7 +104,8 @@ final class MenuBarController {
         let recentItem = createMenuItem(
             titleKey: "menu.recent.captures",
             comment: "Recent Captures",
-            action: nil
+            action: nil,
+            imageName: "photo.stack"
         )
         recentCapturesMenu = buildRecentCapturesMenu()
         recentItem.submenu = recentCapturesMenu
@@ -115,7 +119,8 @@ final class MenuBarController {
             comment: "Translation History",
             action: #selector(AppDelegate.openHistory),
             keyEquivalent: "h",
-            target: appDelegate
+            target: appDelegate,
+            imageName: "clock.arrow.circlepath"
         ))
 
         menu.addItem(NSMenuItem.separator())
@@ -127,7 +132,8 @@ final class MenuBarController {
             action: #selector(AppDelegate.openSettings),
             keyEquivalent: ",",
             modifierMask: [.command],
-            target: appDelegate
+            target: appDelegate,
+            imageName: "gearshape"
         ))
 
         menu.addItem(NSMenuItem.separator())
@@ -138,7 +144,8 @@ final class MenuBarController {
             comment: "Quit ScreenTranslate",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q",
-            modifierMask: [.command]
+            modifierMask: [.command],
+            imageName: "power"
         ))
 
         return menu
@@ -151,7 +158,8 @@ final class MenuBarController {
         action: Selector?,
         keyEquivalent: String = "",
         modifierMask: NSEvent.ModifierFlags = [.command, .shift],
-        target: AnyObject? = nil
+        target: AnyObject? = nil,
+        imageName: String? = nil
     ) -> NSMenuItem {
         let item = NSMenuItem(
             title: NSLocalizedString(titleKey, tableName: "Localizable", bundle: .main, comment: comment),
@@ -160,6 +168,12 @@ final class MenuBarController {
         )
         item.keyEquivalentModifierMask = modifierMask
         item.target = target
+
+        if let imageName = imageName,
+           let image = NSImage(systemSymbolName: imageName, accessibilityDescription: nil) {
+            item.image = image
+        }
+
         return item
     }
 

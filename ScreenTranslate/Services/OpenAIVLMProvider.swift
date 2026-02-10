@@ -66,6 +66,9 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         }
     }
 
+    /// Maximum number of continuation attempts when response is truncated
+    private let maxContinuationAttempts = 3
+
     func analyze(image: CGImage) async throws -> ScreenAnalysisResult {
         guard let imageData = image.jpegData(quality: 0.85), !imageData.isEmpty else {
             throw VLMProviderError.imageEncodingFailed
@@ -73,17 +76,192 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
         let base64Image = imageData.base64EncodedString()
         let imageSize = CGSize(width: image.width, height: image.height)
-        let request = try buildRequest(base64Image: base64Image)
-        let responseData = try await executeRequest(request)
-        let vlmResponse = try parseOpenAIResponse(responseData)
+
+        // Use multi-turn conversation with continuation support
+        let vlmResponse = try await analyzeWithContinuation(
+            base64Image: base64Image,
+            imageSize: imageSize,
+            maxAttempts: maxContinuationAttempts
+        )
 
         return vlmResponse.toScreenAnalysisResult(imageSize: imageSize)
     }
 
+    /// Performs analysis with automatic continuation on truncation
+    private func analyzeWithContinuation(
+        base64Image: String,
+        imageSize: CGSize,
+        maxAttempts: Int
+    ) async throws -> VLMAnalysisResponse {
+        var allSegments: [VLMTextSegment] = []
+        var conversationMessages: [OpenAIChatMessage] = [
+            OpenAIChatMessage(
+                role: "system",
+                content: .text(VLMPromptTemplate.systemPrompt)
+            ),
+            OpenAIChatMessage(
+                role: "user",
+                content: .vision([
+                    .text(VLMPromptTemplate.userPrompt),
+                    .imageURL(OpenAIImageURL(
+                        url: "data:image/jpeg;base64,\(base64Image)"
+                    )),
+                ])
+            ),
+        ]
+
+        for attempt in 0..<maxAttempts {
+            let isContinuation = attempt > 0
+            let request = try buildRequest(messages: conversationMessages, isContinuation: isContinuation)
+            let responseData = try await executeRequest(request)
+
+            let (content, isTruncated, finishReason) = try extractContentAndStatus(from: responseData)
+
+            print("[OpenAI] Attempt \(attempt + 1)/\(maxAttempts): received \(content.count) chars, finish_reason=\(finishReason ?? "unknown")")
+
+            // Try to parse this response
+            do {
+                let response = try parseVLMContent(content)
+                allSegments.append(contentsOf: response.segments)
+                print("[OpenAI] Parsed \(response.segments.count) segments from this response")
+
+                if !isTruncated {
+                    // Complete - return merged result
+                    print("[OpenAI] Complete response received, total \(allSegments.count) segments")
+                    return VLMAnalysisResponse(segments: allSegments)
+                }
+            } catch {
+                print("[OpenAI] Parse error on attempt \(attempt + 1): \(error)")
+
+                // Try partial parsing for truncated response
+                if isTruncated {
+                    if let partial = try? parsePartialVLMContent(content) {
+                        allSegments.append(contentsOf: partial.segments)
+                        print("[OpenAI] Partial parse recovered \(partial.segments.count) segments")
+                    }
+                }
+
+                // If not truncated but parse failed, this is a real error
+                if !isTruncated {
+                    throw error
+                }
+            }
+
+            // Response truncated, need to continue
+            print("[OpenAI] Response truncated, requesting continuation...")
+
+            // Add assistant's partial response to conversation
+            conversationMessages.append(OpenAIChatMessage(
+                role: "assistant",
+                content: .text(content)
+            ))
+
+            // Request continuation - ask for complete output this time
+            conversationMessages.append(OpenAIChatMessage(
+                role: "user",
+                content: .text("Continue from where you left off. Return ONLY the complete JSON array of remaining segments. Do not repeat segments already returned.")
+            ))
+        }
+
+        print("[OpenAI] Max continuation attempts reached, returning \(allSegments.count) accumulated segments")
+        return VLMAnalysisResponse(segments: allSegments)
+    }
+
+    /// Extracts content text and truncation status from OpenAI response
+    private func extractContentAndStatus(from data: Data) throws -> (content: String, isTruncated: Bool, finishReason: String?) {
+        // Log raw response first for debugging
+        if let rawJSON = String(data: data, encoding: .utf8) {
+            print("[OpenAI] Raw response (\(data.count) bytes): \(rawJSON.prefix(500))...")
+        }
+
+        // Check for error response first
+        if let errorResponse = try? JSONDecoder().decode(OpenAIErrorResponse.self, from: data),
+           !errorResponse.error.message.isEmpty {
+            throw VLMProviderError.invalidResponse(errorResponse.error.message)
+        }
+
+        // Try to parse as OpenAI response
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+        let openAIResponse: OpenAIChatResponse
+        do {
+            openAIResponse = try decoder.decode(OpenAIChatResponse.self, from: data)
+        } catch {
+            // If JSON decoding fails, try to extract content manually using regex
+            // This handles cases where the JSON structure is broken
+            if let rawJSON = String(data: data, encoding: .utf8),
+               let content = extractContentManually(from: rawJSON) {
+                let isTruncated = rawJSON.contains("\"finish_reason\":\"length\"") ||
+                                 rawJSON.contains("\"finish_reason\": \"length\"")
+                print("[OpenAI] Manually extracted content (truncated: \(isTruncated))")
+                return (content, isTruncated, isTruncated ? "length" : nil)
+            }
+
+            let rawJSON = String(data: data, encoding: .utf8) ?? "<unable to decode>"
+            throw VLMProviderError.parsingFailed("Failed to decode OpenAI response: \(error.localizedDescription). Raw: \(rawJSON.prefix(300))")
+        }
+
+        guard let choices = openAIResponse.choices, !choices.isEmpty else {
+            throw VLMProviderError.invalidResponse("No choices in response")
+        }
+
+        let choice = choices[0]
+
+        guard let message = choice.message else {
+            throw VLMProviderError.invalidResponse("No message in choice")
+        }
+
+        guard let content = message.content else {
+            let reason = choice.finishReason ?? "unknown"
+            throw VLMProviderError.invalidResponse("No content in response (finish_reason: \(reason))")
+        }
+
+        let isTruncated = choice.finishReason == "length"
+        return (content, isTruncated, choice.finishReason)
+    }
+
+    /// Attempts to extract content field manually when JSON decoder fails
+    private func extractContentManually(from json: String) -> String? {
+        // Look for "content":"..." pattern, handling escaped quotes
+        // The content field in OpenAI response contains the assistant's message
+        // which may have escaped quotes like \"
+
+        // Try to find content between "content":" and the next unescaped "
+        if let range = json.range(of: "\"content\":\"") {
+            let start = range.upperBound
+            var end = start
+            var escaped = false
+
+            for char in json[start...] {
+                if escaped {
+                    escaped = false
+                    end = json.index(after: end)
+                } else if char == "\\" {
+                    escaped = true
+                    end = json.index(after: end)
+                } else if char == "\"" {
+                    break
+                } else {
+                    end = json.index(after: end)
+                }
+            }
+
+            let content = String(json[start..<end])
+            // Unescape the content
+            return content
+                .replacingOccurrences(of: "\\\"", with: "\"")
+                .replacingOccurrences(of: "\\\\", with: "\\")
+                .replacingOccurrences(of: "\\n", with: "\n")
+        }
+
+        return nil
+    }
+
     // MARK: - Private Methods
 
-    /// Builds the URLRequest for OpenAI Chat Completions API
-    private func buildRequest(base64Image: String) throws -> URLRequest {
+    /// Builds the URLRequest for OpenAI Chat Completions API with custom messages
+    private func buildRequest(messages: [OpenAIChatMessage], isContinuation: Bool = false) throws -> URLRequest {
         let endpoint = configuration.baseURL.appendingPathComponent("chat/completions")
 
         var request = URLRequest(url: endpoint)
@@ -92,24 +270,13 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = timeout
 
+        // Use higher max_tokens for continuation requests
+        let maxTokens = isContinuation ? 16384 : 8192
+
         let requestBody = OpenAIChatRequest(
             model: configuration.modelName,
-            messages: [
-                OpenAIChatMessage(
-                    role: "system",
-                    content: .text(VLMPromptTemplate.systemPrompt)
-                ),
-                OpenAIChatMessage(
-                    role: "user",
-                    content: .vision([
-                        .text(VLMPromptTemplate.userPrompt),
-                        .imageURL(OpenAIImageURL(
-                            url: "data:image/jpeg;base64,\(base64Image)"
-                        )),
-                    ])
-                ),
-            ],
-            maxTokens: 4096,
+            messages: messages,
+            maxTokens: maxTokens,
             temperature: 0.1
         )
 
@@ -124,9 +291,12 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     private func executeRequest(_ request: URLRequest) async throws -> Data {
         let (data, response): (Data, URLResponse)
 
+        print("[OpenAI] Sending request to: \(request.url?.absoluteString ?? "unknown")")
+
         do {
             (data, response) = try await URLSession.shared.data(for: request)
         } catch let error as URLError {
+            print("[OpenAI] Network error: \(error)")
             switch error.code {
             case .timedOut:
                 throw VLMProviderError.networkError("Request timed out")
@@ -136,12 +306,15 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 throw VLMProviderError.networkError(error.localizedDescription)
             }
         } catch {
+            print("[OpenAI] Unknown error: \(error)")
             throw VLMProviderError.networkError(error.localizedDescription)
         }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw VLMProviderError.invalidResponse("Invalid HTTP response")
         }
+
+        print("[OpenAI] HTTP status: \(httpResponse.statusCode), Data size: \(data.count) bytes")
 
         try handleHTTPStatus(httpResponse, data: data)
 
@@ -203,30 +376,15 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         return errorResponse.error.message
     }
 
-    /// Parses OpenAI response and extracts VLM analysis
-    private func parseOpenAIResponse(_ data: Data) throws -> VLMAnalysisResponse {
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-
-        let openAIResponse: OpenAIChatResponse
-        do {
-            openAIResponse = try decoder.decode(OpenAIChatResponse.self, from: data)
-        } catch {
-            throw VLMProviderError.parsingFailed("Failed to decode OpenAI response: \(error.localizedDescription)")
-        }
-
-        guard let choice = openAIResponse.choices.first,
-              let content = choice.message.content
-        else {
-            throw VLMProviderError.invalidResponse("No content in response")
-        }
-
-        return try parseVLMContent(content)
-    }
-
     /// Parses the VLM JSON content from assistant message
-    private func parseVLMContent(_ content: String) throws -> VLMAnalysisResponse {
-        let cleanedContent = extractJSON(from: content)
+    private func parseVLMContent(_ content: String, wasTruncated: Bool = false) throws -> VLMAnalysisResponse {
+        var cleanedContent = extractJSON(from: content)
+
+        // If response was truncated, try to repair the JSON by closing open brackets
+        if wasTruncated {
+            print("[OpenAI] Attempting to repair truncated JSON...")
+            cleanedContent = attemptToRepairJSON(cleanedContent)
+        }
 
         guard let jsonData = cleanedContent.data(using: .utf8) else {
             throw VLMProviderError.parsingFailed("Failed to convert content to data")
@@ -236,16 +394,82 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             let response = try JSONDecoder().decode(VLMAnalysisResponse.self, from: jsonData)
             return response
         } catch {
+            if wasTruncated {
+                throw VLMProviderError.invalidResponse("Response was truncated due to token limit. Try selecting a smaller area or using a model with larger context window.")
+            }
             throw VLMProviderError.parsingFailed(
                 "Failed to parse VLM response JSON: \(error.localizedDescription). Content: \(cleanedContent.prefix(200))..."
             )
         }
     }
 
+    /// Attempts to parse partial/truncated VLM content by extracting valid JSON segments
+    private func parsePartialVLMContent(_ content: String) throws -> VLMAnalysisResponse {
+        let cleanedContent = extractJSON(from: content)
+
+        // Try to find the last complete segment object
+        // Look for the last complete "}" that closes a segment
+        if let lastCompleteBlockEnd = cleanedContent.range(of: "}", options: .backwards) {
+            let truncatedContent = String(cleanedContent[..<lastCompleteBlockEnd.upperBound])
+
+            // Try to complete the JSON structure
+            var completedJSON = truncatedContent
+            if !truncatedContent.hasSuffix("]") {
+                completedJSON += "]"
+            }
+            if !completedJSON.hasSuffix("}") {
+                completedJSON += "}"
+            }
+
+            guard let jsonData = completedJSON.data(using: .utf8) else {
+                throw VLMProviderError.parsingFailed("Failed to convert partial content to data")
+            }
+
+            do {
+                let response = try JSONDecoder().decode(VLMAnalysisResponse.self, from: jsonData)
+                print("[OpenAI] Successfully parsed partial response with \(response.segments.count) segments")
+                return response
+            } catch {
+                // If that didn't work, return empty result with warning
+                print("[OpenAI] Partial parse failed, returning empty result")
+                return VLMAnalysisResponse(segments: [])
+            }
+        }
+
+        // Last resort: return empty result
+        return VLMAnalysisResponse(segments: [])
+    }
+
+    /// Attempts to repair truncated JSON by closing open structures
+    private func attemptToRepairJSON(_ json: String) -> String {
+        var repaired = json
+
+        // Count unclosed brackets
+        let openBraces = repaired.filter { $0 == "{" }.count - repaired.filter { $0 == "}" }.count
+        let openBrackets = repaired.filter { $0 == "[" }.count - repaired.filter { $0 == "]" }.count
+
+        // Close any open strings (if odd number of unescaped quotes)
+        let quoteCount = repaired.filter { $0 == "\"" }.count
+        if quoteCount % 2 != 0 {
+            repaired += "\""
+        }
+
+        // Close objects and arrays
+        for _ in 0..<openBraces {
+            repaired += "}"
+        }
+        for _ in 0..<openBrackets {
+            repaired += "]"
+        }
+
+        return repaired
+    }
+
     /// Extracts JSON from potentially markdown-wrapped content
     private func extractJSON(from content: String) -> String {
         var text = content.trimmingCharacters(in: .whitespacesAndNewlines)
 
+        // Handle markdown code blocks
         if text.hasPrefix("```json") {
             text = String(text.dropFirst(7))
         } else if text.hasPrefix("```") {
@@ -254,6 +478,19 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
         if text.hasSuffix("```") {
             text = String(text.dropLast(3))
+        }
+
+        // Handle case where response starts with text before JSON
+        if let jsonStart = text.firstIndex(of: "{"), jsonStart != text.startIndex {
+            text = String(text[jsonStart...])
+        }
+
+        // Handle case where there's text after the JSON
+        if let jsonEnd = text.lastIndex(of: "}") {
+            let nextIndex = text.index(after: jsonEnd)
+            if nextIndex < text.endIndex {
+                text = String(text[...jsonEnd])
+            }
         }
 
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -336,14 +573,14 @@ private struct OpenAIImageURL: Encodable, Sendable {
 
 /// OpenAI Chat Completion response structure
 private struct OpenAIChatResponse: Decodable, Sendable {
-    let id: String
-    let choices: [OpenAIChatChoice]
+    let id: String?
+    let choices: [OpenAIChatChoice]?
     let usage: OpenAIUsage?
 }
 
 private struct OpenAIChatChoice: Decodable, Sendable {
-    let index: Int
-    let message: OpenAIResponseMessage
+    let index: Int?
+    let message: OpenAIResponseMessage?
     let finishReason: String?
 
     enum CodingKeys: String, CodingKey {
@@ -353,7 +590,7 @@ private struct OpenAIChatChoice: Decodable, Sendable {
 }
 
 private struct OpenAIResponseMessage: Decodable, Sendable {
-    let role: String
+    let role: String?
     let content: String?
 }
 

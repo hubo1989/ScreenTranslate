@@ -5,173 +5,10 @@ struct EngineSettingsContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Grid(alignment: .leading, horizontalSpacing: 24, verticalSpacing: 20) {
-                GridRow {
-                    Text(localized("settings.ocr.engine"))
-                        .foregroundStyle(.secondary)
-                    OCREnginePicker(viewModel: viewModel)
-                }
-                Divider().opacity(0.1)
-                GridRow {
-                    Text(localized("settings.translation.engine"))
-                        .foregroundStyle(.secondary)
-                    TranslationEnginePicker(viewModel: viewModel)
-                }
-                Divider().opacity(0.1)
-                GridRow {
-                    Text(localized("settings.translation.mode"))
-                        .foregroundStyle(.secondary)
-                    TranslationModePicker(viewModel: viewModel)
-                }
-            }
-            .macos26LiquidGlass()
-
             VLMConfigurationSection(viewModel: viewModel)
 
             TranslationWorkflowSection(viewModel: viewModel)
         }
-    }
-}
-
-struct OCREnginePicker: View {
-    @Bindable var viewModel: SettingsViewModel
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Picker(localized("settings.ocr.engine"), selection: $viewModel.ocrEngine) {
-                    ForEach(OCREngineType.allCases, id: \.self) { engine in
-                        Text(engine.localizedName)
-                            .tag(engine)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                if viewModel.ocrEngine == .paddleOCR && !viewModel.isPaddleOCRInstalled {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.orange)
-                }
-            }
-
-            if viewModel.ocrEngine == .paddleOCR {
-                paddleOCRStatusView
-            }
-        }
-    }
-
-    private var paddleOCRStatusView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                if viewModel.isPaddleOCRInstalled {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                    Text(localized("settings.paddleocr.installed"))
-                        .foregroundStyle(.secondary)
-                    if let version = viewModel.paddleOCRVersion {
-                        Text("(\(version))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.orange)
-                    Text(localized("settings.paddleocr.not.installed"))
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Button {
-                    viewModel.refreshPaddleOCRStatus()
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .buttonStyle(.borderless)
-                .help(localized("settings.paddleocr.refresh"))
-            }
-
-            if !viewModel.isPaddleOCRInstalled {
-                HStack(spacing: 8) {
-                    Button {
-                        viewModel.installPaddleOCR()
-                    } label: {
-                        if viewModel.isInstallingPaddleOCR {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text(localized("settings.paddleocr.installing"))
-                        } else {
-                            Image(systemName: "arrow.down.circle")
-                            Text(localized("settings.paddleocr.install"))
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .disabled(viewModel.isInstallingPaddleOCR)
-
-                    Button {
-                        viewModel.copyPaddleOCRInstallCommand()
-                    } label: {
-                        Image(systemName: "doc.on.doc")
-                        Text(localized("settings.paddleocr.copy.command"))
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-
-                if let error = viewModel.paddleOCRInstallError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .lineLimit(3)
-                }
-
-                Text(localized("settings.paddleocr.install.hint"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(10)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .cornerRadius(8)
-    }
-}
-
-struct TranslationEnginePicker: View {
-    @Bindable var viewModel: SettingsViewModel
-
-    var body: some View {
-        Picker(localized("settings.translation.engine"), selection: $viewModel.translationEngine) {
-            ForEach(TranslationEngineType.allCases, id: \.self) { engine in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(engine.localizedName)
-                    Text(engine.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .tag(engine)
-            }
-        }
-        .pickerStyle(.inline)
-        .disabled(!TranslationEngineType.mtranServer.isAvailable)
-    }
-}
-
-struct TranslationModePicker: View {
-    @Bindable var viewModel: SettingsViewModel
-
-    var body: some View {
-        Picker(localized("settings.translation.mode"), selection: $viewModel.translationMode) {
-            ForEach(TranslationMode.allCases, id: \.self) { mode in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(mode.localizedName)
-                    Text(mode.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .tag(mode)
-            }
-        }
-        .pickerStyle(.inline)
     }
 }
 
@@ -251,9 +88,42 @@ struct VLMConfigurationSection: View {
             Text(viewModel.vlmProvider.providerDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            // Test API Connection Button
+            HStack {
+                Button {
+                    viewModel.testVLMAPI()
+                } label: {
+                    HStack(spacing: 6) {
+                        if viewModel.isTestingVLM {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+                        Image(systemName: "bolt.fill")
+                        Text(localized("settings.vlm.test.button"))
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(viewModel.isTestingVLM)
+
+                Spacer()
+
+                if let result = viewModel.vlmTestResult {
+                    HStack(spacing: 4) {
+                        Image(systemName: viewModel.vlmTestSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundStyle(viewModel.vlmTestSuccess ? Color.green : Color.red)
+                        Text(result)
+                            .font(.caption)
+                            .foregroundStyle(viewModel.vlmTestSuccess ? .secondary : Color.red)
+                            .lineLimit(2)
+                    }
+                }
+            }
+            .padding(.top, 8)
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .background(Color(.controlBackgroundColor))
         .cornerRadius(8)
     }
 }
@@ -311,7 +181,7 @@ struct TranslationWorkflowSection: View {
             }
         }
         .padding()
-        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .background(Color(.controlBackgroundColor))
         .cornerRadius(8)
     }
 }

@@ -52,6 +52,17 @@ final class SettingsViewModel {
     /// PaddleOCR version if installed
     var paddleOCRVersion: String?
 
+    // MARK: - VLM Test State
+
+    /// Whether VLM API test is in progress
+    var isTestingVLM = false
+
+    /// VLM API test result message
+    var vlmTestResult: String?
+
+    /// Whether VLM test was successful
+    var vlmTestSuccess: Bool = false
+
     // MARK: - Computed Properties (Bindings to AppSettings)
 
     /// Save location URL
@@ -554,6 +565,158 @@ final class SettingsViewModel {
         let command = "pip3 install paddleocr paddlepaddle"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(command, forType: .string)
+    }
+
+    // MARK: - VLM API Test
+
+    /// Tests the VLM API connectivity with current configuration
+    func testVLMAPI() {
+        isTestingVLM = true
+        vlmTestResult = nil
+        vlmTestSuccess = false
+
+        Task {
+            do {
+                // Validate configuration
+                let effectiveBaseURL = vlmBaseURL.isEmpty ? vlmProvider.defaultBaseURL : vlmBaseURL
+                let effectiveModel = vlmModelName.isEmpty ? vlmProvider.defaultModelName : vlmModelName
+
+                guard let baseURL = URL(string: effectiveBaseURL) else {
+                    throw ScreenCoderEngineError.invalidConfiguration("Invalid base URL: \(effectiveBaseURL)")
+                }
+
+                if vlmProvider.requiresAPIKey && vlmAPIKey.isEmpty {
+                    throw ScreenCoderEngineError.invalidConfiguration("API key is required for \(vlmProvider.localizedName)")
+                }
+
+                // Test API connectivity
+                let testResult = try await performVLMConnectivityTest(
+                    provider: vlmProvider,
+                    baseURL: baseURL,
+                    apiKey: vlmAPIKey,
+                    modelName: effectiveModel
+                )
+
+                await MainActor.run {
+                    vlmTestSuccess = testResult.success
+                    vlmTestResult = testResult.message
+                }
+
+            } catch let error as ScreenCoderEngineError {
+                await MainActor.run {
+                    vlmTestSuccess = false
+                    vlmTestResult = error.localizedDescription
+                }
+            } catch let error as VLMProviderError {
+                await MainActor.run {
+                    vlmTestSuccess = false
+                    vlmTestResult = error.errorDescription ?? error.localizedDescription
+                }
+            } catch {
+                await MainActor.run {
+                    vlmTestSuccess = false
+                    vlmTestResult = "Connection failed: \(error.localizedDescription)"
+                }
+            }
+
+            await MainActor.run {
+                isTestingVLM = false
+            }
+        }
+    }
+
+    /// Performs actual connectivity test for different VLM providers
+    private func performVLMConnectivityTest(
+        provider: VLMProviderType,
+        baseURL: URL,
+        apiKey: String,
+        modelName: String
+    ) async throws -> (success: Bool, message: String) {
+        switch provider {
+        case .openai:
+            return try await testOpenAIConnection(baseURL: baseURL, apiKey: apiKey, modelName: modelName)
+        case .claude:
+            return try await testClaudeConnection(baseURL: baseURL, apiKey: apiKey, modelName: modelName)
+        case .ollama:
+            return try await testOllamaConnection(baseURL: baseURL, modelName: modelName)
+        }
+    }
+
+    /// Tests OpenAI API connection by fetching available models
+    private func testOpenAIConnection(baseURL: URL, apiKey: String, modelName: String) async throws -> (success: Bool, message: String) {
+        var request = URLRequest(url: baseURL.appendingPathComponent("models"))
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 10
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw VLMProviderError.invalidResponse("Invalid HTTP response")
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            return (true, "API connection successful! Model: \(modelName)")
+        case 401:
+            throw VLMProviderError.authenticationFailed
+        case 429:
+            throw VLMProviderError.rateLimited(retryAfter: nil)
+        default:
+            throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
+        }
+    }
+
+    /// Tests Claude API connection
+    private func testClaudeConnection(baseURL: URL, apiKey: String, modelName: String) async throws -> (success: Bool, message: String) {
+        var request = URLRequest(url: baseURL.appendingPathComponent("models"))
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.timeoutInterval = 10
+
+        let (_, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw VLMProviderError.invalidResponse("Invalid HTTP response")
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            return (true, "API connection successful! Model: \(modelName)")
+        case 401:
+            throw VLMProviderError.authenticationFailed
+        default:
+            throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
+        }
+    }
+
+    /// Tests Ollama connection by checking if server is running
+    private func testOllamaConnection(baseURL: URL, modelName: String) async throws -> (success: Bool, message: String) {
+        var request = URLRequest(url: baseURL.appendingPathComponent("api/tags"))
+        request.timeoutInterval = 5
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw VLMProviderError.networkError("Ollama server not responding")
+        }
+
+        // Check if the configured model is available
+        struct OllamaTagsResponse: Codable {
+            struct Model: Codable {
+                let name: String
+            }
+            let models: [Model]
+        }
+
+        let tagsResponse = try JSONDecoder().decode(OllamaTagsResponse.self, from: data)
+        let availableModels = tagsResponse.models.map { $0.name }
+
+        if availableModels.contains(where: { $0.hasPrefix(modelName) }) {
+            return (true, "Server running. Model '\(modelName)' available")
+        } else {
+            let modelsList = availableModels.isEmpty ? "none" : availableModels.joined(separator: ", ")
+            return (true, "Server running. Available: \(modelsList)")
+        }
     }
 }
 
