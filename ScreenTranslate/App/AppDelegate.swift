@@ -6,7 +6,6 @@ import os
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
-    private var recentCapturesStore: RecentCapturesStore?
     private var fullScreenHotkeyRegistration: HotkeyManager.Registration?
     private var selectionHotkeyRegistration: HotkeyManager.Registration?
     private var translationModeHotkeyRegistration: HotkeyManager.Registration?
@@ -20,17 +19,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Ensure we're a menu bar only app (no dock icon)
         NSApp.setActivationPolicy(.accessory)
 
-        // Initialize recent captures store
-        recentCapturesStore = RecentCapturesStore(settings: settings)
-
         // Set up menu bar
-        if let store = recentCapturesStore {
-            menuBarController = MenuBarController(
-                appDelegate: self,
-                recentCapturesStore: store
-            )
-            menuBarController?.setup()
-        }
+        menuBarController = MenuBarController(appDelegate: self)
+        menuBarController?.setup()
 
         // Register global hotkeys
         Task {
@@ -41,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             await checkFirstLaunchAndShowOnboarding()
         }
-        
+
         // Check PaddleOCR availability in background (non-blocking)
         PaddleOCRChecker.checkAvailabilityAsync()
 
@@ -230,10 +221,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 Logger.capture.info("Capture successful: \(screenshot.formattedDimensions)")
 
                 // Show preview window
-                PreviewWindowController.shared.showPreview(for: screenshot) { [weak self] savedURL in
-                    // Add to recent captures when saved
-                    self?.addRecentCapture(filePath: savedURL, image: screenshot.image)
-                }
+                PreviewWindowController.shared.showPreview(for: screenshot)
 
             } catch let error as ScreenTranslateError {
                 showCaptureError(error)
@@ -296,9 +284,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Logger.capture.info("Region capture successful: \(screenshot.formattedDimensions)")
 
             await MainActor.run {
-                PreviewWindowController.shared.showPreview(for: screenshot) { [weak self] savedURL in
-                    self?.addRecentCapture(filePath: savedURL, image: screenshot.image)
-                }
+                PreviewWindowController.shared.showPreview(for: screenshot)
             }
 
         } catch let error as ScreenTranslateError {
@@ -441,13 +427,5 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.addButton(withTitle: NSLocalizedString("error.ok", comment: "OK"))
             alert.runModal()
         }
-    }
-
-    // MARK: - Recent Captures
-
-    /// Adds a capture to recent captures store
-    func addRecentCapture(filePath: URL, image: CGImage) {
-        recentCapturesStore?.add(filePath: filePath, image: image)
-        menuBarController?.updateRecentCapturesMenu()
     }
 }

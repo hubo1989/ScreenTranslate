@@ -83,9 +83,6 @@
 "menu.capture.fullscreen" = "全屏截图";
 "menu.capture.selection" = "区域截图";
 "menu.translation.mode" = "截图翻译";
-"menu.recent.captures" = "最近截图";
-"menu.recent.captures.empty" = "没有最近截图";
-"menu.recent.captures.clear" = "清除最近截图";
 "menu.translation.history" = "翻译历史";
 "menu.settings" = "设置...";
 "menu.quit" = "退出 ScreenTranslate";
@@ -501,15 +498,19 @@
 "translationFlow.phase.failed" = "失败";
 
 "translationFlow.error.title" = "翻译错误";
+"translationFlow.error.title.analysis" = "图像识别失败";
+"translationFlow.error.title.translation" = "翻译失败";
+"translationFlow.error.title.rendering" = "渲染失败";
 "translationFlow.error.unknown" = "发生未知错误。";
 "translationFlow.error.analysis %@" = "分析失败：%@";
 "translationFlow.error.translation %@" = "翻译失败：%@";
 "translationFlow.error.rendering %@" = "渲染失败：%@";
 "translationFlow.error.cancelled" = "翻译已取消。";
 "translationFlow.error.noTextFound" = "选中区域未找到文字。";
+"translationFlow.error.translation.engine" = "翻译引擎";
 
-"translationFlow.recovery.analysis" = "请使用更清晰的图像重试。";
-"translationFlow.recovery.translation" = "请检查网络连接后重试。";
+"translationFlow.recovery.analysis" = "请使用更清晰的图像重试，或检查 VLM 提供商设置。";
+"translationFlow.recovery.translation" = "请检查翻译引擎设置和网络连接后重试。";
 "translationFlow.recovery.rendering" = "请重试。";
 "translationFlow.recovery.noTextFound" = "请尝试选择包含可见文字的区域。";
 

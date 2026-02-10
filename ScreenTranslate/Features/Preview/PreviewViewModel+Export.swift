@@ -53,7 +53,6 @@ extension PreviewViewModel {
             )
 
             screenshot = screenshot.saved(to: fileURL)
-            recentCapturesStore.add(filePath: fileURL, image: image)
             onSave?(fileURL)
             hide()
         } catch let error as ScreenTranslateError {

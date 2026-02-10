@@ -83,9 +83,6 @@
 "menu.capture.fullscreen" = "Capture Full Screen";
 "menu.capture.selection" = "Capture Selection";
 "menu.translation.mode" = "Translation Mode";
-"menu.recent.captures" = "Recent Captures";
-"menu.recent.captures.empty" = "No Recent Captures";
-"menu.recent.captures.clear" = "Clear Recent";
 "menu.translation.history" = "Translation History";
 "menu.settings" = "Settings...";
 "menu.quit" = "Quit ScreenTranslate";
@@ -501,15 +498,19 @@
 "translationFlow.phase.failed" = "Failed";
 
 "translationFlow.error.title" = "Translation Error";
+"translationFlow.error.title.analysis" = "Image Recognition Failed";
+"translationFlow.error.title.translation" = "Translation Failed";
+"translationFlow.error.title.rendering" = "Rendering Failed";
 "translationFlow.error.unknown" = "An unknown error occurred.";
 "translationFlow.error.analysis %@" = "Analysis failed: %@";
 "translationFlow.error.translation %@" = "Translation failed: %@";
 "translationFlow.error.rendering %@" = "Rendering failed: %@";
 "translationFlow.error.cancelled" = "Translation was cancelled.";
 "translationFlow.error.noTextFound" = "No text found in the selected area.";
+"translationFlow.error.translation.engine" = "Translation Engine";
 
-"translationFlow.recovery.analysis" = "Please try again with a clearer image.";
-"translationFlow.recovery.translation" = "Check your network connection and try again.";
+"translationFlow.recovery.analysis" = "Please try again with a clearer image, or check your VLM provider settings.";
+"translationFlow.recovery.translation" = "Check your translation engine settings and network connection, then try again.";
 "translationFlow.recovery.rendering" = "Please try again.";
 "translationFlow.recovery.noTextFound" = "Try selecting an area with visible text.";
 

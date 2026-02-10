@@ -5,9 +5,6 @@ import AppKit
 struct HistoryView: View {
     @ObservedObject var store: HistoryStore
 
-    /// Currently selected entry for context menu
-    @State private var contextMenuEntry: TranslationHistory?
-
     /// Scroll position for detecting load more
     @Namespace private var scrollNamespace
 
@@ -35,12 +32,6 @@ struct HistoryView: View {
                         // History entries
                         ForEach(store.filteredEntries) { entry in
                             HistoryEntryRow(entry: entry, store: store)
-                                .contextMenu {
-                                    EntryContextMenu(
-                                        entry: entry,
-                                        store: store
-                                    )
-                                }
                         }
                     }
                 }
@@ -175,63 +166,43 @@ private struct LoadMoreTrigger: View {
 
 // MARK: - History Entry Row
 
-/// Row displaying a single history entry.
+/// Row displaying a single history entry with source and translated text.
+/// Layout adapts based on text shape: wide text → vertical (top/bottom), tall text → horizontal (side-by-side).
 private struct HistoryEntryRow: View {
     let entry: TranslationHistory
     @ObservedObject var store: HistoryStore
 
+    /// Determines if the text content is "wide" (few lines, long characters per line).
+    /// Wide content uses vertical layout (top/bottom), tall content uses horizontal layout (side-by-side).
+    private var isWideContent: Bool {
+        let text = entry.sourceText
+        let lines = text.components(separatedBy: .newlines)
+        let lineCount = lines.count
+        let maxLineLength = lines.map(\.count).max() ?? 0
+        // Wide: few lines with long content, or single line
+        return lineCount <= 3 || maxLineLength > 40
+    }
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Thumbnail
-            ThumbnailView(entry: entry)
+        VStack(alignment: .leading, spacing: 6) {
+            // Header with languages and timestamp
+            HStack {
+                Text(entry.description)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-            // Content
-            VStack(alignment: .leading, spacing: 6) {
-                // Header with languages and timestamp
-                HStack {
-                    Text(entry.description)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                Spacer()
 
-                    Spacer()
-
-                    Text(entry.formattedTimestamp)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-
-                // Source text
-                TextSection(
-                    text: entry.sourcePreview,
-                    isTruncated: entry.isSourceTruncated,
-                    label: String(localized: "history.source")
-                )
-
-                // Arrow separator
-                HStack(spacing: 4) {
-                    Rectangle()
-                        .fill(.secondary.opacity(0.3))
-                        .frame(width: 20, height: 1)
-
-                    Image(systemName: "arrow.down")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-
-                    Rectangle()
-                        .fill(.secondary.opacity(0.3))
-                        .frame(width: 20, height: 1)
-                }
-                .padding(.vertical, 2)
-
-                // Translated text
-                TextSection(
-                    text: entry.translatedPreview,
-                    isTruncated: entry.isTranslatedTruncated,
-                    label: String(localized: "history.translation")
-                )
+                Text(entry.formattedTimestamp)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
 
-            Spacer(minLength: 0)
+            if isWideContent {
+                verticalLayout
+            } else {
+                horizontalLayout
+            }
         }
         .padding(12)
         .background(Color(nsColor: .controlBackgroundColor))
@@ -240,63 +211,78 @@ private struct HistoryEntryRow: View {
         }
         .help(entry.fullDateString)
     }
-}
 
-// MARK: - Thumbnail View
+    /// Vertical layout: source on top, translation below (for wide/short text)
+    private var verticalLayout: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            TextSection(
+                text: entry.sourceText,
+                label: String(localized: "history.source")
+            )
 
-/// Displays a thumbnail image from history entry.
-private struct ThumbnailView: View {
-    let entry: TranslationHistory
-
-    var body: some View {
-        Group {
-            if entry.hasThumbnail, let data = entry.thumbnailData, let nsImage = NSImage(data: data) {
-                Image(nsImage: nsImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 64, height: 64)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else {
-                // Placeholder when no thumbnail
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(.secondary.opacity(0.1))
-                    .frame(width: 64, height: 64)
-                    .overlay {
-                        Image(systemName: "doc.text")
-                            .font(.title2)
-                            .foregroundStyle(.secondary)
-                    }
+            HStack(spacing: 4) {
+                Rectangle()
+                    .fill(.secondary.opacity(0.3))
+                    .frame(width: 20, height: 1)
+                Image(systemName: "arrow.down")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Rectangle()
+                    .fill(.secondary.opacity(0.3))
+                    .frame(width: 20, height: 1)
             }
+            .padding(.vertical, 4)
+
+            TextSection(
+                text: entry.translatedText,
+                label: String(localized: "history.translation")
+            )
+        }
+    }
+
+    /// Horizontal layout: source on left, translation on right (for tall/narrow text)
+    private var horizontalLayout: some View {
+        HStack(alignment: .top, spacing: 0) {
+            TextSection(
+                text: entry.sourceText,
+                label: String(localized: "history.source")
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            VStack(spacing: 4) {
+                Rectangle()
+                    .fill(.secondary.opacity(0.3))
+                    .frame(width: 1, height: 20)
+                Image(systemName: "arrow.right")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Rectangle()
+                    .fill(.secondary.opacity(0.3))
+                    .frame(width: 1, height: 20)
+            }
+            .padding(.horizontal, 8)
+
+            TextSection(
+                text: entry.translatedText,
+                label: String(localized: "history.translation")
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
 
 // MARK: - Text Section
 
-/// Displays a section of text with optional truncation indicator.
+/// Displays a section of text.
 private struct TextSection: View {
     let text: String
-    let isTruncated: Bool
     let label: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(text)
-                .font(.system(.body, design: .rounded))
-                .foregroundStyle(.primary)
-                .lineLimit(4)
-                .textSelection(.enabled)
-
-            if isTruncated {
-                HStack(spacing: 4) {
-                    Image(systemName: "ellipsis")
-                        .font(.caption2)
-                    Text("history.truncated")
-                        .font(.caption2)
-                }
-                .foregroundStyle(.tertiary)
-            }
-        }
+        Text(text)
+            .font(.system(.body, design: .rounded))
+            .foregroundStyle(.primary)
+            .textSelection(.enabled)
     }
 }
 

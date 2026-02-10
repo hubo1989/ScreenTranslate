@@ -27,7 +27,6 @@ final class AppSettings {
         static let strokeWidth = prefix + "strokeWidth"
         static let textSize = prefix + "textSize"
         static let rectangleFilled = prefix + "rectangleFilled"
-        static let recentCaptures = prefix + "recentCaptures"
         static let translationTargetLanguage = prefix + "translationTargetLanguage"
         static let translationSourceLanguage = prefix + "translationSourceLanguage"
         static let translationAutoDetect = prefix + "translationAutoDetect"
@@ -104,11 +103,6 @@ final class AppSettings {
     /// Whether rectangles are filled (solid) by default
     var rectangleFilled: Bool {
         didSet { save(rectangleFilled, forKey: Keys.rectangleFilled) }
-    }
-
-    /// Last 5 saved captures
-    var recentCaptures: [RecentCapture] {
-        didSet { saveRecentCaptures() }
     }
 
     /// Translation target language (nil = use system default)
@@ -242,9 +236,6 @@ final class AppSettings {
         textSize = CGFloat(defaults.object(forKey: Keys.textSize) as? Double ?? 14.0)
         rectangleFilled = defaults.object(forKey: Keys.rectangleFilled) as? Bool ?? false
 
-        // Load recent captures
-        recentCaptures = Self.loadRecentCaptures()
-
         // Load translation settings
         translationTargetLanguage = defaults.string(forKey: Keys.translationTargetLanguage)
             .flatMap { TranslationLanguage(rawValue: $0) }
@@ -290,21 +281,6 @@ final class AppSettings {
         TextStyle(color: strokeColor, fontSize: textSize, fontName: ".AppleSystemUIFont")
     }
 
-    // MARK: - Recent Captures Management
-
-    /// Adds a capture to the recent list (maintains max 5, FIFO)
-    func addRecentCapture(_ capture: RecentCapture) {
-        recentCaptures.insert(capture, at: 0)
-        if recentCaptures.count > 5 {
-            recentCaptures = Array(recentCaptures.prefix(5))
-        }
-    }
-
-    /// Clears all recent captures
-    func clearRecentCaptures() {
-        recentCaptures = []
-    }
-
     // MARK: - Reset
 
     /// Resets all settings to defaults
@@ -321,7 +297,6 @@ final class AppSettings {
         strokeWidth = 2.0
         textSize = 14.0
         rectangleFilled = false
-        recentCaptures = []
         translationTargetLanguage = nil
         translationSourceLanguage = .auto
         translationAutoDetect = true
@@ -365,19 +340,6 @@ final class AppSettings {
         return try? JSONDecoder().decode(CodableColor.self, from: data)
     }
 
-    private func saveRecentCaptures() {
-        if let data = try? JSONEncoder().encode(recentCaptures) {
-            UserDefaults.standard.set(data, forKey: Keys.recentCaptures)
-        }
-    }
-
-    private static func loadRecentCaptures() -> [RecentCapture] {
-        guard let data = UserDefaults.standard.data(forKey: Keys.recentCaptures) else {
-            return []
-        }
-        return (try? JSONDecoder().decode([RecentCapture].self, from: data)) ?? []
-    }
-
     /// Resolves a security-scoped bookmark to a URL
     private static func resolveBookmark(_ bookmarkData: Data) -> URL? {
         var isStale = false
@@ -400,39 +362,5 @@ final class AppSettings {
             Logger.settings.error("Failed to resolve bookmark: \(error.localizedDescription)")
             return nil
         }
-    }
-}
-
-// MARK: - Recent Capture
-
-/// Entry in the recent captures list.
-struct RecentCapture: Identifiable, Codable, Sendable {
-    /// Unique identifier
-    let id: UUID
-
-    /// Location of saved file
-    let filePath: URL
-
-    /// When the screenshot was captured
-    let captureDate: Date
-
-    /// JPEG thumbnail data (max 10KB, 128px on longest edge)
-    let thumbnailData: Data?
-
-    init(id: UUID = UUID(), filePath: URL, captureDate: Date = Date(), thumbnailData: Data? = nil) {
-        self.id = id
-        self.filePath = filePath
-        self.captureDate = captureDate
-        self.thumbnailData = thumbnailData
-    }
-
-    /// The filename without path
-    var filename: String {
-        filePath.lastPathComponent
-    }
-
-    /// Whether the file still exists on disk
-    var fileExists: Bool {
-        FileManager.default.fileExists(atPath: filePath.path)
     }
 }

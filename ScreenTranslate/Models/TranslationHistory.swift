@@ -71,24 +71,24 @@ struct TranslationHistory: Identifiable, Codable, Sendable {
         thumbnailData != nil && !(thumbnailData?.isEmpty ?? true)
     }
 
-    /// Truncated source text for preview (max 100 characters)
+    /// Truncated source text for preview (max 500 characters)
     var sourcePreview: String {
-        String(sourceText.prefix(100))
+        String(sourceText.prefix(500))
     }
 
-    /// Truncated translated text for preview (max 100 characters)
+    /// Truncated translated text for preview (max 500 characters)
     var translatedPreview: String {
-        String(translatedText.prefix(100))
+        String(translatedText.prefix(500))
     }
 
     /// Whether the source text is longer than preview
     var isSourceTruncated: Bool {
-        sourceText.count > 100
+        sourceText.count > 500
     }
 
     /// Whether the translated text is longer than preview
     var isTranslatedTruncated: Bool {
-        translatedText.count > 100
+        translatedText.count > 500
     }
 
     /// Formatted timestamp string

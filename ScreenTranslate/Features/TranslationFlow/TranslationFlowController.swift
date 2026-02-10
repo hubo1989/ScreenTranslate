@@ -251,6 +251,13 @@ final class TranslationFlowController {
 
             currentPhase = .completed
 
+            // Save to translation history
+            await saveToHistory(
+                originalImage: image,
+                segments: bilingualSegments,
+                renderedImage: renderedImage
+            )
+
             showResultWindow(renderedImage: renderedImage)
 
         } catch is CancellationError {
@@ -282,22 +289,67 @@ final class TranslationFlowController {
         BilingualResultWindowController.shared.showResult(image: renderedImage)
     }
 
+    private func saveToHistory(
+        originalImage: CGImage,
+        segments: [BilingualSegment],
+        renderedImage: CGImage
+    ) async {
+        // Combine all source text and translated text
+        let sourceText = segments.map { $0.original.text }.joined(separator: "\n")
+        let translatedText = segments.map { $0.translated }.joined(separator: "\n")
+
+        // Get language info from first segment (all segments should have same language pair)
+        let sourceLanguage = segments.first?.sourceLanguage ?? "auto"
+        let targetLanguage = segments.first?.targetLanguage ?? "zh-Hans"
+
+        // Create TranslationResult
+        let result = TranslationResult(
+            sourceText: sourceText,
+            translatedText: translatedText,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage
+        )
+
+        // Save to history with thumbnail
+        await MainActor.run {
+            HistoryWindowController.shared.addTranslation(
+                result: result,
+                image: originalImage
+            )
+        }
+    }
+
     private func showErrorAlert(_ error: TranslationFlowError) {
         NSApp.activate(ignoringOtherApps: true)
 
         let alert = NSAlert()
-        alert.messageText = String(localized: "translationFlow.error.title")
+
+        // Use different titles for different error types
+        switch error {
+        case .analysisFailure, .noTextFound:
+            alert.messageText = String(localized: "translationFlow.error.title.analysis")
+        case .translationFailure:
+            alert.messageText = String(localized: "translationFlow.error.title.translation")
+        case .renderingFailure:
+            alert.messageText = String(localized: "translationFlow.error.title.rendering")
+        case .cancelled:
+            alert.messageText = String(localized: "translationFlow.error.title")
+        }
 
         var errorDetails = error.errorDescription ?? String(localized: "translationFlow.error.unknown")
 
-        // Add provider info for analysis/translation errors
-        switch error {
-        case .analysisFailure:
+        // Add provider info for analysis errors
+        if case .analysisFailure = error {
             let settings = AppSettings.shared
             errorDetails += "\n\nProvider: \(settings.vlmProvider.localizedName)"
             errorDetails += "\nModel: \(settings.vlmModelName)"
-        default:
-            break
+        }
+
+        // Add provider info for translation errors
+        if case .translationFailure = error {
+            let settings = AppSettings.shared
+            errorDetails += "\n\n" + String(localized: "translationFlow.error.translation.engine")
+            errorDetails += ": \(settings.preferredTranslationEngine.rawValue)"
         }
 
         alert.informativeText = errorDetails
