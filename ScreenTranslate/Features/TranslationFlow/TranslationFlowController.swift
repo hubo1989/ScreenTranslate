@@ -90,7 +90,7 @@ enum TranslationFlowError: LocalizedError, Sendable, Equatable {
 /// 翻译流程结果
 struct TranslationFlowResult: Sendable {
     let originalImage: CGImage
-    let renderedImage: NSImage
+    let renderedImage: CGImage
     let segments: [BilingualSegment]
     let processingTime: TimeInterval
 }
@@ -270,11 +270,8 @@ final class TranslationFlowController {
         showErrorAlert(error)
     }
 
-    private func showResultWindow(renderedImage: NSImage) {
-        guard let cgImage = renderedImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
-            return
-        }
-        BilingualResultWindowController.shared.showResult(image: cgImage)
+    private func showResultWindow(renderedImage: CGImage) {
+        BilingualResultWindowController.shared.showResult(image: renderedImage)
     }
 
     private func showErrorAlert(_ error: TranslationFlowError) {

@@ -155,8 +155,33 @@ final class SelectionOverlayView: NSView {
     /// Current selection end point (in window coordinates)
     var selectionCurrent: NSPoint?
 
+    /// Currently highlighted window rect (in view coordinates, nil if no window under cursor)
+    private var highlightedWindowRect: CGRect? {
+        didSet {
+            // Only trigger display update when rect actually changes
+            if oldValue != highlightedWindowRect {
+                needsDisplay = true
+            }
+        }
+    }
+
+    /// Window detector for detecting windows under cursor
+    private let windowDetector = WindowDetector.shared
+
+    /// Cached window list for current interaction (refreshed on mouseDown)
+    private var cachedWindows: [WindowInfo] = []
+
     /// Whether the user is currently dragging
     private var isDragging = false
+
+    /// Last mouse moved timestamp for throttling
+    private var lastMouseMovedTime: TimeInterval = 0
+
+    /// Throttle interval for window detection (16ms ≈ 60fps)
+    private let windowDetectionThrottleInterval: TimeInterval = 0.016
+
+    /// Minimum window size to highlight (10x10 pixels)
+    private let minimumWindowSize: CGFloat = 10
 
     /// Dim overlay color
     private let dimColor = NSColor.black.withAlphaComponent(0.3)
@@ -175,6 +200,21 @@ final class SelectionOverlayView: NSView {
 
     /// Crosshair line color
     private let crosshairColor = NSColor.white.withAlphaComponent(0.8)
+
+    /// Window highlight fill color (#46E7F0 with 15% alpha - brighter for better visibility)
+    private let windowHighlightFillColor = NSColor(red: 0.275, green: 0.906, blue: 0.941, alpha: 0.15)
+
+    /// Window highlight stroke color (#46E7F0 with 90% alpha - much brighter and more visible)
+    private let windowHighlightStrokeColor = NSColor(red: 0.275, green: 0.906, blue: 0.941, alpha: 0.9)
+
+    /// Window highlight stroke width (thicker for better visibility)
+    private let windowHighlightStrokeWidth: CGFloat = 4.0
+
+    /// Drag threshold for distinguishing click from drag (in points)
+    private let dragThreshold: CGFloat = 4.0
+
+    /// Mouse down position for click/drag detection
+    private var mouseDownPoint: NSPoint?
 
     /// Tracking area for mouse moved events
     private var trackingArea: NSTrackingArea?
@@ -226,7 +266,7 @@ final class SelectionOverlayView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
-        // Draw dim overlay
+        // Draw dim overlay (with cutout for selection or highlighted window)
         drawDimOverlay(context: context)
 
         // If we have a selection, cut it out and draw the rectangle
@@ -234,34 +274,54 @@ final class SelectionOverlayView: NSView {
             let selectionRect = normalizedRect(from: start, to: current)
             drawSelectionRect(selectionRect, context: context)
             drawDimensionsLabel(for: selectionRect, context: context)
-        } else if let mousePos = mousePosition {
-            // Draw crosshair when not selecting
-            drawCrosshair(at: mousePos, context: context)
+        } else {
+            // Draw window highlight if there's a highlighted window
+            if let highlightRect = highlightedWindowRect {
+                drawWindowHighlight(highlightRect, context: context)
+                drawDimensionsLabel(for: highlightRect, context: context)
+            }
+
+            // Draw crosshair at mouse position
+            if let mousePos = mousePosition {
+                drawCrosshair(at: mousePos, context: context)
+            }
         }
     }
 
     /// Draws the semi-transparent dim overlay
+    /// When there's a selection or highlighted window, creates a cutout using even-odd fill rule
     private func drawDimOverlay(context: CGContext) {
-        if let start = selectionStart, let current = selectionCurrent {
-            // Draw dim with cutout for selection
-            let selectionRect = normalizedRect(from: start, to: current)
+        let hasSelection = selectionStart != nil && selectionCurrent != nil
+        let hasHighlightedWindow = highlightedWindowRect != nil && !isDragging
 
-            context.saveGState()
-
-            // Create path for the entire view minus the selection
-            context.addRect(bounds)
-            context.addRect(selectionRect)
-
-            // Use even-odd rule to create the cutout
-            context.setFillColor(dimColor.cgColor)
-            context.fillPath(using: .evenOdd)
-
-            context.restoreGState()
-        } else {
-            // Full dim when not selecting
+        guard hasSelection || hasHighlightedWindow else {
+            // Full dim when not selecting and no highlighted window
             dimColor.setFill()
             bounds.fill()
+            return
         }
+
+        context.saveGState()
+
+        // Create path for the entire view
+        context.addRect(bounds)
+
+        // Add cutout for selection if present
+        if let start = selectionStart, let current = selectionCurrent {
+            let selectionRect = normalizedRect(from: start, to: current)
+            context.addRect(selectionRect)
+        }
+
+        // Add cutout for highlighted window if present (and not dragging)
+        if !isDragging, let highlightRect = highlightedWindowRect {
+            context.addRect(highlightRect)
+        }
+
+        // Use even-odd rule to create the cutout
+        context.setFillColor(dimColor.cgColor)
+        context.fillPath(using: .evenOdd)
+
+        context.restoreGState()
     }
 
     /// Draws the selection rectangle with border
@@ -302,6 +362,19 @@ final class SelectionOverlayView: NSView {
 
         context.strokePath()
         context.restoreGState()
+    }
+
+    /// Draws the window highlight rectangle with border
+    private func drawWindowHighlight(_ rect: CGRect, context: CGContext) {
+        // Fill
+        windowHighlightFillColor.setFill()
+        rect.fill()
+
+        // Stroke
+        let strokePath = NSBezierPath(rect: rect)
+        strokePath.lineWidth = windowHighlightStrokeWidth
+        windowHighlightStrokeColor.setStroke()
+        strokePath.stroke()
     }
 
     /// Draws the dimensions label near the selection rectangle
@@ -372,98 +445,284 @@ final class SelectionOverlayView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
-        selectionStart = point
-        selectionCurrent = point
-        isDragging = true
+        mouseDownPoint = point
+
+        // Refresh window cache when starting interaction to get fresh window list
+        Task {
+            await windowDetector.invalidateCache()
+            let windows = await windowDetector.visibleWindows()
+            await MainActor.run {
+                self.cachedWindows = windows
+            }
+        }
+
+        // Don't start selection yet - wait to determine if it's a click or drag
         needsDisplay = true
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard isDragging else { return }
+        guard let mouseDownPoint = mouseDownPoint else { return }
 
         let point = convert(event.locationInWindow, from: nil)
-        selectionCurrent = point
+
+        // Calculate distance from mouse down point
+        let distance = hypot(point.x - mouseDownPoint.x, point.y - mouseDownPoint.y)
+
+        // If we haven't started dragging yet and moved beyond threshold, enter drag mode
+        if !isDragging && distance > dragThreshold {
+            isDragging = true
+            selectionStart = mouseDownPoint
+            selectionCurrent = point
+
+            // Clear highlighted window when entering drag mode
+            highlightedWindowRect = nil
+        } else if isDragging {
+            selectionCurrent = point
+        }
+
         needsDisplay = true
     }
 
     override func mouseUp(with event: NSEvent) {
-        guard isDragging,
-              let start = selectionStart,
-              let current = selectionCurrent else { return }
+        guard mouseDownPoint != nil else { return }
 
-        isDragging = false
+        if isDragging {
+            // === DRAG MODE ===
+            guard let start = selectionStart, let current = selectionCurrent else {
+                resetStateAndCancel()
+                return
+            }
 
-        // Calculate final selection rectangle
-        let selectionRect = normalizedRect(from: start, to: current)
+            isDragging = false
 
-        // Only accept selection if it has meaningful size
-        if selectionRect.width >= 10 && selectionRect.height >= 10 {
-            // Convert to screen coordinates
-            guard let window = self.window,
-                  let displayInfo = displayInfo else { return }
+            // Calculate final selection rectangle
+            let selectionRect = normalizedRect(from: start, to: current)
 
-            Logger.capture.debug("=== SELECTION COORDINATE DEBUG ===")
-            Logger.capture.debug("[1] selectionRect (view coords): \(String(describing: selectionRect))")
-            Logger.capture.debug("[2] window.frame: \(String(describing: window.frame))")
-            Logger.capture.debug("[3] window.screen?.frame: \(String(describing: window.screen?.frame))")
+            // Only accept selection if it has meaningful size
+            if selectionRect.width >= 10 && selectionRect.height >= 10 {
+                // Convert to screen coordinates
+                guard let window = self.window,
+                      let displayInfo = displayInfo else {
+                    resetStateAndCancel()
+                    return
+                }
 
-            // The selectionRect is in view coordinates, convert to screen coordinates
-            // screenRect is in Cocoa coordinates (Y=0 at bottom of primary screen)
-            let screenRect = window.convertToScreen(selectionRect)
+                Logger.capture.debug("=== SELECTION COORDINATE DEBUG ===")
+                Logger.capture.debug("[1] selectionRect (view coords): \(String(describing: selectionRect))")
+                Logger.capture.debug("[2] window.frame: \(String(describing: window.frame))")
+                Logger.capture.debug("[3] window.screen?.frame: \(String(describing: window.screen?.frame))")
 
-            Logger.capture.debug("[4] screenRect (after convertToScreen): \(String(describing: screenRect))")
-            let firstScreenFrame = NSScreen.screens.first?.frame
-            Logger.capture.debug("[5] NSScreen.screens.first?.frame: \(String(describing: firstScreenFrame))")
+                // The selectionRect is in view coordinates, convert to screen coordinates
+                // screenRect is in Cocoa coordinates (Y=0 at bottom of primary screen)
+                let screenRect = window.convertToScreen(selectionRect)
 
-            // Get the screen height for coordinate conversion
-            // Use the window's screen, not necessarily the primary screen
-            // Cocoa uses Y=0 at bottom, ScreenCaptureKit/Quartz uses Y=0 at top
-            let screenHeight = window.screen?.frame.height ?? NSScreen.screens.first?.frame.height ?? 0
+                Logger.capture.debug("[4] screenRect (after convertToScreen): \(String(describing: screenRect))")
+                let firstScreenFrame = NSScreen.screens.first?.frame
+                Logger.capture.debug("[5] NSScreen.screens.first?.frame: \(String(describing: firstScreenFrame))")
 
-            Logger.capture.debug("[6] screenHeight for conversion: \(screenHeight)")
+                // Get the screen height for coordinate conversion
+                // Use the window's screen, not necessarily the primary screen
+                // Cocoa uses Y=0 at bottom, ScreenCaptureKit/Quartz uses Y=0 at top
+                let screenHeight = window.screen?.frame.height ?? NSScreen.screens.first?.frame.height ?? 0
 
-            // Convert from Cocoa coordinates (Y=0 at bottom) to Quartz coordinates (Y=0 at top)
-            let quartzY = screenHeight - screenRect.origin.y - screenRect.height
+                Logger.capture.debug("[6] screenHeight for conversion: \(screenHeight)")
 
-            Logger.capture.debug("[7] quartzY (converted): \(quartzY)")
+                // Convert from Cocoa coordinates (Y=0 at bottom) to Quartz coordinates (Y=0 at top)
+                let quartzY = screenHeight - screenRect.origin.y - screenRect.height
 
-            // displayFrame is in Quartz coordinates (from SCDisplay)
-            let displayFrame = displayInfo.frame
+                Logger.capture.debug("[7] quartzY (converted): \(quartzY)")
 
-            Logger.capture.debug("[8] displayInfo.frame (SCDisplay): \(String(describing: displayFrame))")
-            Logger.capture.debug("[9] displayInfo.isPrimary: \(displayInfo.isPrimary)")
+                // displayFrame is in Quartz coordinates (from SCDisplay)
+                let displayFrame = displayInfo.frame
 
-            // Now compute display-relative coordinates (both in Quartz coordinate system)
-            // Round to whole points to minimize fractional pixel issues when scaled
-            let relativeRect = CGRect(
-                x: round(screenRect.origin.x - displayFrame.origin.x),
-                y: round(quartzY - displayFrame.origin.y),
-                width: round(screenRect.width),
-                height: round(screenRect.height)
-            )
+                Logger.capture.debug("[8] displayInfo.frame (SCDisplay): \(String(describing: displayFrame))")
+                Logger.capture.debug("[9] displayInfo.isPrimary: \(displayInfo.isPrimary)")
 
-            Logger.capture.debug("[10] FINAL relativeRect (rounded): \(String(describing: relativeRect))")
-            let normX = relativeRect.origin.x / displayFrame.width
-            let normY = relativeRect.origin.y / displayFrame.height
-            Logger.capture.debug("[11] Normalized would be: x=\(normX), y=\(normY)")
-            Logger.capture.debug("=== END COORDINATE DEBUG ===")
+                // Now compute display-relative coordinates (both in Quartz coordinate system)
+                // Round to whole points to minimize fractional pixel issues when scaled
+                let relativeRect = CGRect(
+                    x: round(screenRect.origin.x - displayFrame.origin.x),
+                    y: round(quartzY - displayFrame.origin.y),
+                    width: round(selectionRect.width),
+                    height: round(selectionRect.height)
+                )
 
-            delegate?.selectionOverlay(didSelectRect: relativeRect, on: displayInfo)
+                Logger.capture.debug("[10] FINAL relativeRect (rounded): \(String(describing: relativeRect))")
+                let normX = relativeRect.origin.x / displayFrame.width
+                let normY = relativeRect.origin.y / displayFrame.height
+                Logger.capture.debug("[11] Normalized would be: x=\(normX), y=\(normY)")
+                Logger.capture.debug("=== END COORDINATE DEBUG ===")
+
+                resetState()
+                delegate?.selectionOverlay(didSelectRect: relativeRect, on: displayInfo)
+            } else {
+                // Too small - cancel
+                resetStateAndCancel()
+            }
         } else {
-            // Too small - cancel
-            delegate?.selectionOverlayDidCancel()
-        }
+            // === CLICK MODE ===
+            if let highlightRect = highlightedWindowRect {
+                // Click on a highlighted window - use window rect
+                guard let window = self.window,
+                      let displayInfo = displayInfo else {
+                    resetStateAndCancel()
+                    return
+                }
 
-        // Reset state
+                Logger.capture.debug("=== CLICK MODE - WINDOW SELECTION ===")
+                Logger.capture.debug("[1] highlightRect (view coords): \(String(describing: highlightRect))")
+
+                // Convert highlight rect to screen coordinates
+                let screenRect = window.convertToScreen(highlightRect)
+
+                Logger.capture.debug("[2] screenRect (after convertToScreen): \(String(describing: screenRect))")
+
+                // Get screen height for coordinate conversion
+                let screenHeight = window.screen?.frame.height ?? NSScreen.screens.first?.frame.height ?? 0
+                Logger.capture.debug("[3] screenHeight for conversion: \(screenHeight)")
+
+                // Convert from Cocoa to Quartz coordinates
+                let quartzY = screenHeight - screenRect.origin.y - screenRect.height
+
+                Logger.capture.debug("[4] quartzY (converted): \(quartzY)")
+
+                let displayFrame = displayInfo.frame
+                Logger.capture.debug("[5] displayInfo.frame (SCDisplay): \(String(describing: displayFrame))")
+
+                // Compute display-relative coordinates
+                let relativeRect = CGRect(
+                    x: round(screenRect.origin.x - displayFrame.origin.x),
+                    y: round(quartzY - displayFrame.origin.y),
+                    width: round(highlightRect.width),
+                    height: round(highlightRect.height)
+                )
+
+                Logger.capture.debug("[6] FINAL relativeRect (rounded): \(String(describing: relativeRect))")
+                Logger.capture.debug("=== END CLICK MODE ===")
+
+                resetState()
+                delegate?.selectionOverlay(didSelectRect: relativeRect, on: displayInfo)
+            } else {
+                // Click on empty area - cancel
+                resetStateAndCancel()
+            }
+        }
+    }
+
+    /// Resets all state variables
+    private func resetState() {
+        mouseDownPoint = nil
         selectionStart = nil
         selectionCurrent = nil
+        isDragging = false
+        highlightedWindowRect = nil
+        cachedWindows = []
+        lastMouseMovedTime = 0
         needsDisplay = true
+    }
+
+    /// Resets state and notifies delegate of cancellation
+    private func resetStateAndCancel() {
+        resetState()
+        delegate?.selectionOverlayDidCancel()
     }
 
     override func mouseMoved(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         mousePosition = point
+
+        // Only detect windows when not dragging
+        if !isDragging {
+            // Throttle window detection to ~60fps (16ms)
+            let currentTime = Date.timeIntervalSinceReferenceDate
+            if currentTime - lastMouseMovedTime >= windowDetectionThrottleInterval {
+                lastMouseMovedTime = currentTime
+                updateHighlightedWindow(at: point)
+            }
+        }
+
+        // Always update crosshair position (not throttled)
         needsDisplay = true
+    }
+
+    /// Updates the highlighted window based on the current mouse position.
+    /// Detects the window under the cursor and converts its frame to view coordinates.
+    /// - Parameter point: The current mouse position in view coordinates
+    private func updateHighlightedWindow(at point: NSPoint) {
+        guard let window = self.window else {
+            highlightedWindowRect = nil
+            return
+        }
+
+        // Convert point from view coordinates to screen coordinates (Cocoa)
+        let screenPoint = window.convertToScreen(
+            NSRect(origin: point, size: .zero)
+        ).origin
+
+        // Convert from Cocoa coordinates (origin at bottom-left) to Quartz coordinates (origin at top-left)
+        let screenHeight = window.screen?.frame.height ?? NSScreen.main?.frame.height ?? 0
+        let quartzPoint = WindowDetector.cocoaToQuartz(screenPoint, screenHeight: screenHeight)
+
+        // Find window under point using WindowDetector (synchronous call)
+        // WindowDetector has its own internal cache for performance
+        Task {
+            if let windowInfo = await windowDetector.windowUnderPoint(quartzPoint) {
+                // Skip windows smaller than minimum size
+                guard windowInfo.frame.width >= minimumWindowSize &&
+                      windowInfo.frame.height >= minimumWindowSize else {
+                    await MainActor.run {
+                        highlightedWindowRect = nil
+                    }
+                    return
+                }
+
+                // Convert window frame from Quartz to Cocoa coordinates
+                let cocoaFrame = WindowDetector.quartzToCocoa(windowInfo.frame, screenHeight: screenHeight)
+
+                // Convert from screen coordinates to view coordinates
+                var viewFrame = self.convertFromScreen(cocoaFrame)
+
+                // Clip the highlight rect to the visible screen bounds
+                viewFrame = viewFrame.intersection(self.bounds)
+
+                // Only set if the clipped rect is still valid
+                await MainActor.run {
+                    if !viewFrame.isEmpty {
+                        highlightedWindowRect = viewFrame
+                    } else {
+                        highlightedWindowRect = nil
+                    }
+                }
+            } else {
+                await MainActor.run {
+                    highlightedWindowRect = nil
+                }
+            }
+        }
+    }
+
+    /// Converts a rectangle from screen coordinates to view coordinates.
+    /// - Parameter screenRect: Rectangle in screen coordinates (Cocoa)
+    /// - Returns: Rectangle in view coordinates
+    private func convertFromScreen(_ screenRect: CGRect) -> CGRect {
+        guard let window = self.window else {
+            return screenRect
+        }
+
+        // Get the window's frame in screen coordinates
+        let windowFrame = window.frame
+
+        // View coordinates are relative to the window's content view
+        // The view's origin (0,0) is at the bottom-left of the window in Cocoa coordinates
+        let viewX = screenRect.origin.x - windowFrame.origin.x
+        let viewY = screenRect.origin.y - windowFrame.origin.y
+
+        return CGRect(
+            x: viewX,
+            y: viewY,
+            width: screenRect.width,
+            height: screenRect.height
+        )
     }
 
     override func mouseEntered(with event: NSEvent) {
@@ -483,12 +742,10 @@ final class SelectionOverlayView: NSView {
     override var acceptsFirstResponder: Bool { true }
 
     override func keyDown(with event: NSEvent) {
-        // Escape key cancels selection
+        // Escape key cancels selection and closes overlay
         if event.keyCode == 53 { // Escape
-            isDragging = false
-            selectionStart = nil
-            selectionCurrent = nil
-            delegate?.selectionOverlayDidCancel()
+            // Reset all state including window highlight
+            resetStateAndCancel()
             return
         }
 

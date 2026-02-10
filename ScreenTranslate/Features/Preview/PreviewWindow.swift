@@ -313,7 +313,10 @@ final class PreviewWindow: NSPanel {
     /// Shows the preview window
     @MainActor
     func showPreview() {
-        viewModel.show()
+        // Delay state modification to avoid "Modifying state during view update" warning
+        DispatchQueue.main.async { [weak self] in
+            self?.viewModel.show()
+        }
         makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
@@ -321,7 +324,10 @@ final class PreviewWindow: NSPanel {
     /// Closes the preview window
     @MainActor
     func closePreview() {
-        viewModel.hide()
+        // Delay state modification to avoid "Modifying state during view update" warning
+        DispatchQueue.main.async { [weak self] in
+            self?.viewModel.hide()
+        }
         close()
     }
 }

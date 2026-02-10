@@ -10,28 +10,52 @@ struct OverlayRenderer: Sendable {
         self.style = style
     }
 
-    func render(image: CGImage, segments: [BilingualSegment]) -> NSImage? {
+    func render(image: CGImage, segments: [BilingualSegment]) -> CGImage? {
         guard !segments.isEmpty else {
-            return NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
+            return image
         }
 
         let originalWidth = CGFloat(image.width)
         let originalHeight = CGFloat(image.height)
+        let aspectRatio = originalWidth / originalHeight
 
-        let rows = groupIntoRows(segments, imageHeight: originalHeight)
-        
-        var rowHeights: [CGFloat] = []
-        for row in rows {
-            let fontSize = max(12, row.avgHeight * 0.7)
-            let font = createFont(size: fontSize)
-            let maxTextHeight = row.segments.map { segment in
-                calculateTextHeight(segment.translated, font: font, maxWidth: originalWidth)
-            }.max() ?? 20
-            rowHeights.append(maxTextHeight + 10)
+        // Determine layout based on aspect ratio
+        // Wide image (landscape): stack vertically (original on top, translation below)
+        // Tall image (portrait): side by side (original on left, translation on right)
+        let isWideImage = aspectRatio >= 1.0
+
+        if isWideImage {
+            return renderSideBySideVertical(image: image, segments: segments)
+        } else {
+            return renderSideBySideHorizontal(image: image, segments: segments)
         }
+    }
 
-        let totalExtraHeight = rowHeights.reduce(0, +)
-        let newHeight = originalHeight + totalExtraHeight
+    /// Renders wide images with original on top, translation list below
+    private func renderSideBySideVertical(image: CGImage, segments: [BilingualSegment]) -> CGImage? {
+        let originalWidth = CGFloat(image.width)
+        let originalHeight = CGFloat(image.height)
+
+        // Calculate translation area height
+        let translationFontSize: CGFloat = max(16, originalHeight * 0.025)
+        let translationFont = createFont(size: translationFontSize)
+        let lineHeight = translationFontSize * 1.5
+
+        // Group segments by row for organized display
+        let rows = groupIntoRows(segments, imageHeight: originalHeight)
+
+        // Calculate required height for translations
+        let maxTextWidth = originalWidth - 40  // Padding on both sides
+        var totalTranslationHeight: CGFloat = 40  // Top padding
+
+        for row in rows {
+            let rowText = row.segments.map { $0.translated }.joined(separator: " ")
+            let textHeight = calculateTextHeight(rowText, font: translationFont, maxWidth: maxTextWidth)
+            totalTranslationHeight += textHeight + lineHeight * 0.5
+        }
+        totalTranslationHeight += 40  // Bottom padding
+
+        let newHeight = originalHeight + totalTranslationHeight
 
         guard let colorSpace = image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB),
               let context = CGContext(
@@ -46,50 +70,154 @@ struct OverlayRenderer: Sendable {
             return nil
         }
 
-        let bgColor = sampleBackgroundColor(from: image) ?? CGColor(gray: 0.1, alpha: 1.0)
-        context.setFillColor(bgColor)
+        // Fill background
+        context.setFillColor(CGColor(gray: 0.95, alpha: 1.0))  // Light gray background
         context.fill(CGRect(x: 0, y: 0, width: originalWidth, height: newHeight))
 
-        // Simple approach: draw original image at top, translations below each row
-        // Calculate Y offset for each row based on how many translation gaps are below it
-        
-        var yOffset: CGFloat = totalExtraHeight
-        
-        // Draw entire original image shifted up by totalExtraHeight
-        context.draw(image, in: CGRect(x: 0, y: yOffset, width: originalWidth, height: originalHeight))
-        
-        // Now draw translations in the gaps below each row
-        for (index, row) in rows.enumerated() {
-            // Translation Y position: below the original text row, accounting for offset
-            // row.bottomY is in top-down coords, convert to bottom-up for drawing
-            let translationY = yOffset + (originalHeight - row.bottomY) - rowHeights[index]
-            
-            let fontSize = max(12, row.avgHeight * 0.7)
-            let font = createFont(size: fontSize)
-            
-            for segment in row.segments {
-                let pixelBox = segment.pixelBoundingBox(in: CGSize(width: originalWidth, height: originalHeight))
-                let textColor = sampleTextColor(from: image, at: pixelBox) ?? CGColor(gray: 0.9, alpha: 1.0)
-                
-                renderTranslation(
-                    segment.translated,
-                    in: context,
-                    at: CGRect(x: pixelBox.origin.x, y: translationY, width: pixelBox.width * 2, height: rowHeights[index]),
-                    font: font,
-                    color: textColor
-                )
-            }
-            
-            // Draw dashed line below translations
-            let lineY = translationY - 2
-            drawDashedLine(in: context, at: CGRect(x: 0, y: lineY, width: originalWidth, height: 1), color: CGColor(gray: 0.5, alpha: 0.3))
-            
-            // Reduce yOffset for next iteration (translations stack from bottom)
-            yOffset -= rowHeights[index]
+        // Draw original image at top (unchanged)
+        let imageY = newHeight - originalHeight  // In CG, Y=0 is bottom
+        context.draw(image, in: CGRect(x: 0, y: imageY, width: originalWidth, height: originalHeight))
+
+        // Draw separator line
+        let separatorY = imageY - 1
+        context.setFillColor(CGColor(gray: 0.7, alpha: 1.0))
+        context.fill(CGRect(x: 0, y: separatorY, width: originalWidth, height: 2))
+
+        // Draw translations below
+        var currentY: CGFloat = separatorY - 30  // Start below separator
+
+        for row in rows {
+            let rowText = row.segments.map { $0.translated }.joined(separator: " ")
+            let textHeight = calculateTextHeight(rowText, font: translationFont, maxWidth: maxTextWidth)
+
+            renderTranslationBlock(
+                rowText,
+                in: context,
+                at: CGRect(x: 20, y: currentY - textHeight, width: maxTextWidth, height: textHeight),
+                font: translationFont,
+                color: CGColor(gray: 0.1, alpha: 1.0)  // Dark text for readability
+            )
+
+            currentY -= textHeight + lineHeight * 0.5
         }
 
-        guard let result = context.makeImage() else { return nil }
-        return NSImage(cgImage: result, size: NSSize(width: originalWidth, height: newHeight))
+        return context.makeImage()
+    }
+
+    /// Renders tall images with original on left, translation on right
+    private func renderSideBySideHorizontal(image: CGImage, segments: [BilingualSegment]) -> CGImage? {
+        let originalWidth = CGFloat(image.width)
+        let originalHeight = CGFloat(image.height)
+
+        // Translation area takes up to 50% of width or fixed width
+        let translationAreaWidth = min(originalWidth * 0.5, 400)
+        let newWidth = originalWidth + translationAreaWidth
+
+        guard let colorSpace = image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB),
+              let context = CGContext(
+                  data: nil,
+                  width: Int(newWidth),
+                  height: Int(originalHeight),
+                  bitsPerComponent: 8,
+                  bytesPerRow: 0,
+                  space: colorSpace,
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else {
+            return nil
+        }
+
+        // Fill background
+        context.setFillColor(CGColor(gray: 0.95, alpha: 1.0))  // Light gray background
+        context.fill(CGRect(x: 0, y: 0, width: newWidth, height: originalHeight))
+
+        // Draw original image on left (unchanged)
+        context.draw(image, in: CGRect(x: 0, y: 0, width: originalWidth, height: originalHeight))
+
+        // Draw separator line
+        let separatorX = originalWidth
+        context.setFillColor(CGColor(gray: 0.7, alpha: 1.0))
+        context.fill(CGRect(x: separatorX, y: 0, width: 2, height: originalHeight))
+
+        // Calculate font size based on image height
+        let translationFontSize: CGFloat = max(14, originalHeight * 0.02)
+        let translationFont = createFont(size: translationFontSize)
+
+        // Group segments by row
+        let rows = groupIntoRows(segments, imageHeight: originalHeight)
+
+        // Draw translations on right side
+        let textAreaX = separatorX + 20
+        let maxTextWidth = translationAreaWidth - 40
+        let lineHeight = translationFontSize * 1.8
+
+        var currentY: CGFloat = originalHeight - 40  // Start from top with padding
+
+        // Draw title
+        let titleFont = createFont(size: translationFontSize * 1.2)
+        let title = "译文对照"
+        let titleHeight = calculateTextHeight(title, font: titleFont, maxWidth: maxTextWidth)
+
+        renderTranslationBlock(
+            title,
+            in: context,
+            at: CGRect(x: textAreaX, y: currentY - titleHeight, width: maxTextWidth, height: titleHeight),
+            font: titleFont,
+            color: CGColor(gray: 0.2, alpha: 1.0)
+        )
+
+        currentY -= titleHeight + lineHeight
+
+        // Draw separator
+        context.setFillColor(CGColor(gray: 0.8, alpha: 1.0))
+        context.fill(CGRect(x: textAreaX, y: currentY + lineHeight * 0.5, width: maxTextWidth, height: 1))
+
+        // Draw each translation row
+        for row in rows {
+            let rowText = row.segments.map { $0.translated }.joined(separator: " ")
+            let textHeight = calculateTextHeight(rowText, font: translationFont, maxWidth: maxTextWidth)
+
+            // Check if we have enough space
+            if currentY - textHeight < 20 {
+                break  // Stop if running out of space
+            }
+
+            renderTranslationBlock(
+                rowText,
+                in: context,
+                at: CGRect(x: textAreaX, y: currentY - textHeight, width: maxTextWidth, height: textHeight),
+                font: translationFont,
+                color: CGColor(gray: 0.1, alpha: 1.0)
+            )
+
+            currentY -= textHeight + lineHeight * 0.8
+        }
+
+        return context.makeImage()
+    }
+
+    /// Renders a block of translation text
+    private func renderTranslationBlock(_ text: String, in context: CGContext, at rect: CGRect, font: CTFont, color: CGColor) {
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .left
+        paragraphStyle.lineBreakMode = .byWordWrapping
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: NSColor(cgColor: color) ?? .black,
+            .paragraphStyle: paragraphStyle
+        ]
+
+        let attrString = CFAttributedStringCreate(
+            nil,
+            text as CFString,
+            attributes as CFDictionary
+        )!
+
+        let framesetter = CTFramesetterCreateWithAttributedString(attrString)
+        let path = CGPath(rect: rect, transform: nil)
+        let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: CFAttributedStringGetLength(attrString)), path, nil)
+
+        CTFrameDraw(frame, context)
     }
 
     private func groupIntoRows(_ segments: [BilingualSegment], imageHeight: CGFloat) -> [RowInfo] {
@@ -157,30 +285,6 @@ struct OverlayRenderer: Sendable {
             nil
         )
         return size.height
-    }
-
-    private func renderTranslation(_ text: String, in context: CGContext, at rect: CGRect, font: CTFont, color: CGColor) {
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = .left
-        paragraphStyle.lineBreakMode = .byWordWrapping
-        
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: NSColor(cgColor: color) ?? .white,
-            .paragraphStyle: paragraphStyle
-        ]
-        
-        let attrString = CFAttributedStringCreate(
-            nil,
-            text as CFString,
-            attributes as CFDictionary
-        )!
-        
-        let framesetter = CTFramesetterCreateWithAttributedString(attrString)
-        let path = CGPath(rect: rect, transform: nil)
-        let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: CFAttributedStringGetLength(attrString)), path, nil)
-        
-        CTFrameDraw(frame, context)
     }
 
     private func sampleTextColor(from image: CGImage, at rect: CGRect) -> CGColor? {
