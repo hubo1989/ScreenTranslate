@@ -12,7 +12,29 @@ final class BilingualResultWindowController: NSObject {
         super.init()
     }
 
+    /// Current screen's backing scale factor
+    private var currentScaleFactor: CGFloat {
+        NSScreen.main?.backingScaleFactor ?? 1.0
+    }
+
+    /// Calculate window size from image point dimensions
+    private func calculateWindowSize(
+        imagePointWidth: CGFloat,
+        imagePointHeight: CGFloat,
+        maxWidth: CGFloat,
+        maxHeight: CGFloat,
+        minWidth: CGFloat = 400,
+        minHeight: CGFloat = 300
+    ) -> NSSize {
+        let scale = min(maxWidth / imagePointWidth, maxHeight / imagePointHeight, 1.0)
+        let windowWidth = max(minWidth, imagePointWidth * scale)
+        let windowHeight = max(minHeight, imagePointHeight * scale + 50)
+        return NSSize(width: windowWidth, height: windowHeight)
+    }
+
     func showLoading(originalImage: CGImage, message: String? = nil) {
+        let scaleFactor = currentScaleFactor
+
         if let existingWindow = window, existingWindow.isVisible {
             viewModel?.showLoading(originalImage: originalImage, message: message)
             existingWindow.makeKeyAndOrderFront(nil)
@@ -20,7 +42,7 @@ final class BilingualResultWindowController: NSObject {
             return
         }
 
-        let newViewModel = BilingualResultViewModel(image: originalImage)
+        let newViewModel = BilingualResultViewModel(image: originalImage, displayScaleFactor: scaleFactor)
         newViewModel.isLoading = true
         newViewModel.loadingMessage = message ?? String(localized: "bilingualResult.loading")
         self.viewModel = newViewModel
@@ -28,21 +50,20 @@ final class BilingualResultWindowController: NSObject {
         let contentView = BilingualResultView(viewModel: newViewModel)
         let hostingView = NSHostingView(rootView: contentView)
 
-        let imageWidth = CGFloat(originalImage.width)
-        let imageHeight = CGFloat(originalImage.height)
+        let imagePointWidth = CGFloat(originalImage.width) / scaleFactor
+        let imagePointHeight = CGFloat(originalImage.height) / scaleFactor
         let screenWidth = NSScreen.main?.frame.width ?? 1920
         let screenHeight = NSScreen.main?.frame.height ?? 1080
-        let maxWidth: CGFloat = screenWidth * 0.9
-        let maxHeight: CGFloat = screenHeight * 0.85
-        let minWidth: CGFloat = 400
-        let minHeight: CGFloat = 300
 
-        let scale = min(maxWidth / imageWidth, maxHeight / imageHeight, 1.0)
-        let windowWidth = max(minWidth, imageWidth * scale)
-        let windowHeight = max(minHeight, imageHeight * scale + 50)
+        let windowSize = calculateWindowSize(
+            imagePointWidth: imagePointWidth,
+            imagePointHeight: imagePointHeight,
+            maxWidth: screenWidth * 0.9,
+            maxHeight: screenHeight * 0.85
+        )
 
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight),
+            contentRect: NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -53,7 +74,7 @@ final class BilingualResultWindowController: NSObject {
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
         newWindow.delegate = self
-        newWindow.minSize = NSSize(width: minWidth, height: minHeight)
+        newWindow.minSize = NSSize(width: 400, height: 300)
         newWindow.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
         self.window = newWindow
@@ -62,27 +83,27 @@ final class BilingualResultWindowController: NSObject {
     }
 
     func showResult(image: CGImage) {
+        let scaleFactor = currentScaleFactor
         viewModel?.showResult(image: image)
-        
+
         if let window = window {
-            let imageWidth = CGFloat(image.width)
-            let imageHeight = CGFloat(image.height)
+            let imagePointWidth = CGFloat(image.width) / scaleFactor
+            let imagePointHeight = CGFloat(image.height) / scaleFactor
             let screenWidth = NSScreen.main?.frame.width ?? 1920
             let screenHeight = NSScreen.main?.frame.height ?? 1080
-            let maxWidth: CGFloat = screenWidth * 0.9
-            let maxHeight: CGFloat = screenHeight * 0.85
-            let minWidth: CGFloat = 400
-            let minHeight: CGFloat = 300
-            
-            let scale = min(maxWidth / imageWidth, maxHeight / imageHeight, 1.0)
-            let windowWidth = max(minWidth, imageWidth * scale)
-            let windowHeight = max(minHeight, imageHeight * scale + 50)
-            
+
+            let windowSize = calculateWindowSize(
+                imagePointWidth: imagePointWidth,
+                imagePointHeight: imagePointHeight,
+                maxWidth: screenWidth * 0.9,
+                maxHeight: screenHeight * 0.85
+            )
+
             let newFrame = NSRect(
                 x: window.frame.origin.x,
-                y: window.frame.origin.y + window.frame.height - windowHeight,
-                width: windowWidth,
-                height: windowHeight
+                y: window.frame.origin.y + window.frame.height - windowSize.height,
+                width: windowSize.width,
+                height: windowSize.height
             )
             window.setFrame(newFrame, display: true, animate: true)
         }
@@ -93,6 +114,8 @@ final class BilingualResultWindowController: NSObject {
     }
 
     func show(image: CGImage) {
+        let scaleFactor = currentScaleFactor
+
         if let existingWindow = window, existingWindow.isVisible {
             viewModel?.updateImage(image)
             existingWindow.makeKeyAndOrderFront(nil)
@@ -100,25 +123,24 @@ final class BilingualResultWindowController: NSObject {
             return
         }
 
-        let newViewModel = BilingualResultViewModel(image: image)
+        let newViewModel = BilingualResultViewModel(image: image, displayScaleFactor: scaleFactor)
         self.viewModel = newViewModel
 
         let contentView = BilingualResultView(viewModel: newViewModel)
         let hostingView = NSHostingView(rootView: contentView)
 
-        let imageWidth = CGFloat(image.width)
-        let imageHeight = CGFloat(image.height)
-        let maxWidth: CGFloat = 1200
-        let maxHeight: CGFloat = 800
-        let minWidth: CGFloat = 400
-        let minHeight: CGFloat = 300
+        let imagePointWidth = CGFloat(image.width) / scaleFactor
+        let imagePointHeight = CGFloat(image.height) / scaleFactor
 
-        let scale = min(maxWidth / imageWidth, maxHeight / imageHeight, 1.0)
-        let windowWidth = max(minWidth, imageWidth * scale)
-        let windowHeight = max(minHeight, imageHeight * scale + 50)
+        let windowSize = calculateWindowSize(
+            imagePointWidth: imagePointWidth,
+            imagePointHeight: imagePointHeight,
+            maxWidth: 1200,
+            maxHeight: 800
+        )
 
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: windowWidth, height: windowHeight),
+            contentRect: NSRect(x: 0, y: 0, width: windowSize.width, height: windowSize.height),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -129,7 +151,7 @@ final class BilingualResultWindowController: NSObject {
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
         newWindow.delegate = self
-        newWindow.minSize = NSSize(width: minWidth, height: minHeight)
+        newWindow.minSize = NSSize(width: 400, height: 300)
         newWindow.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
         self.window = newWindow

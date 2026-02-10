@@ -283,6 +283,7 @@ private struct TextSection: View {
             .font(.system(.body, design: .rounded))
             .foregroundStyle(.primary)
             .textSelection(.enabled)
+            .accessibilityLabel(label)
     }
 }
 

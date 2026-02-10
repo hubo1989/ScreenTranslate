@@ -6,6 +6,7 @@ import Observation
 final class BilingualResultViewModel {
     private(set) var image: CGImage
     private(set) var scale: CGFloat = 1.0
+    private(set) var displayScaleFactor: CGFloat
     var isLoading: Bool = false
     var loadingMessage: String = ""
     var copySuccessMessage: String?
@@ -19,12 +20,17 @@ final class BilingualResultViewModel {
     var imageWidth: Int { image.width }
     var imageHeight: Int { image.height }
 
+    /// Image size in points (for display sizing)
+    var imagePointWidth: CGFloat { CGFloat(image.width) / displayScaleFactor }
+    var imagePointHeight: CGFloat { CGFloat(image.height) / displayScaleFactor }
+
     var dimensionsText: String {
         "\(imageWidth) × \(imageHeight)"
     }
 
-    init(image: CGImage) {
+    init(image: CGImage, displayScaleFactor: CGFloat = 1.0) {
         self.image = image
+        self.displayScaleFactor = displayScaleFactor
     }
 
     func showLoading(originalImage: CGImage, message: String? = nil) {

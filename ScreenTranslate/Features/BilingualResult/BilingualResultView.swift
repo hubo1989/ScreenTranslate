@@ -8,13 +8,13 @@ struct BilingualResultView: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView([.horizontal, .vertical], showsIndicators: true) {
-                Image(decorative: viewModel.image, scale: 1.0)
+                Image(decorative: viewModel.image, scale: viewModel.displayScaleFactor)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .scaleEffect(viewModel.scale)
                     .frame(
-                        width: CGFloat(viewModel.imageWidth) * viewModel.scale,
-                        height: CGFloat(viewModel.imageHeight) * viewModel.scale
+                        width: viewModel.imagePointWidth * viewModel.scale,
+                        height: viewModel.imagePointHeight * viewModel.scale
                     )
                     .onScrollWheelZoom { delta in
                         if delta > 0 {
