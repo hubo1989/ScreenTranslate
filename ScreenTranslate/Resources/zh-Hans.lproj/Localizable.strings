@@ -82,7 +82,7 @@
 "menu.capture.full.screen" = "全屏截图";
 "menu.capture.fullscreen" = "全屏截图";
 "menu.capture.selection" = "区域截图";
-"menu.translation.mode" = "翻译模式";
+"menu.translation.mode" = "截图翻译";
 "menu.recent.captures" = "最近截图";
 "menu.recent.captures.empty" = "没有最近截图";
 "menu.recent.captures.clear" = "清除最近截图";
