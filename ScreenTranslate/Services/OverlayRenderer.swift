@@ -160,7 +160,7 @@ struct OverlayRenderer: Sendable {
 
     private func renderTranslation(_ text: String, in context: CGContext, at rect: CGRect, font: CTFont, color: CGColor) {
         // Draw semi-transparent background pad for better readability
-        let bgPadColor = CGColor(white: 0.0, alpha: 0.3)  // Dark semi-transparent background
+        let bgPadColor = CGColor(gray: 0.0, alpha: 0.3)  // Dark semi-transparent background
         context.setFillColor(bgPadColor)
         context.fill(rect.insetBy(dx: -4, dy: -2))
 
@@ -194,7 +194,7 @@ struct OverlayRenderer: Sendable {
     /// Ensures text color has sufficient contrast against background
     private func ensureReadableColor(_ color: CGColor, backgroundBrightness: CGFloat) -> CGColor {
         guard let components = color.components, components.count >= 3 else {
-            return CGColor(white: 1.0, alpha: 1.0)  // Default to white
+            return CGColor(gray: 1.0, alpha: 1.0)  // Default to white
         }
 
         let r = components[0]
