@@ -1,130 +1,138 @@
 <p align="center">
-  <img src=".github/images/app-icon.png" alt="ScreenTranslate" width="128" height="128">
+  <img src="ScreenTranslate/Resources/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" alt="ScreenTranslate" width="128" height="128">
 </p>
 
 <h1 align="center">ScreenTranslate</h1>
 
 <p align="center">
-  A fast, lightweight macOS menu bar app for capturing screenshots and translating text.
+  macOS 菜单栏截图翻译工具，支持 OCR 识别、多引擎翻译和智能标注
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B-brightgreen.svg" alt="macOS"></a>
-  <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.2-orange.svg" alt="Swift"></a>
+  <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift"></a>
 </p>
 
-## Features
+## 功能特性
 
-- **Instant Capture** - Full screen or region selection with global hotkeys
-- **OCR & Translation** - Extract and translate text from any screen region
-- **Multi-Monitor Support** - Works seamlessly across all connected displays
-- **Flexible Export** - PNG, JPEG, and HEIC formats with quality control
-- **Text Recognition** - Accurate OCR with multiple engine support
-- **Quick Translation** - Real-time translation to multiple languages
-- **Lightweight** - Runs quietly in your menu bar with minimal resources
+### 截图功能
+- **区域截图** - 选择屏幕任意区域进行截图
+- **多显示器支持** - 自动识别并支持多显示器环境
+- **窗口高亮** - 截图前自动隐藏应用窗口，避免干扰
 
-## Installation
+### OCR 文字识别
+- **Apple Vision** - 原生 OCR，无需额外配置
+- **PaddleOCR** - 可选外部引擎，中文识别更准确
 
-### Requirements
+### 多引擎翻译
+- **Apple Translation** - 系统内置翻译，离线可用
+- **MTranServer** - 自建翻译服务器，高质量翻译
+- **VLM 视觉模型** - OpenAI GPT-4 Vision / Claude / Ollama 本地模型
 
-- macOS 13.0 (Ventura) or later
-- Screen Recording permission
+### 标注工具
+- 矩形框选
+- 箭头标注
+- 手绘涂鸦
+- 文字注释
+- 截图裁剪
 
-### Download
+### 其他功能
+- **翻译历史** - 保存翻译记录，支持搜索和导出
+- **双语对照** - 原文译文并排显示
+- **覆盖层显示** - 翻译结果直接显示在截图上方
+- **自定义快捷键** - 支持全局快捷键快速截图
+- **多语言支持** - 支持 25+ 种语言翻译
 
-Download the latest release from the [Releases](../../releases) page.
+## 安装要求
 
-### Build from Source
+- macOS 13.0 (Ventura) 或更高版本
+- 屏幕录制权限（首次使用时会提示）
+
+## 下载安装
+
+从 [Releases](../../releases) 页面下载最新版本。
+
+## 使用说明
+
+### 快捷键
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Cmd+Shift+5` | 区域截图翻译（默认） |
+
+### 预览窗口操作
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Enter` / `Cmd+S` | 保存截图 |
+| `Cmd+C` | 复制到剪贴板 |
+| `Escape` | 关闭窗口 / 取消裁剪 |
+| `R` / `1` | 矩形工具 |
+| `D` / `2` | 手绘工具 |
+| `A` / `3` | 箭头工具 |
+| `T` / `4` | 文字工具 |
+| `C` | 裁剪模式 |
+| `Cmd+Z` | 撤销 |
+| `Cmd+Shift+Z` | 重做 |
+
+## 技术栈
+
+- **Swift 6.0** - 现代 Swift 语言特性，严格并发检查
+- **SwiftUI + AppKit** - 声明式 UI 与原生 macOS 组件结合
+- **ScreenCaptureKit** - 系统级屏幕录制与截图
+- **Vision** - Apple 原生 OCR 文字识别
+- **Translation** - Apple 系统翻译框架
+- **CoreGraphics** - 图像处理与渲染
+
+## 项目结构
+
+```
+ScreenTranslate/
+├── App/                    # 应用入口
+├── Features/               # 功能模块
+│   ├── Capture/           # 截图功能
+│   ├── Preview/           # 预览与标注
+│   ├── Overlay/           # 翻译覆盖层
+│   ├── BilingualResult/   # 双语结果展示
+│   ├── History/           # 历史记录
+│   ├── Settings/          # 设置界面
+│   ├── Onboarding/        # 首次引导
+│   ├── MenuBar/           # 菜单栏控制
+│   ├── Annotations/       # 标注工具
+│   └── TranslationFlow/   # 翻译流程控制
+├── Services/              # 业务服务
+│   ├── OCREngine/         # OCR 引擎
+│   ├── Translation/       # 翻译服务
+│   ├── VLMProvider/       # 视觉语言模型
+│   └── ...
+├── Models/                # 数据模型
+├── Extensions/            # 扩展
+├── Resources/             # 资源文件
+└── Utilities/             # 工具类
+```
+
+## 构建源码
 
 ```bash
-# Clone the repository
-git clone https://github.com/sadopc/ScreenTranslate.git
+# 克隆仓库
+git clone https://github.com/hubo1989/ScreenTranslate.git
 cd ScreenTranslate
 
-# Open in Xcode
+# 用 Xcode 打开
 open ScreenTranslate.xcodeproj
 
-# Build and run (Cmd+R)
+# 或命令行构建
+xcodebuild -project ScreenTranslate.xcodeproj -scheme ScreenTranslate
 ```
 
-## Usage
+## 贡献指南
 
-### Keyboard Shortcuts
+欢迎提交 Issue 和 Pull Request。
 
-| Shortcut | Action |
-|----------|--------|
-| `Cmd+Shift+3` | Capture full screen |
-| `Cmd+Shift+4` | Capture selection |
+## 许可证
 
-### In Preview Window
-
-| Shortcut | Action |
-|----------|--------|
-| `Enter` / `Cmd+S` | Save screenshot (or apply crop in crop mode) |
-| `Cmd+C` | Copy to clipboard |
-| `Escape` | Dismiss / Cancel crop / Deselect tool |
-| `R` / `1` | Rectangle tool |
-| `D` / `2` | Freehand tool |
-| `A` / `3` | Arrow tool |
-| `T` / `4` | Text tool |
-| `C` | Crop mode |
-| `Cmd+Z` | Undo |
-| `Cmd+Shift+Z` | Redo |
-
-## Documentation
-
-Detailed documentation is available in the [docs](./docs) folder:
-
-- [Architecture](./docs/architecture.md) - System design and patterns
-- [Components](./docs/components.md) - Feature documentation
-- [API Reference](./docs/api-reference.md) - Public APIs
-- [Developer Guide](./docs/developer-guide.md) - Contributing guide
-- [User Guide](./docs/user-guide.md) - End-user documentation
-
-## Tech Stack
-
-- **Swift 6.2** with strict concurrency
-- **SwiftUI** + **AppKit** for native macOS UI
-- **ScreenCaptureKit** for system-level capture
-- **CoreGraphics** for image processing
-
-## Contributing
-
-Contributions are welcome! Please read our contributing guidelines:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Setup
-
-```bash
-# Clone your fork
-git clone https://github.com/YOUR_FORK/ScreenTranslate.git
-
-# Open in Xcode
-open ScreenTranslate.xcodeproj
-
-# Grant Screen Recording permission when prompted
-```
-
-See the [Developer Guide](./docs/developer-guide.md) for detailed setup instructions.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-```
-MIT License - Copyright (c) 2026 Serdar Albayrak
-```
-
-## Acknowledgments
-
-- Built with [ScreenCaptureKit](https://developer.apple.com/documentation/screencapturekit)
-- Icons from [SF Symbols](https://developer.apple.com/sf-symbols/)
+MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ---
 
