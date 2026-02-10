@@ -6,7 +6,7 @@ import Observation
 final class BilingualResultViewModel {
     private(set) var image: CGImage
     private(set) var scale: CGFloat = 1.0
-    private(set) var displayScaleFactor: CGFloat
+    var displayScaleFactor: CGFloat
     var isLoading: Bool = false
     var loadingMessage: String = ""
     var copySuccessMessage: String?
@@ -40,8 +40,9 @@ final class BilingualResultViewModel {
         self.errorMessage = nil
     }
 
-    func showResult(image: CGImage) {
+    func showResult(image: CGImage, displayScaleFactor: CGFloat? = nil) {
         self.image = image
+        if let sf = displayScaleFactor { self.displayScaleFactor = sf }
         self.isLoading = false
         self.loadingMessage = ""
         self.errorMessage = nil
@@ -53,8 +54,9 @@ final class BilingualResultViewModel {
         self.errorMessage = message
     }
 
-    func updateImage(_ newImage: CGImage) {
+    func updateImage(_ newImage: CGImage, displayScaleFactor: CGFloat? = nil) {
         self.image = newImage
+        if let sf = displayScaleFactor { self.displayScaleFactor = sf }
         self.errorMessage = nil
         self.scale = 1.0
     }

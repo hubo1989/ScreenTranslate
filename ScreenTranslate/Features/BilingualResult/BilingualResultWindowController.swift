@@ -84,7 +84,7 @@ final class BilingualResultWindowController: NSObject {
 
     func showResult(image: CGImage) {
         let scaleFactor = currentScaleFactor
-        viewModel?.showResult(image: image)
+        viewModel?.showResult(image: image, displayScaleFactor: scaleFactor)
 
         if let window = window {
             let imagePointWidth = CGFloat(image.width) / scaleFactor
@@ -117,7 +117,7 @@ final class BilingualResultWindowController: NSObject {
         let scaleFactor = currentScaleFactor
 
         if let existingWindow = window, existingWindow.isVisible {
-            viewModel?.updateImage(image)
+            viewModel?.updateImage(image, displayScaleFactor: scaleFactor)
             existingWindow.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return
