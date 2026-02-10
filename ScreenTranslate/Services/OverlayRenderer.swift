@@ -152,25 +152,6 @@ struct OverlayRenderer: Sendable {
 
         var currentY: CGFloat = originalHeight - 40  // Start from top with padding
 
-        // Draw title
-        let titleFont = createFont(size: translationFontSize * 1.2)
-        let title = "译文对照"
-        let titleHeight = calculateTextHeight(title, font: titleFont, maxWidth: maxTextWidth)
-
-        renderTranslationBlock(
-            title,
-            in: context,
-            at: CGRect(x: textAreaX, y: currentY - titleHeight, width: maxTextWidth, height: titleHeight),
-            font: titleFont,
-            color: CGColor(gray: 0.2, alpha: 1.0)
-        )
-
-        currentY -= titleHeight + lineHeight
-
-        // Draw separator
-        context.setFillColor(CGColor(gray: 0.8, alpha: 1.0))
-        context.fill(CGRect(x: textAreaX, y: currentY + lineHeight * 0.5, width: maxTextWidth, height: 1))
-
         // Draw each translation row
         for row in rows {
             let rowText = row.segments.map { $0.translated }.joined(separator: " ")

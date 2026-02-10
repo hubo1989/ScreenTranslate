@@ -7,16 +7,20 @@ struct PreviewAnnotatedImageView: View {
     @Binding var imageScale: CGFloat
     @FocusState.Binding var isTextFieldFocused: Bool
 
+    private var displayScaleFactor: CGFloat {
+        viewModel.screenshot.sourceDisplay.scaleFactor
+    }
+
     private var imageSize: CGSize {
         CGSize(
-            width: CGFloat(viewModel.image.width),
-            height: CGFloat(viewModel.image.height)
+            width: CGFloat(viewModel.image.width) / displayScaleFactor,
+            height: CGFloat(viewModel.image.height) / displayScaleFactor
         )
     }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Image(viewModel.image, scale: 1.0, label: Text("preview.screenshot"))
+            Image(viewModel.image, scale: displayScaleFactor, label: Text("preview.screenshot"))
                 .accessibilityLabel(Text(
                     "Screenshot preview, \(viewModel.dimensionsText), from \(viewModel.displayName)"
                 ))
@@ -25,7 +29,7 @@ struct PreviewAnnotatedImageView: View {
                 annotations: viewModel.annotations,
                 currentAnnotation: viewModel.currentAnnotation,
                 canvasSize: imageSize,
-                scale: 1.0,
+                scale: 1.0 / displayScaleFactor,
                 selectedIndex: viewModel.selectedAnnotationIndex
             )
             .frame(width: imageSize.width, height: imageSize.height)
@@ -44,7 +48,7 @@ struct PreviewAnnotatedImageView: View {
             }
 
             if viewModel.isCropMode {
-                PreviewCropOverlay(viewModel: viewModel, displaySize: imageSize, scale: 1.0)
+                PreviewCropOverlay(viewModel: viewModel, displaySize: imageSize, scale: 1.0 / displayScaleFactor)
             }
         }
         .overlay(alignment: .topLeading) {
@@ -138,11 +142,15 @@ struct PreviewAnnotatedImageView: View {
     }
 
     private func convertToImageCoordinates(_ point: CGPoint) -> CGPoint {
-        CGPoint(x: point.x, y: point.y)
+        CGPoint(x: point.x * displayScaleFactor, y: point.y * displayScaleFactor)
     }
 
     private func textInputField(at position: CGPoint) -> some View {
-        TextField(String(localized: "preview.enter.text"), text: $viewModel.textInputContent)
+        let displayPosition = CGPoint(
+            x: position.x / displayScaleFactor,
+            y: position.y / displayScaleFactor
+        )
+        return TextField(String(localized: "preview.enter.text"), text: $viewModel.textInputContent)
             .textFieldStyle(.plain)
             .font(.system(size: 14))
             .foregroundColor(AppSettings.shared.strokeColor.color)
@@ -150,7 +158,7 @@ struct PreviewAnnotatedImageView: View {
             .background(Color.white.opacity(0.9))
             .cornerRadius(4)
             .frame(minWidth: 100, maxWidth: 300)
-            .position(x: position.x + 50, y: position.y + 10)
+            .position(x: displayPosition.x + 50, y: displayPosition.y + 10)
             .focused($isTextFieldFocused)
             .onAppear {
                 isTextFieldFocused = true

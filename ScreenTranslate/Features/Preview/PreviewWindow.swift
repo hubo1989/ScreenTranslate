@@ -30,8 +30,12 @@ final class PreviewWindow: NSPanel {
         viewModel.onDismiss = onDismiss
         viewModel.onSave = onSave
 
-        // Calculate initial window size based on image dimensions
-        let imageSize = CGSize(width: screenshot.image.width, height: screenshot.image.height)
+        // Calculate initial window size based on image dimensions in points
+        let scaleFactor = screenshot.sourceDisplay.scaleFactor
+        let imageSize = CGSize(
+            width: CGFloat(screenshot.image.width) / scaleFactor,
+            height: CGFloat(screenshot.image.height) / scaleFactor
+        )
         let windowSize = Self.calculateWindowSize(for: imageSize)
         let contentRect = Self.calculateCenteredRect(size: windowSize)
 
@@ -111,9 +115,10 @@ final class PreviewWindow: NSPanel {
     /// Resizes the window to fit the current image
     @MainActor
     func resizeToFitImage() {
+        let scaleFactor = viewModel.screenshot.sourceDisplay.scaleFactor
         let imageSize = CGSize(
-            width: viewModel.screenshot.image.width,
-            height: viewModel.screenshot.image.height
+            width: CGFloat(viewModel.screenshot.image.width) / scaleFactor,
+            height: CGFloat(viewModel.screenshot.image.height) / scaleFactor
         )
         let newSize = Self.calculateWindowSize(for: imageSize)
 

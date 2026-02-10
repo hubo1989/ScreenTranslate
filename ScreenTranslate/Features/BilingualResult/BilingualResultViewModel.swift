@@ -6,6 +6,7 @@ import Observation
 final class BilingualResultViewModel {
     private(set) var image: CGImage
     private(set) var scale: CGFloat = 1.0
+    var displayScaleFactor: CGFloat
     var isLoading: Bool = false
     var loadingMessage: String = ""
     var copySuccessMessage: String?
@@ -19,12 +20,17 @@ final class BilingualResultViewModel {
     var imageWidth: Int { image.width }
     var imageHeight: Int { image.height }
 
+    /// Image size in points (for display sizing)
+    var imagePointWidth: CGFloat { CGFloat(image.width) / displayScaleFactor }
+    var imagePointHeight: CGFloat { CGFloat(image.height) / displayScaleFactor }
+
     var dimensionsText: String {
         "\(imageWidth) × \(imageHeight)"
     }
 
-    init(image: CGImage) {
+    init(image: CGImage, displayScaleFactor: CGFloat = 1.0) {
         self.image = image
+        self.displayScaleFactor = displayScaleFactor
     }
 
     func showLoading(originalImage: CGImage, message: String? = nil) {
@@ -34,8 +40,9 @@ final class BilingualResultViewModel {
         self.errorMessage = nil
     }
 
-    func showResult(image: CGImage) {
+    func showResult(image: CGImage, displayScaleFactor: CGFloat? = nil) {
         self.image = image
+        if let sf = displayScaleFactor { self.displayScaleFactor = sf }
         self.isLoading = false
         self.loadingMessage = ""
         self.errorMessage = nil
@@ -47,8 +54,9 @@ final class BilingualResultViewModel {
         self.errorMessage = message
     }
 
-    func updateImage(_ newImage: CGImage) {
+    func updateImage(_ newImage: CGImage, displayScaleFactor: CGFloat? = nil) {
         self.image = newImage
+        if let sf = displayScaleFactor { self.displayScaleFactor = sf }
         self.errorMessage = nil
         self.scale = 1.0
     }
