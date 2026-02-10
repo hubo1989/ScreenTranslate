@@ -51,7 +51,7 @@ final class HistoryWindowController: NSObject {
             backing: .buffered,
             defer: false
         )
-        window.title = NSLocalizedString("history.window.title", comment: "Translation History")
+        window.title = NSLocalizedString("history.title", comment: "Translation History")
         window.contentView = hostingView
         window.center()
         window.isReleasedWhenClosed = false

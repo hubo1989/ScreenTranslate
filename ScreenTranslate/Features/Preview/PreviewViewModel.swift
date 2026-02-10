@@ -67,9 +67,6 @@ final class PreviewViewModel {
     let clipboardService = ClipboardService.shared
 
     @ObservationIgnored
-    let recentCapturesStore: RecentCapturesStore
-
-    @ObservationIgnored
     let ocrService = OCRService.shared
 
     @ObservationIgnored
@@ -197,9 +194,8 @@ final class PreviewViewModel {
 
     // MARK: - Initialization
 
-    init(screenshot: Screenshot, recentCapturesStore: RecentCapturesStore? = nil) {
+    init(screenshot: Screenshot) {
         self.screenshot = screenshot
-        self.recentCapturesStore = recentCapturesStore ?? RecentCapturesStore()
     }
 
     // MARK: - Public API
