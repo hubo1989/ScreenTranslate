@@ -134,12 +134,6 @@
 "preview.tooltip.copy" = "复制到剪贴板 (⌘C)";
 "preview.tooltip.save" = "保存 (⌘S 或 回车)";
 "preview.tooltip.ocr" = "识别文字 (OCR)";
-"preview.tooltip.translate" = "翻译文本";
-"preview.tooltip.ocr.then.translate" = "正在识别文字...";
-"preview.tooltip.show.translation" = "显示翻译覆盖层";
-"preview.tooltip.hide.translation" = "隐藏翻译覆盖层";
-"preview.tooltip.save.with.translations" = "保存带译文的图片";
-"preview.tooltip.copy.with.translations" = "复制带译文的图片";
 "preview.tooltip.dismiss" = "关闭 (Escape)";
 "preview.tooltip.delete" = "删除选中的标注";
 
@@ -457,6 +451,7 @@
 "settings.vlm.apiKey.optional" = "本地提供商无需 API 密钥";
 "settings.vlm.baseURL" = "Base URL";
 "settings.vlm.model" = "模型名称";
+"settings.vlm.test.button" = "测试连接";
 
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";

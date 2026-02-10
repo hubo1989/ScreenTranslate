@@ -59,11 +59,11 @@ final class SettingsWindowController: NSObject {
         )
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.backgroundColor = .clear
-        window.isOpaque = false
+        window.backgroundColor = .windowBackgroundColor
+        window.isOpaque = true
         window.hasShadow = true
-        window.isMovableByWindowBackground = true  // Allow dragging on clear background
-        window.titlebarSeparatorStyle = .none  // Cleaner unified look
+        window.isMovableByWindowBackground = false
+        window.titlebarSeparatorStyle = .automatic
 
         // Add hosting view and set up constraints to fill window COMPLETELY
         let containerView = NSView()

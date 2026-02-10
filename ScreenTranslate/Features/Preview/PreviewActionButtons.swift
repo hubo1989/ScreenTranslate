@@ -24,7 +24,7 @@ struct PreviewActionButtons: View {
                 .frame(height: 16)
                 .accessibilityHidden(true)
 
-            ocrAndTranslationButtons
+            ocrButton
 
             Divider()
                 .frame(height: 16)
@@ -112,78 +112,20 @@ struct PreviewActionButtons: View {
         }
     }
 
-    private var ocrAndTranslationButtons: some View {
-        Group {
-            Button {
-                viewModel.performOCR()
-            } label: {
-                if viewModel.isPerformingOCR {
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(width: 16, height: 16)
-                } else {
-                    Image(systemName: "text.viewfinder")
-                }
+    private var ocrButton: some View {
+        Button {
+            viewModel.performOCR()
+        } label: {
+            if viewModel.isPerformingOCR {
+                ProgressView()
+                    .controlSize(.small)
+                    .frame(width: 16, height: 16)
+            } else {
+                Image(systemName: "text.viewfinder")
             }
-            .disabled(viewModel.isPerformingOCR)
-            .help(String(localized: "preview.tooltip.ocr"))
-
-            Button {
-                viewModel.performTranslation()
-            } label: {
-                if viewModel.isPerformingTranslation || viewModel.isPerformingOCRThenTranslation {
-                    ProgressView()
-                        .controlSize(.small)
-                        .frame(width: 16, height: 16)
-                } else {
-                    Image(systemName: "character")
-                }
-            }
-            .disabled(viewModel.isPerformingTranslation || viewModel.isPerformingOCRThenTranslation)
-            .help(viewModel.isPerformingOCRThenTranslation
-                ? String(localized: "preview.tooltip.ocr.then.translate")
-                : String(localized: "preview.tooltip.translate"))
-
-            Button {
-                viewModel.toggleTranslationOverlay()
-            } label: {
-                Image(systemName: viewModel.isTranslationOverlayVisible ? "eye.slash" : "eye")
-            }
-            .disabled(!viewModel.hasTranslationResults)
-            .help(viewModel.isTranslationOverlayVisible
-                ? String(localized: "preview.tooltip.hide.translation")
-                : String(localized: "preview.tooltip.show.translation"))
-
-            Button {
-                viewModel.saveWithTranslations()
-            } label: {
-                if viewModel.isSavingWithTranslations {
-                    loadingIndicator
-                } else {
-                    Image(systemName: "photo.badge.arrow.down")
-                }
-            }
-            .disabled(!viewModel.hasTranslationResults || viewModel.isSavingWithTranslations)
-            .help(String(localized: "preview.tooltip.save.with.translations"))
-            .accessibilityLabel(Text(
-                viewModel.isSavingWithTranslations ? "Saving translated image" : "Save image with translations"
-            ))
-
-            Button {
-                viewModel.copyWithTranslations()
-            } label: {
-                if viewModel.isCopyingWithTranslations {
-                    loadingIndicator
-                } else {
-                    Image(systemName: "photo.on.rectangle")
-                }
-            }
-            .disabled(!viewModel.hasTranslationResults || viewModel.isCopyingWithTranslations)
-            .help(String(localized: "preview.tooltip.copy.with.translations"))
-            .accessibilityLabel(Text(
-                viewModel.isCopyingWithTranslations ? "Copying translated image" : "Copy image with translations"
-            ))
         }
+        .disabled(viewModel.isPerformingOCR)
+        .help(String(localized: "preview.tooltip.ocr"))
     }
 
     private var dismissButton: some View {

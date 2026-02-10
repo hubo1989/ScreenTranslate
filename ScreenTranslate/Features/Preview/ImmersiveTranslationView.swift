@@ -7,13 +7,11 @@ struct ImmersiveTranslationView: View {
     let translations: [TranslationResult]
     let isVisible: Bool
     
-    @State private var calculatedHeight: CGFloat = 0
-    
     var body: some View {
         GeometryReader { geometry in
             let size = geometry.size
-            let blocks = calculateLayout(for: size)
-            
+            let (blocks, requiredHeight) = calculateLayout(for: size)
+
             ZStack(alignment: .topLeading) {
                 Image(image, scale: 1.0, label: Text(""))
                     .frame(width: CGFloat(image.width), height: CGFloat(image.height))
@@ -21,7 +19,7 @@ struct ImmersiveTranslationView: View {
                         x: CGFloat(image.width) / 2,
                         y: CGFloat(image.height) / 2
                     )
-                
+
                 if isVisible {
                     ForEach(blocks) { block in
                         TranslationBlockView(block: block)
@@ -30,55 +28,54 @@ struct ImmersiveTranslationView: View {
             }
             .frame(
                 width: max(CGFloat(image.width), size.width),
-                height: max(calculatedHeight, size.height)
+                height: max(requiredHeight, size.height)
             )
         }
     }
     
-    private func calculateLayout(for containerSize: CGSize) -> [TranslationBlock] {
+    private func calculateLayout(for containerSize: CGSize) -> ([TranslationBlock], CGFloat) {
         guard let ocrResult = ocrResult, !translations.isEmpty else {
-            calculatedHeight = CGFloat(image.height)
-            return []
+            return ([], CGFloat(image.height))
         }
-        
+
         var blocks: [TranslationBlock] = []
         let imageWidth = CGFloat(image.width)
         let imageHeight = CGFloat(image.height)
         var maxYExtension: CGFloat = 0
-        
+
         for (index, observation) in ocrResult.observations.enumerated() {
             guard index < translations.count else { break }
-            
+
             let translation = translations[index]
             guard !translation.translatedText.isEmpty else { continue }
-            
+
             let originalRect = convertNormalizedToPixels(
                 normalizedRect: observation.boundingBox,
                 imageWidth: imageWidth,
                 imageHeight: imageHeight
             )
-            
+
             let sampledColors = sampleColors(from: originalRect)
             let textColor = calculateContrastingColor(for: sampledColors.background)
             let backgroundColor = Color(sampledColors.background).opacity(0.1)
             let fontSize = max(originalRect.height * 0.75, 12)
-            
+
             let translationHeight = calculateTextHeight(
                 text: translation.translatedText,
                 fontSize: fontSize,
                 maxWidth: originalRect.width
             )
-            
+
             let spacing: CGFloat = 4
             let translationY = originalRect.maxY + spacing
-            
+
             let translationRect = CGRect(
                 x: originalRect.minX,
                 y: translationY,
                 width: originalRect.width,
                 height: translationHeight
             )
-            
+
             let block = TranslationBlock(
                 originalRect: originalRect,
                 translationRect: translationRect,
@@ -88,13 +85,13 @@ struct ImmersiveTranslationView: View {
                 backgroundColor: backgroundColor
             )
             blocks.append(block)
-            
+
             maxYExtension = max(maxYExtension, translationRect.maxY)
         }
-        
-        calculatedHeight = max(imageHeight, maxYExtension + 20)
-        
-        return blocks
+
+        let requiredHeight = max(imageHeight, maxYExtension + 20)
+
+        return (blocks, requiredHeight)
     }
     
     private func convertNormalizedToPixels(

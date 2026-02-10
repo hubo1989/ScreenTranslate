@@ -53,7 +53,7 @@ struct KeyboardShortcut: Equatable, Codable, Sendable {
 
     /// Validates this shortcut configuration
     var isValid: Bool {
-        hasRequiredModifiers && keyCode != 0
+        hasRequiredModifiers
     }
 
     // MARK: - Display

@@ -102,43 +102,27 @@ enum VLMPromptTemplate {
     
     /// System prompt establishing the VLM's role
     static let systemPrompt = """
-        You are a precise screen text extraction assistant. Your task is to identify all visible text \
-        in the provided screenshot and return their positions as normalized bounding boxes.
-        
-        Rules:
-        1. Extract ALL visible text, including UI labels, buttons, menus, and content
-        2. Return bounding boxes as normalized coordinates (0.0 to 1.0) relative to image dimensions
-        3. Group text logically (e.g., a button label is one segment, not individual characters)
-        4. Provide confidence scores based on text clarity and readability
-        5. Respond ONLY with valid JSON, no additional text
+        You are a precise screen text extraction assistant. Extract visible text from screenshots.
+
+        CRITICAL RULES:
+        1. Output ONLY valid JSON, no markdown, no code blocks, no explanations
+        2. Use exactly this format: {"segments":[{"text":"...","boundingBox":{"x":0.0,"y":0.0,"width":0.0,"height":0.0},"confidence":0.95}]}
+        3. Coordinates must be 0.0-1.0 normalized to image dimensions
+        4. Group related text together (button labels as one segment, not characters)
+        5. Omit text you cannot read clearly
+        6. Do not wrap response in ```json or any other formatting
         """
     
     /// User prompt requesting text extraction
     static let userPrompt = """
-        Analyze this screenshot and extract all visible text with their positions.
-        
-        Return a JSON object with this exact structure:
-        {
-          "segments": [
-            {
-              "text": "extracted text content",
-              "boundingBox": {
-                "x": 0.0,
-                "y": 0.0,
-                "width": 0.0,
-                "height": 0.0
-              },
-              "confidence": 0.95
-            }
-          ]
-        }
-        
-        Where:
-        - x, y: top-left corner position (0.0-1.0, normalized to image size)
-        - width, height: dimensions (0.0-1.0, normalized to image size)
-        - confidence: 0.0-1.0, how confident you are in the text extraction
-        
-        Extract all text segments visible in the image.
+        Extract text from this screenshot. Return ONLY compact JSON:
+        {"segments":[{"text":"...","boundingBox":{"x":0.0,"y":0.0,"width":0.0,"height":0.0},"confidence":0.95}]}
+
+        Requirements:
+        - Output raw JSON only, NO markdown, NO ```json blocks
+        - x,y: top-left corner (0.0-1.0)
+        - width,height: box dimensions (0.0-1.0)
+        - confidence: 0.0-1.0
         """
     
     /// JSON schema description for documentation and API configuration

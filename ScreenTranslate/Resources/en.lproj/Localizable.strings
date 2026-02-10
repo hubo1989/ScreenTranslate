@@ -134,12 +134,6 @@
 "preview.tooltip.copy" = "Copy to Clipboard (⌘C)";
 "preview.tooltip.save" = "Save (⌘S or Enter)";
 "preview.tooltip.ocr" = "Recognize Text (OCR)";
-"preview.tooltip.translate" = "Translate Text";
-"preview.tooltip.ocr.then.translate" = "Recognizing text...";
-"preview.tooltip.show.translation" = "Show Translation Overlay";
-"preview.tooltip.hide.translation" = "Hide Translation Overlay";
-"preview.tooltip.save.with.translations" = "Save Image with Translations";
-"preview.tooltip.copy.with.translations" = "Copy Image with Translations";
 "preview.tooltip.dismiss" = "Dismiss (Escape)";
 "preview.tooltip.delete" = "Delete selected annotation";
 
@@ -457,6 +451,7 @@
 "settings.vlm.apiKey.optional" = "API Key is optional for local providers";
 "settings.vlm.baseURL" = "Base URL";
 "settings.vlm.model" = "Model Name";
+"settings.vlm.test.button" = "Test Connection";
 
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";

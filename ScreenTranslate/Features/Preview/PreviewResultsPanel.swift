@@ -49,29 +49,6 @@ struct PreviewResultsPanel: View {
                                 .textSelection(.enabled)
                         }
                     }
-
-                    if viewModel.hasTranslationResults {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text("preview.translation")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Button {
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(viewModel.combinedTranslatedText, forType: .string)
-                                } label: {
-                                    Image(systemName: "doc.on.doc")
-                                        .font(.caption)
-                                }
-                                .buttonStyle(.plain)
-                                .help(String(localized: "preview.copy.text"))
-                            }
-                            Text(viewModel.combinedTranslatedText)
-                                .font(.body)
-                                .textSelection(.enabled)
-                        }
-                    }
                 }
                 .padding(.top, 8)
             }

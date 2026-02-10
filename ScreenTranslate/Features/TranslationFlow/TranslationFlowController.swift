@@ -1,5 +1,6 @@
 import AppKit
 import Observation
+import os.log
 
 /// 翻译流程阶段
 enum TranslationFlowPhase: Sendable, Equatable {
@@ -111,6 +112,7 @@ final class TranslationFlowController {
 
     private var currentTask: Task<Void, Never>?
     private let screenCoderEngine = ScreenCoderEngine.shared
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ScreenTranslate", category: "TranslationFlow")
     private let overlayRenderer = OverlayRenderer()
 
     private init() {}
@@ -175,7 +177,9 @@ final class TranslationFlowController {
             handleError(error)
             return
         } catch {
-            handleError(.analysisFailure(error.localizedDescription))
+            logger.error("Analysis phase failed: \(String(describing: error))")
+            let errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            handleError(.analysisFailure(errorMessage))
             return
         }
 
@@ -220,7 +224,9 @@ final class TranslationFlowController {
             handleError(error)
             return
         } catch {
-            handleError(.translationFailure(error.localizedDescription))
+            logger.error("Translation phase failed: \(String(describing: error))")
+            let errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            handleError(.translationFailure(errorMessage))
             return
         }
 
@@ -254,7 +260,9 @@ final class TranslationFlowController {
             handleError(error)
             return
         } catch {
-            handleError(.renderingFailure(error.localizedDescription))
+            logger.error("Rendering phase failed: \(String(describing: error))")
+            let errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            handleError(.renderingFailure(errorMessage))
             return
         }
     }
@@ -276,10 +284,24 @@ final class TranslationFlowController {
 
     private func showErrorAlert(_ error: TranslationFlowError) {
         NSApp.activate(ignoringOtherApps: true)
-        
+
         let alert = NSAlert()
         alert.messageText = String(localized: "translationFlow.error.title")
-        alert.informativeText = error.errorDescription ?? String(localized: "translationFlow.error.unknown")
+
+        var errorDetails = error.errorDescription ?? String(localized: "translationFlow.error.unknown")
+
+        // Add provider info for analysis/translation errors
+        switch error {
+        case .analysisFailure:
+            let settings = AppSettings.shared
+            errorDetails += "\n\nProvider: \(settings.vlmProvider.localizedName)"
+            errorDetails += "\nModel: \(settings.vlmModelName)"
+        default:
+            break
+        }
+
+        alert.informativeText = errorDetails
+
         if let recovery = error.recoverySuggestion {
             alert.informativeText += "\n\n" + recovery
         }
