@@ -159,27 +159,79 @@ struct OverlayRenderer: Sendable {
     }
 
     private func renderTranslation(_ text: String, in context: CGContext, at rect: CGRect, font: CTFont, color: CGColor) {
+        // Draw semi-transparent background pad for better readability
+        let bgPadColor = CGColor(white: 0.0, alpha: 0.3)  // Dark semi-transparent background
+        context.setFillColor(bgPadColor)
+        context.fill(rect.insetBy(dx: -4, dy: -2))
+
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .left
         paragraphStyle.lineBreakMode = .byWordWrapping
-        
+
+        // Use sampled color but ensure it's bright enough for readability
+        // against the dark background pad
+        let adjustedColor = ensureReadableColor(color, backgroundBrightness: 0.0)
+
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor(cgColor: color) ?? .white,
+            .foregroundColor: NSColor(cgColor: adjustedColor) ?? .white,
             .paragraphStyle: paragraphStyle
         ]
-        
+
         let attrString = CFAttributedStringCreate(
             nil,
             text as CFString,
             attributes as CFDictionary
         )!
-        
+
         let framesetter = CTFramesetterCreateWithAttributedString(attrString)
         let path = CGPath(rect: rect, transform: nil)
         let frame = CTFramesetterCreateFrame(framesetter, CFRange(location: 0, length: CFAttributedStringGetLength(attrString)), path, nil)
-        
+
         CTFrameDraw(frame, context)
+    }
+
+    /// Ensures text color has sufficient contrast against background
+    private func ensureReadableColor(_ color: CGColor, backgroundBrightness: CGFloat) -> CGColor {
+        guard let components = color.components, components.count >= 3 else {
+            return CGColor(white: 1.0, alpha: 1.0)  // Default to white
+        }
+
+        let r = components[0]
+        let g = components[1]
+        let b = components[2]
+
+        // Calculate relative luminance (perceived brightness)
+        let luminance = 0.299 * r + 0.587 * g + 0.114 * b
+
+        // For dark background, ensure text is bright enough
+        if backgroundBrightness < 0.5 {
+            // Background is dark, text should be bright
+            if luminance < 0.6 {
+                // Text is too dark, brighten it
+                let factor = 0.8 / max(luminance, 0.1)
+                return CGColor(
+                    red: min(r * factor, 1.0),
+                    green: min(g * factor, 1.0),
+                    blue: min(b * factor, 1.0),
+                    alpha: 1.0
+                )
+            }
+        } else {
+            // Background is light, text should be dark
+            if luminance > 0.4 {
+                // Text is too bright, darken it
+                let factor = 0.2 / max(luminance, 0.1)
+                return CGColor(
+                    red: r * factor,
+                    green: g * factor,
+                    blue: b * factor,
+                    alpha: 1.0
+                )
+            }
+        }
+
+        return color
     }
 
     private func sampleTextColor(from image: CGImage, at rect: CGRect) -> CGColor? {
