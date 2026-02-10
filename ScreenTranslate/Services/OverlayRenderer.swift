@@ -10,9 +10,9 @@ struct OverlayRenderer: Sendable {
         self.style = style
     }
 
-    func render(image: CGImage, segments: [BilingualSegment]) -> NSImage? {
+    func render(image: CGImage, segments: [BilingualSegment]) -> CGImage? {
         guard !segments.isEmpty else {
-            return NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
+            return image
         }
 
         let originalWidth = CGFloat(image.width)
@@ -88,8 +88,7 @@ struct OverlayRenderer: Sendable {
             yOffset -= rowHeights[index]
         }
 
-        guard let result = context.makeImage() else { return nil }
-        return NSImage(cgImage: result, size: NSSize(width: originalWidth, height: newHeight))
+        return context.makeImage()
     }
 
     private func groupIntoRows(_ segments: [BilingualSegment], imageHeight: CGFloat) -> [RowInfo] {
