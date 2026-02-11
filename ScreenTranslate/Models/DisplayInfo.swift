@@ -63,7 +63,24 @@ struct DisplayInfo: Identifiable, Hashable, Sendable {
             self.isPrimary = screen == NSScreen.main
         } else {
             self.name = "Display \(scDisplay.displayID)"
-            self.scaleFactor = 1.0
+
+            // Fallback 1: Calculate scaleFactor from pixel vs point dimensions
+            // scDisplay.width/height are pixels, frame.width/height are points
+            let pixelWidth = CGFloat(scDisplay.width)
+            let pointWidth = scDisplay.frame.width
+
+            if pointWidth > 0 {
+                self.scaleFactor = pixelWidth / pointWidth
+            } else {
+                // Fallback 2: Query via CoreGraphics mode
+                if let mode = CGDisplayCopyDisplayMode(scDisplay.displayID) {
+                    self.scaleFactor = CGFloat(mode.pixelWidth) / CGFloat(mode.width)
+                } else {
+                    // Final fallback: default to Retina (2.0) for modern Macs
+                    self.scaleFactor = 2.0
+                }
+            }
+
             self.isPrimary = CGDisplayIsMain(scDisplay.displayID) != 0
         }
     }

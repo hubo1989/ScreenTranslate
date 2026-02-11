@@ -119,11 +119,11 @@ final class TranslationFlowController {
 
     // MARK: - Public API
 
-    func startTranslation(image: CGImage) {
+    func startTranslation(image: CGImage, scaleFactor: CGFloat) {
         cancel()
 
         currentTask = Task {
-            await performTranslation(image: image)
+            await performTranslation(image: image, scaleFactor: scaleFactor)
         }
     }
 
@@ -146,7 +146,7 @@ final class TranslationFlowController {
 
     // MARK: - Private Implementation
 
-    private func performTranslation(image: CGImage) async {
+    private func performTranslation(image: CGImage, scaleFactor: CGFloat) async {
         let startTime = Date()
         lastError = nil
         lastResult = nil
@@ -155,6 +155,7 @@ final class TranslationFlowController {
         await MainActor.run {
             BilingualResultWindowController.shared.showLoading(
                 originalImage: image,
+                scaleFactor: scaleFactor,
                 message: String(localized: "bilingualResult.loading.analyzing")
             )
         }
@@ -258,7 +259,7 @@ final class TranslationFlowController {
                 renderedImage: renderedImage
             )
 
-            showResultWindow(renderedImage: renderedImage)
+            showResultWindow(renderedImage: renderedImage, scaleFactor: scaleFactor)
 
         } catch is CancellationError {
             handleCancellation()
@@ -285,8 +286,8 @@ final class TranslationFlowController {
         showErrorAlert(error)
     }
 
-    private func showResultWindow(renderedImage: CGImage) {
-        BilingualResultWindowController.shared.showResult(image: renderedImage)
+    private func showResultWindow(renderedImage: CGImage, scaleFactor: CGFloat) {
+        BilingualResultWindowController.shared.showResult(image: renderedImage, scaleFactor: scaleFactor)
     }
 
     private func saveToHistory(

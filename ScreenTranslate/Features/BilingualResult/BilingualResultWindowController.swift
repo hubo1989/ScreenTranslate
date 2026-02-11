@@ -12,11 +12,6 @@ final class BilingualResultWindowController: NSObject {
         super.init()
     }
 
-    /// Current screen's backing scale factor
-    private var currentScaleFactor: CGFloat {
-        NSScreen.main?.backingScaleFactor ?? 1.0
-    }
-
     /// Calculate window size from image point dimensions
     private func calculateWindowSize(
         imagePointWidth: CGFloat,
@@ -32,9 +27,7 @@ final class BilingualResultWindowController: NSObject {
         return NSSize(width: windowWidth, height: windowHeight)
     }
 
-    func showLoading(originalImage: CGImage, message: String? = nil) {
-        let scaleFactor = currentScaleFactor
-
+    func showLoading(originalImage: CGImage, scaleFactor: CGFloat, message: String? = nil) {
         if let existingWindow = window, existingWindow.isVisible {
             viewModel?.showLoading(originalImage: originalImage, message: message)
             existingWindow.makeKeyAndOrderFront(nil)
@@ -82,8 +75,7 @@ final class BilingualResultWindowController: NSObject {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func showResult(image: CGImage) {
-        let scaleFactor = currentScaleFactor
+    func showResult(image: CGImage, scaleFactor: CGFloat) {
         viewModel?.showResult(image: image, displayScaleFactor: scaleFactor)
 
         if let window = window {
@@ -113,9 +105,7 @@ final class BilingualResultWindowController: NSObject {
         viewModel?.showError(message)
     }
 
-    func show(image: CGImage) {
-        let scaleFactor = currentScaleFactor
-
+    func show(image: CGImage, scaleFactor: CGFloat) {
         if let existingWindow = window, existingWindow.isVisible {
             viewModel?.updateImage(image, displayScaleFactor: scaleFactor)
             existingWindow.makeKeyAndOrderFront(nil)

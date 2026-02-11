@@ -68,7 +68,7 @@ final class PreviewWindow: NSPanel {
         titleVisibility = .visible
 
         // Size constraints - minimum width accommodates toolbar UI
-        minSize = NSSize(width: 700, height: 400)
+        minSize = NSSize(width: 300, height: 200)
         maxSize = NSSize(width: 4000, height: 3000)
 
         // Collection behavior for proper window management
@@ -162,8 +162,14 @@ final class PreviewWindow: NSPanel {
         let windowWidth = imageSize.width * scale
         let windowHeight = imageSize.height * scale + 60 // Extra height for info bar
 
-        // Minimum size must accommodate toolbar UI elements
-        return NSSize(width: max(windowWidth, 700), height: max(windowHeight, 400))
+        // Dynamic minimum size: toolbar needs some space but don't force stretch small images too much
+        let effectiveMinWidth = min(300, imageSize.width)
+        let effectiveMinHeight = min(200, imageSize.height + 60)
+
+        return NSSize(
+            width: max(windowWidth, effectiveMinWidth),
+            height: max(windowHeight, effectiveMinHeight)
+        )
     }
 
     /// Calculates a centered rect for the window.
