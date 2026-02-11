@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.0.1-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B-brightgreen.svg" alt="macOS"></a>
   <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift"></a>
@@ -52,6 +53,24 @@
 ## 下载安装
 
 从 [Releases](../../releases) 页面下载最新版本。
+
+> ⚠️ **注意：应用未经过 Apple 开发者签名**
+>
+> 由于目前没有 Apple Developer 账号，应用未进行代码签名。首次运行时 macOS 会提示「无法打开」或「开发者无法验证」。
+>
+> **解决方法**（二选一）：
+>
+> **方法 1 - 终端命令（推荐）**
+> ```bash
+> xattr -rd com.apple.quarantine /Applications/ScreenTranslate.app
+> ```
+>
+> **方法 2 - 系统设置**
+> 1. 打开「系统设置」→「隐私与安全性」
+> 2. 在「安全性」部分找到关于 ScreenTranslate 的提示
+> 3. 点击「仍要打开」
+>
+> 两种方法都只需要执行一次，之后可以正常使用。
 
 ## 使用说明
 
