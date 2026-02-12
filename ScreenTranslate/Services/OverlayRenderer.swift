@@ -122,12 +122,12 @@ struct OverlayRenderer: Sendable {
 
         for row in rows {
             let rowText = row.segments.map { $0.translated }.joined(separator: " ")
-            let textHeight = calculateTextHeight(rowText, font: translationFont, maxWidth: maxTextWidth - padding * 2)
+            let textHeight = calculateTextHeight(rowText, font: translationFont, maxWidth: maxTextWidth)
 
             renderTranslationBlock(
                 rowText,
                 in: context,
-                at: CGRect(x: padding, y: currentY - textHeight, width: maxTextWidth - padding * 2, height: textHeight),
+                at: CGRect(x: padding, y: currentY - textHeight, width: maxTextWidth, height: textHeight),
                 font: translationFont,
                 color: theme.textColor
             )
