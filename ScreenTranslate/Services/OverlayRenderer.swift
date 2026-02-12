@@ -3,6 +3,39 @@ import CoreGraphics
 import CoreText
 import Foundation
 
+/// Color theme for overlay rendering
+/// Note: CGColor is not Sendable, but we use this safely by only accessing on main thread
+struct OverlayTheme: Sendable {
+    let backgroundColor: CGColor
+    let textColor: CGColor
+    let separatorColor: CGColor
+
+    /// Light theme (default)
+    static let light = OverlayTheme(
+        backgroundColor: CGColor(gray: 0.95, alpha: 1.0),
+        textColor: CGColor(gray: 0.1, alpha: 1.0),
+        separatorColor: CGColor(gray: 0.7, alpha: 1.0)
+    )
+
+    /// Dark theme
+    static let dark = OverlayTheme(
+        backgroundColor: CGColor(gray: 0.15, alpha: 1.0),
+        textColor: CGColor(gray: 0.9, alpha: 1.0),
+        separatorColor: CGColor(gray: 0.4, alpha: 1.0)
+    )
+
+    /// Get theme based on system appearance
+    /// Must be called from main thread
+    @MainActor
+    static var current: OverlayTheme {
+        // Check if system is in dark mode
+        if let appearance = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) {
+            return appearance == .darkAqua ? .dark : .light
+        }
+        return .light
+    }
+}
+
 struct OverlayRenderer: Sendable {
     private let style: OverlayStyle
 
@@ -10,7 +43,7 @@ struct OverlayRenderer: Sendable {
         self.style = style
     }
 
-    func render(image: CGImage, segments: [BilingualSegment]) -> CGImage? {
+    func render(image: CGImage, segments: [BilingualSegment], theme: OverlayTheme) -> CGImage? {
         guard !segments.isEmpty else {
             return image
         }
@@ -25,27 +58,28 @@ struct OverlayRenderer: Sendable {
         let isWideImage = aspectRatio >= 1.0
 
         if isWideImage {
-            return renderSideBySideVertical(image: image, segments: segments)
+            return renderSideBySideVertical(image: image, segments: segments, theme: theme)
         } else {
-            return renderSideBySideHorizontal(image: image, segments: segments)
+            return renderSideBySideHorizontal(image: image, segments: segments, theme: theme)
         }
     }
 
     /// Renders wide images with original on top, translation list below
-    private func renderSideBySideVertical(image: CGImage, segments: [BilingualSegment]) -> CGImage? {
+    private func renderSideBySideVertical(image: CGImage, segments: [BilingualSegment], theme: OverlayTheme) -> CGImage? {
         let originalWidth = CGFloat(image.width)
         let originalHeight = CGFloat(image.height)
 
         // Calculate translation area height
-        let translationFontSize: CGFloat = max(16, originalHeight * 0.025)
+        let translationFontSize: CGFloat = max(24, originalHeight * 0.04)
         let translationFont = createFont(size: translationFontSize)
         let lineHeight = translationFontSize * 1.5
 
         // Group segments by row for organized display
         let rows = groupIntoRows(segments, imageHeight: originalHeight)
 
-        // Calculate required height for translations
-        let maxTextWidth = originalWidth - 40  // Padding on both sides
+        // Calculate required height for translations using padded width
+        let padding: CGFloat = 10
+        let maxTextWidth = originalWidth - padding * 2
         var totalTranslationHeight: CGFloat = 40  // Top padding
 
         for row in rows {
@@ -70,21 +104,21 @@ struct OverlayRenderer: Sendable {
             return nil
         }
 
-        // Fill background
-        context.setFillColor(CGColor(gray: 0.95, alpha: 1.0))  // Light gray background
+        // Fill background with theme color
+        context.setFillColor(theme.backgroundColor)
         context.fill(CGRect(x: 0, y: 0, width: originalWidth, height: newHeight))
 
         // Draw original image at top (unchanged)
         let imageY = newHeight - originalHeight  // In CG, Y=0 is bottom
         context.draw(image, in: CGRect(x: 0, y: imageY, width: originalWidth, height: originalHeight))
 
-        // Draw separator line
+        // Draw separator line with theme color
         let separatorY = imageY - 1
-        context.setFillColor(CGColor(gray: 0.7, alpha: 1.0))
+        context.setFillColor(theme.separatorColor)
         context.fill(CGRect(x: 0, y: separatorY, width: originalWidth, height: 2))
 
-        // Draw translations below
-        var currentY: CGFloat = separatorY - 30  // Start below separator
+        // Draw translations below with padding
+        var currentY: CGFloat = separatorY - padding  // Start below separator
 
         for row in rows {
             let rowText = row.segments.map { $0.translated }.joined(separator: " ")
@@ -93,9 +127,9 @@ struct OverlayRenderer: Sendable {
             renderTranslationBlock(
                 rowText,
                 in: context,
-                at: CGRect(x: 20, y: currentY - textHeight, width: maxTextWidth, height: textHeight),
+                at: CGRect(x: padding, y: currentY - textHeight, width: maxTextWidth, height: textHeight),
                 font: translationFont,
-                color: CGColor(gray: 0.1, alpha: 1.0)  // Dark text for readability
+                color: theme.textColor
             )
 
             currentY -= textHeight + lineHeight * 0.5
@@ -105,12 +139,12 @@ struct OverlayRenderer: Sendable {
     }
 
     /// Renders tall images with original on left, translation on right
-    private func renderSideBySideHorizontal(image: CGImage, segments: [BilingualSegment]) -> CGImage? {
+    private func renderSideBySideHorizontal(image: CGImage, segments: [BilingualSegment], theme: OverlayTheme) -> CGImage? {
         let originalWidth = CGFloat(image.width)
         let originalHeight = CGFloat(image.height)
 
-        // Translation area takes up to 50% of width or fixed width
-        let translationAreaWidth = min(originalWidth * 0.5, 400)
+        // Translation area width matches original image width
+        let translationAreaWidth = originalWidth
         let newWidth = originalWidth + translationAreaWidth
 
         guard let colorSpace = image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB),
@@ -126,31 +160,32 @@ struct OverlayRenderer: Sendable {
             return nil
         }
 
-        // Fill background
-        context.setFillColor(CGColor(gray: 0.95, alpha: 1.0))  // Light gray background
+        // Fill background with theme color
+        context.setFillColor(theme.backgroundColor)
         context.fill(CGRect(x: 0, y: 0, width: newWidth, height: originalHeight))
 
         // Draw original image on left (unchanged)
         context.draw(image, in: CGRect(x: 0, y: 0, width: originalWidth, height: originalHeight))
 
-        // Draw separator line
+        // Draw separator line with theme color
         let separatorX = originalWidth
-        context.setFillColor(CGColor(gray: 0.7, alpha: 1.0))
+        context.setFillColor(theme.separatorColor)
         context.fill(CGRect(x: separatorX, y: 0, width: 2, height: originalHeight))
 
         // Calculate font size based on image height
-        let translationFontSize: CGFloat = max(14, originalHeight * 0.02)
+        let translationFontSize: CGFloat = max(24, originalHeight * 0.04)
         let translationFont = createFont(size: translationFontSize)
 
         // Group segments by row
         let rows = groupIntoRows(segments, imageHeight: originalHeight)
 
-        // Draw translations on right side
-        let textAreaX = separatorX + 20
-        let maxTextWidth = translationAreaWidth - 40
+        // Draw translations on right side with 10px padding inside translation area
+        let padding: CGFloat = 10
+        let textAreaX = separatorX + padding
+        let maxTextWidth = translationAreaWidth - padding * 2
         let lineHeight = translationFontSize * 1.8
 
-        var currentY: CGFloat = originalHeight - 40  // Start from top with padding
+        var currentY: CGFloat = originalHeight - padding  // Start from top with padding
 
         // Draw each translation row
         for row in rows {
@@ -167,7 +202,7 @@ struct OverlayRenderer: Sendable {
                 in: context,
                 at: CGRect(x: textAreaX, y: currentY - textHeight, width: maxTextWidth, height: textHeight),
                 font: translationFont,
-                color: CGColor(gray: 0.1, alpha: 1.0)
+                color: theme.textColor
             )
 
             currentY -= textHeight + lineHeight * 0.8

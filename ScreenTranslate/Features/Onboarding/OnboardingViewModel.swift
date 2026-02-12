@@ -29,7 +29,13 @@ final class OnboardingViewModel {
     /// PaddleOCR server address
     var paddleOCRServerAddress = ""
 
-    var mtranServerURL = "localhost:8989"
+    var mtranServerURL = "localhost:8989" {
+        didSet {
+            // Clear test result when URL changes
+            translationTestResult = nil
+            translationTestSuccess = false
+        }
+    }
 
     /// Whether a translation test is in progress
     var isTestingTranslation = false
@@ -236,15 +242,25 @@ final class OnboardingViewModel {
         let trimmed = url.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return nil }
 
-        if let colonIndex = trimmed.lastIndex(of: ":") {
-            let host = String(trimmed[..<colonIndex])
-            let portString = String(trimmed[colonIndex...].dropFirst())
-            if let port = Int(portString) {
-                return (host, port)
-            }
+        // Remove protocol if present
+        var hostPart = trimmed
+        if hostPart.hasPrefix("http://") {
+            hostPart = String(hostPart.dropFirst(7))
+        } else if hostPart.hasPrefix("https://") {
+            hostPart = String(hostPart.dropFirst(8))
         }
 
-        return (trimmed, 8989)
+        // Split by colon for port
+        if let colonIndex = hostPart.firstIndex(of: ":") {
+            let host = String(hostPart[..<colonIndex])
+            let portAndPath = String(hostPart[hostPart.index(after: colonIndex)...])
+            // Extract only the port number (stop at first non-digit or path separator)
+            let portString = portAndPath.prefix { $0.isNumber }
+            let port = Int(portString) ?? 8989
+            return (host.isEmpty ? "localhost" : host, port)
+        } else {
+            return (hostPart.isEmpty ? "localhost" : hostPart, 8989)
+        }
     }
 
     func skipConfiguration() {

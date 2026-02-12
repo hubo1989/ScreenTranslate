@@ -13,6 +13,9 @@ final class BilingualResultViewModel {
     var saveSuccessMessage: String?
     var errorMessage: String?
 
+    /// Translated text for copy functionality
+    private(set) var translatedText: String = ""
+
     private let minScale: CGFloat = 0.1
     private let maxScale: CGFloat = 5.0
     private let scaleStep: CGFloat = 0.1
@@ -38,11 +41,13 @@ final class BilingualResultViewModel {
         self.isLoading = true
         self.loadingMessage = message ?? String(localized: "bilingualResult.loading")
         self.errorMessage = nil
+        self.translatedText = ""  // Clear previous translation when loading new content
     }
 
-    func showResult(image: CGImage, displayScaleFactor: CGFloat? = nil) {
+    func showResult(image: CGImage, displayScaleFactor: CGFloat? = nil, translatedText: String? = nil) {
         self.image = image
         if let sf = displayScaleFactor { self.displayScaleFactor = sf }
+        if let text = translatedText { self.translatedText = text }
         self.isLoading = false
         self.loadingMessage = ""
         self.errorMessage = nil
@@ -79,11 +84,26 @@ final class BilingualResultViewModel {
         scale = 1.0
     }
 
-    func copyToClipboard() {
+    func copyImageToClipboard() {
         do {
             try ClipboardService.shared.copy(image)
             showCopySuccess()
         } catch {
+            errorMessage = String(localized: "bilingualResult.copyFailed")
+        }
+    }
+
+    func copyTextToClipboard() {
+        guard !translatedText.isEmpty else {
+            errorMessage = String(localized: "bilingualResult.noTextToCopy")
+            return
+        }
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        let success = pasteboard.setString(translatedText, forType: .string)
+        if success {
+            showCopyTextSuccess()
+        } else {
             errorMessage = String(localized: "bilingualResult.copyFailed")
         }
     }
@@ -108,6 +128,14 @@ final class BilingualResultViewModel {
 
     private func showCopySuccess() {
         copySuccessMessage = String(localized: "bilingualResult.copySuccess")
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            copySuccessMessage = nil
+        }
+    }
+
+    private func showCopyTextSuccess() {
+        copySuccessMessage = String(localized: "bilingualResult.copyTextSuccess")
         Task {
             try? await Task.sleep(for: .seconds(2))
             copySuccessMessage = nil

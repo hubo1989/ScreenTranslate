@@ -104,10 +104,16 @@ struct BilingualResultView: View {
                 Spacer()
 
                 HStack(spacing: 8) {
-                    Button(action: viewModel.copyToClipboard) {
-                        Label(String(localized: "bilingualResult.copy"), systemImage: "doc.on.clipboard")
+                    Button(action: viewModel.copyImageToClipboard) {
+                        Label(String(localized: "bilingualResult.copyImage"), systemImage: "photo")
                     }
                     .buttonStyle(.bordered)
+
+                    Button(action: viewModel.copyTextToClipboard) {
+                        Label(String(localized: "bilingualResult.copyText"), systemImage: "doc.on.clipboard")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(viewModel.translatedText.isEmpty)
 
                     Button(action: viewModel.saveImage) {
                         Label(String(localized: "bilingualResult.save"), systemImage: "square.and.arrow.down")

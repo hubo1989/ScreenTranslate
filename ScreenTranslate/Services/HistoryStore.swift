@@ -21,7 +21,7 @@ final class HistoryStore: ObservableObject {
     private static let thumbnailQuality: CGFloat = 0.7
 
     /// UserDefaults key for history data
-    private static let historyKey = "ScreenCapture.translationHistory"
+    private static let historyKey = "ScreenTranslate.translationHistory"
 
     // MARK: - Properties
 

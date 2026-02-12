@@ -16,6 +16,7 @@ actor MTranServerEngine: TranslationProvider {
     // MARK: - Properties
 
     static let shared = MTranServerEngine()
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ScreenTranslate", category: "MTranServerEngine")
 
     // MARK: - Configuration
 
@@ -33,12 +34,20 @@ actor MTranServerEngine: TranslationProvider {
         /// Whether to automatically detect source language
         var autoDetectSourceLanguage: Bool
 
-        static let `default` = Configuration(
-            serverAddress: "localhost",
-            serverPort: 8989,
-            timeout: 10.0,
-            autoDetectSourceLanguage: true
-        )
+        /// Default configuration from UserDefaults
+        static var `default`: Configuration {
+            // Read directly from UserDefaults to avoid MainActor isolation issues
+            let defaults = UserDefaults.standard
+            let prefix = "ScreenTranslate."
+            let host = defaults.string(forKey: prefix + "mtranServerHost") ?? "localhost"
+            let port = defaults.object(forKey: prefix + "mtranServerPort") as? Int ?? 8989
+            return Configuration(
+                serverAddress: host,
+                serverPort: port,
+                timeout: 10.0,
+                autoDetectSourceLanguage: true
+            )
+        }
     }
 
     // MARK: - Initialization
@@ -61,7 +70,13 @@ actor MTranServerEngine: TranslationProvider {
         to targetLanguage: String,
         config: Configuration = .default
     ) async throws -> TranslationResult {
+        logger.info("Starting translation: \(text.count) chars to \(targetLanguage)")
+        logger.info("Config: \(config.serverAddress):\(config.serverPort)")
+
+        // Reset cache to ensure we check with current settings
+        MTranServerChecker.resetCache()
         guard MTranServerChecker.isAvailable else {
+            logger.error("MTranServer not available")
             throw MTranServerError.notAvailable
         }
 
@@ -77,21 +92,27 @@ actor MTranServerEngine: TranslationProvider {
 
         // Build request
         let url = try buildURL(config: config)
+        logger.info("Translation URL: \(url.absoluteString)")
         let jsonData = try buildRequestBody(text: text, from: effectiveSourceLanguage, to: targetLanguage)
 
         // Perform request with timeout
-        let result = try await performTranslationRequest(
-            url: url,
-            jsonData: jsonData,
-            timeout: config.timeout
-        )
-
-        return TranslationResult(
-            sourceText: text,
-            translatedText: result.translatedText,
-            sourceLanguage: result.detectedLanguage ?? effectiveSourceLanguage,
-            targetLanguage: targetLanguage
-        )
+        do {
+            let result = try await performTranslationRequest(
+                url: url,
+                jsonData: jsonData,
+                timeout: config.timeout
+            )
+            logger.info("Translation successful: \(result.translatedText.count) chars")
+            return TranslationResult(
+                sourceText: text,
+                translatedText: result.translatedText,
+                sourceLanguage: result.detectedLanguage ?? effectiveSourceLanguage,
+                targetLanguage: targetLanguage
+            )
+        } catch {
+            logger.error("Translation failed: \(error.localizedDescription)")
+            throw error
+        }
     }
 
     /// Translates text with automatic language detection.
@@ -154,7 +175,9 @@ actor MTranServerEngine: TranslationProvider {
 
     /// Builds the URL for MTranServer API endpoint
     private func buildURL(config: Configuration) throws -> URL {
-        let urlString = "http://\(config.serverAddress):\(config.serverPort)/translate"
+        // Normalize localhost to 127.0.0.1 to avoid IPv6 resolution issues
+        let host = config.serverAddress == "localhost" ? "127.0.0.1" : config.serverAddress
+        let urlString = "http://\(host):\(config.serverPort)/translate"
         guard let url = URL(string: urlString) else {
             throw MTranServerError.invalidURL
         }

@@ -4,75 +4,79 @@ struct OnboardingConfigurationStepView: View {
     @Bindable var viewModel: OnboardingViewModel
 
     var body: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 24) {
+                    Image(systemName: "gearshape.2.fill")
+                        .font(.system(size: 50))
+                        .foregroundStyle(.blue)
+                        .padding(.top, 16)
 
-            Image(systemName: "gearshape.2.fill")
-                .font(.system(size: 50))
-                .foregroundStyle(.blue)
+                    VStack(spacing: 12) {
+                        Text(NSLocalizedString("onboarding.configuration.title", comment: ""))
+                            .font(.largeTitle)
+                            .fontWeight(.semibold)
 
-            VStack(spacing: 12) {
-                Text(NSLocalizedString("onboarding.configuration.title", comment: ""))
-                    .font(.largeTitle)
-                    .fontWeight(.semibold)
+                        Text(NSLocalizedString("onboarding.configuration.message", comment: ""))
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
 
-                Text(NSLocalizedString("onboarding.configuration.message", comment: ""))
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
+                    VStack(alignment: .leading, spacing: 16) {
+                        OnboardingPaddleOCRSection(viewModel: viewModel)
 
-            VStack(alignment: .leading, spacing: 16) {
-                OnboardingPaddleOCRSection(viewModel: viewModel)
+                        Divider()
 
-                Divider()
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(NSLocalizedString("onboarding.configuration.mtran", comment: ""))
-                        .font(.headline)
-                    Text(NSLocalizedString("onboarding.configuration.mtran.hint", comment: ""))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextField(
-                        NSLocalizedString("onboarding.configuration.placeholder.address", comment: ""),
-                        text: $viewModel.mtranServerURL
-                    )
-                    .textFieldStyle(.roundedBorder)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(NSLocalizedString("onboarding.configuration.test", comment: ""))
-                        .font(.headline)
-
-                    if let result = viewModel.translationTestResult {
-                        let imageName = viewModel.translationTestSuccess ? "checkmark.circle.fill" : "xmark.circle.fill"
-                        HStack(spacing: 8) {
-                            Image(systemName: imageName)
-                                .foregroundStyle(viewModel.translationTestSuccess ? .green : .red)
-                            Text(result)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(NSLocalizedString("onboarding.configuration.mtran", comment: ""))
+                                .font(.headline)
+                            Text(NSLocalizedString("onboarding.configuration.mtran.hint", comment: ""))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                            TextField(
+                                NSLocalizedString("onboarding.configuration.placeholder.address", comment: ""),
+                                text: $viewModel.mtranServerURL
+                            )
+                            .textFieldStyle(.roundedBorder)
                         }
-                    }
 
-                    Button {
-                        Task {
-                            await viewModel.testTranslation()
-                        }
-                    } label: {
-                        if viewModel.isTestingTranslation {
-                            Text(NSLocalizedString("onboarding.configuration.testing", comment: ""))
-                        } else {
-                            Text(NSLocalizedString("onboarding.configuration.test.button", comment: ""))
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(NSLocalizedString("onboarding.configuration.test", comment: ""))
+                                .font(.headline)
+
+                            if let result = viewModel.translationTestResult {
+                                let imageName = viewModel.translationTestSuccess ? "checkmark.circle.fill" : "xmark.circle.fill"
+                                HStack(spacing: 8) {
+                                    Image(systemName: imageName)
+                                        .foregroundStyle(viewModel.translationTestSuccess ? .green : .red)
+                                    Text(result)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Button {
+                                Task {
+                                    await viewModel.testTranslation()
+                                }
+                            } label: {
+                                if viewModel.isTestingTranslation {
+                                    Text(NSLocalizedString("onboarding.configuration.testing", comment: ""))
+                                } else {
+                                    Text(NSLocalizedString("onboarding.configuration.test.button", comment: ""))
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(viewModel.isTestingTranslation)
                         }
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(viewModel.isTestingTranslation)
+                    .frame(maxWidth: 400)
                 }
+                .padding(32)
             }
-            .frame(maxWidth: 400)
 
-            Spacer()
+            Divider()
 
             HStack(spacing: 16) {
                 Button {
@@ -94,8 +98,9 @@ struct OnboardingConfigurationStepView: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
+            .padding(16)
+            .background(Color(nsColor: .windowBackgroundColor))
         }
-        .padding(32)
     }
 }
 

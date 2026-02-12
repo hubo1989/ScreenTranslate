@@ -3,7 +3,7 @@ import SwiftUI
 import os
 
 /// User preferences persisted across sessions via UserDefaults.
-/// All properties automatically sync to UserDefaults with the `ScreenCapture.` prefix.
+/// All properties automatically sync to UserDefaults with the `ScreenTranslate.` prefix.
 @MainActor
 @Observable
 final class AppSettings {
@@ -15,7 +15,7 @@ final class AppSettings {
     // MARK: - UserDefaults Keys
 
     private enum Keys {
-        static let prefix = "ScreenCapture."
+        static let prefix = "ScreenTranslate."
         static let saveLocation = prefix + "saveLocation"
         static let defaultFormat = prefix + "defaultFormat"
         static let jpegQuality = prefix + "jpegQuality"

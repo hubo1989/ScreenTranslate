@@ -237,7 +237,9 @@ final class TranslationFlowController {
         do {
             try Task.checkCancellation()
 
-            guard let renderedImage = overlayRenderer.render(image: image, segments: bilingualSegments) else {
+            // Get theme on main thread (OverlayTheme.current requires @MainActor)
+            let theme = OverlayTheme.current
+            guard let renderedImage = overlayRenderer.render(image: image, segments: bilingualSegments, theme: theme) else {
                 throw TranslationFlowError.renderingFailure("Failed to render overlay")
             }
 
@@ -287,7 +289,9 @@ final class TranslationFlowController {
     }
 
     private func showResultWindow(renderedImage: CGImage, scaleFactor: CGFloat) {
-        BilingualResultWindowController.shared.showResult(image: renderedImage, scaleFactor: scaleFactor)
+        // Get translated text from last result
+        let translatedText = lastResult?.segments.map { $0.translated }.joined(separator: "\n")
+        BilingualResultWindowController.shared.showResult(image: renderedImage, scaleFactor: scaleFactor, translatedText: translatedText)
     }
 
     private func saveToHistory(

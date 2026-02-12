@@ -63,6 +63,17 @@ final class SettingsViewModel {
     /// Whether VLM test was successful
     var vlmTestSuccess: Bool = false
 
+    // MARK: - MTranServer Test State
+
+    /// Whether MTranServer test is in progress
+    var isTestingMTranServer = false
+
+    /// MTranServer test result message
+    var mtranTestResult: String?
+
+    /// Whether MTranServer test was successful
+    var mtranTestSuccess: Bool = false
+
     // MARK: - Computed Properties (Bindings to AppSettings)
 
     /// Save location URL
@@ -236,7 +247,12 @@ final class SettingsViewModel {
 
     var mtranServerURL: String {
         get { settings.mtranServerURL }
-        set { settings.mtranServerURL = newValue }
+        set {
+            settings.mtranServerURL = newValue
+            // Clear test result when URL changes
+            mtranTestResult = nil
+            mtranTestSuccess = false
+        }
     }
 
     var translationFallbackEnabled: Bool {
@@ -656,7 +672,7 @@ final class SettingsViewModel {
 
         switch httpResponse.statusCode {
         case 200:
-            return (true, "API connection successful! Model: \(modelName)")
+            return (true, String(format: NSLocalizedString("settings.vlm.test.success", comment: ""), modelName))
         case 401:
             throw VLMProviderError.authenticationFailed
         case 429:
@@ -681,7 +697,7 @@ final class SettingsViewModel {
 
         switch httpResponse.statusCode {
         case 200:
-            return (true, "API connection successful! Model: \(modelName)")
+            return (true, String(format: NSLocalizedString("settings.vlm.test.success", comment: ""), modelName))
         case 401:
             throw VLMProviderError.authenticationFailed
         default:
@@ -712,10 +728,96 @@ final class SettingsViewModel {
         let availableModels = tagsResponse.models.map { $0.name }
 
         if availableModels.contains(where: { $0.hasPrefix(modelName) }) {
-            return (true, "Server running. Model '\(modelName)' available")
+            return (true, String(format: NSLocalizedString("settings.vlm.test.ollama.success", comment: ""), modelName))
         } else {
-            let modelsList = availableModels.isEmpty ? "none" : availableModels.joined(separator: ", ")
-            return (true, "Server running. Available: \(modelsList)")
+            let modelsList = availableModels.isEmpty ? NSLocalizedString("none", comment: "") : availableModels.joined(separator: ", ")
+            return (true, String(format: NSLocalizedString("settings.vlm.test.ollama.available", comment: ""), modelsList))
+        }
+    }
+
+    // MARK: - MTranServer Connection Test
+
+    /// Tests MTranServer connection with current configuration
+    func testMTranServerConnection() {
+        isTestingMTranServer = true
+        mtranTestResult = nil
+        mtranTestSuccess = false
+
+        Task {
+            do {
+                // Parse URL and update settings temporarily for test
+                guard let (host, port) = parseMTranServerURL(mtranServerURL), !host.isEmpty else {
+                    throw MTranServerError.invalidURL
+                }
+
+                // Save current settings
+                let originalHost = settings.mtranServerHost
+                let originalPort = settings.mtranServerPort
+
+                // Update settings for test
+                settings.mtranServerHost = host
+                settings.mtranServerPort = port
+
+                // Reset cache to use new settings
+                MTranServerChecker.resetCache()
+
+                // Check availability
+                let isAvailable = MTranServerChecker.isAvailable
+
+                // Restore original settings if test is just for checking
+                settings.mtranServerHost = originalHost
+                settings.mtranServerPort = originalPort
+
+                await MainActor.run {
+                    mtranTestSuccess = isAvailable
+                    if isAvailable {
+                        mtranTestResult = NSLocalizedString("settings.translation.mtran.test.success", comment: "")
+                    } else {
+                        mtranTestResult = String(
+                            format: NSLocalizedString("settings.translation.mtran.test.failed", comment: ""),
+                            "Server not responding"
+                        )
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    mtranTestSuccess = false
+                    mtranTestResult = String(
+                        format: NSLocalizedString("settings.translation.mtran.test.failed", comment: ""),
+                        error.localizedDescription
+                    )
+                }
+            }
+
+            await MainActor.run {
+                isTestingMTranServer = false
+            }
+        }
+    }
+
+    /// Parses MTranServer URL to extract host and port
+    private func parseMTranServerURL(_ url: String) -> (host: String, port: Int)? {
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        // Remove protocol if present
+        var hostPart = trimmed
+        if hostPart.hasPrefix("http://") {
+            hostPart = String(hostPart.dropFirst(7))
+        } else if hostPart.hasPrefix("https://") {
+            hostPart = String(hostPart.dropFirst(8))
+        }
+
+        // Split by colon for port
+        if let colonIndex = hostPart.firstIndex(of: ":") {
+            let host = String(hostPart[..<colonIndex])
+            let portAndPath = String(hostPart[hostPart.index(after: colonIndex)...])
+            // Extract only the port number (stop at first non-digit or path separator)
+            let portString = portAndPath.prefix { $0.isNumber }
+            let port = Int(portString) ?? 8989
+            return (host.isEmpty ? "localhost" : host, port)
+        } else {
+            return (hostPart.isEmpty ? "localhost" : hostPart, 8989)
         }
     }
 }
