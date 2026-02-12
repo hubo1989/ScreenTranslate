@@ -70,7 +70,7 @@ actor MTranServerEngine: TranslationProvider {
         to targetLanguage: String,
         config: Configuration = .default
     ) async throws -> TranslationResult {
-        logger.info("Starting translation: '\(text)' to \(targetLanguage)")
+        logger.info("Starting translation: \(text.count) chars to \(targetLanguage)")
         logger.info("Config: \(config.serverAddress):\(config.serverPort)")
 
         // Reset cache to ensure we check with current settings
@@ -102,7 +102,7 @@ actor MTranServerEngine: TranslationProvider {
                 jsonData: jsonData,
                 timeout: config.timeout
             )
-            logger.info("Translation successful: \(result.translatedText)")
+            logger.info("Translation successful: \(result.translatedText.count) chars")
             return TranslationResult(
                 sourceText: text,
                 translatedText: result.translatedText,

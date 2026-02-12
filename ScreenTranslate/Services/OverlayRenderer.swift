@@ -4,6 +4,7 @@ import CoreText
 import Foundation
 
 /// Color theme for overlay rendering
+/// Note: CGColor is not Sendable, but we use this safely by only accessing on main thread
 struct OverlayTheme: Sendable {
     let backgroundColor: CGColor
     let textColor: CGColor
@@ -24,6 +25,8 @@ struct OverlayTheme: Sendable {
     )
 
     /// Get theme based on system appearance
+    /// Must be called from main thread
+    @MainActor
     static var current: OverlayTheme {
         // Check if system is in dark mode
         if let appearance = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) {
@@ -40,7 +43,7 @@ struct OverlayRenderer: Sendable {
         self.style = style
     }
 
-    func render(image: CGImage, segments: [BilingualSegment], theme: OverlayTheme = .current) -> CGImage? {
+    func render(image: CGImage, segments: [BilingualSegment], theme: OverlayTheme) -> CGImage? {
         guard !segments.isEmpty else {
             return image
         }
@@ -74,8 +77,9 @@ struct OverlayRenderer: Sendable {
         // Group segments by row for organized display
         let rows = groupIntoRows(segments, imageHeight: originalHeight)
 
-        // Calculate required height for translations
-        let maxTextWidth = originalWidth  // Full width, no padding
+        // Calculate required height for translations using padded width
+        let padding: CGFloat = 10
+        let maxTextWidth = originalWidth - padding * 2
         var totalTranslationHeight: CGFloat = 40  // Top padding
 
         for row in rows {
@@ -113,8 +117,7 @@ struct OverlayRenderer: Sendable {
         context.setFillColor(theme.separatorColor)
         context.fill(CGRect(x: 0, y: separatorY, width: originalWidth, height: 2))
 
-        // Draw translations below with 10px padding
-        let padding: CGFloat = 10
+        // Draw translations below with padding
         var currentY: CGFloat = separatorY - padding  // Start below separator
 
         for row in rows {

@@ -41,6 +41,7 @@ final class BilingualResultViewModel {
         self.isLoading = true
         self.loadingMessage = message ?? String(localized: "bilingualResult.loading")
         self.errorMessage = nil
+        self.translatedText = ""  // Clear previous translation when loading new content
     }
 
     func showResult(image: CGImage, displayScaleFactor: CGFloat? = nil, translatedText: String? = nil) {
@@ -99,8 +100,12 @@ final class BilingualResultViewModel {
         }
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setString(translatedText, forType: .string)
-        showCopyTextSuccess()
+        let success = pasteboard.setString(translatedText, forType: .string)
+        if success {
+            showCopyTextSuccess()
+        } else {
+            errorMessage = String(localized: "bilingualResult.copyFailed")
+        }
     }
 
     func saveImage() {

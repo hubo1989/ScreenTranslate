@@ -247,7 +247,12 @@ final class SettingsViewModel {
 
     var mtranServerURL: String {
         get { settings.mtranServerURL }
-        set { settings.mtranServerURL = newValue }
+        set {
+            settings.mtranServerURL = newValue
+            // Clear test result when URL changes
+            mtranTestResult = nil
+            mtranTestSuccess = false
+        }
     }
 
     var translationFallbackEnabled: Bool {
@@ -806,7 +811,9 @@ final class SettingsViewModel {
         // Split by colon for port
         if let colonIndex = hostPart.firstIndex(of: ":") {
             let host = String(hostPart[..<colonIndex])
-            let portString = String(hostPart[hostPart.index(after: colonIndex)...])
+            let portAndPath = String(hostPart[hostPart.index(after: colonIndex)...])
+            // Extract only the port number (stop at first non-digit or path separator)
+            let portString = portAndPath.prefix { $0.isNumber }
             let port = Int(portString) ?? 8989
             return (host.isEmpty ? "localhost" : host, port)
         } else {

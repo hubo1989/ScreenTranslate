@@ -237,7 +237,9 @@ final class TranslationFlowController {
         do {
             try Task.checkCancellation()
 
-            guard let renderedImage = overlayRenderer.render(image: image, segments: bilingualSegments) else {
+            // Get theme on main thread (OverlayTheme.current requires @MainActor)
+            let theme = OverlayTheme.current
+            guard let renderedImage = overlayRenderer.render(image: image, segments: bilingualSegments, theme: theme) else {
                 throw TranslationFlowError.renderingFailure("Failed to render overlay")
             }
 
