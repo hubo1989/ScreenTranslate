@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var fullScreenHotkeyRegistration: HotkeyManager.Registration?
     private var selectionHotkeyRegistration: HotkeyManager.Registration?
     private var translationModeHotkeyRegistration: HotkeyManager.Registration?
+    private var textSelectionTranslationHotkeyRegistration: HotkeyManager.Registration?
     private let settings = AppSettings.shared
     private let displaySelector = DisplaySelector()
     private var isCaptureInProgress = false
@@ -156,6 +157,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             Logger.ui.error("Failed to register translation mode hotkey: \(error.localizedDescription)")
         }
+
+        // Register text selection translation hotkey
+        do {
+            textSelectionTranslationHotkeyRegistration = try await hotkeyManager.register(
+                shortcut: settings.textSelectionTranslationShortcut
+            ) { [weak self] in
+                Task { @MainActor in
+                    self?.translateSelectedText()
+                }
+            }
+            Logger.ui.info("Registered text selection translation hotkey: \(self.settings.textSelectionTranslationShortcut.displayString)")
+        } catch {
+            Logger.ui.error("Failed to register text selection translation hotkey: \(error.localizedDescription)")
+        }
     }
 
     /// Unregisters all global hotkeys
@@ -175,6 +190,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let registration = translationModeHotkeyRegistration {
             await hotkeyManager.unregister(registration)
             translationModeHotkeyRegistration = nil
+        }
+
+        if let registration = textSelectionTranslationHotkeyRegistration {
+            await hotkeyManager.unregister(registration)
+            textSelectionTranslationHotkeyRegistration = nil
         }
     }
 
@@ -370,6 +390,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showCaptureError(error)
         } catch {
             showCaptureError(.captureFailure(underlying: error))
+        }
+    }
+
+    /// Translates currently selected text from any application
+    @objc func translateSelectedText() {
+        Logger.ui.info("Text selection translation triggered via hotkey")
+
+        Task {
+            do {
+                let textSelectionService = TextSelectionService()
+                let result = try await textSelectionService.captureSelectedText()
+
+                Logger.ui.info("Captured selected text: \(result.text.prefix(50))...")
+
+                // TODO: US-003 will implement the translation popup display
+                // For now, just log the captured text
+                Logger.ui.info("Source app: \(result.sourceApplication ?? "unknown")")
+
+            } catch {
+                Logger.ui.error("Failed to capture selected text: \(error.localizedDescription)")
+                showCaptureError(.captureFailure(underlying: error))
+            }
         }
     }
 
