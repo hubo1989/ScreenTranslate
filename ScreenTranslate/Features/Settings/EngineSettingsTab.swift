@@ -161,7 +161,7 @@ struct TranslationWorkflowSection: View {
                         Text(localized("settings.translation.mtran.url"))
                             .foregroundStyle(.secondary)
                             .gridColumnAlignment(.trailing)
-                        TextField("http://localhost:8989", text: $viewModel.mtranServerURL)
+                        TextField("localhost:8989", text: $viewModel.mtranServerURL)
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 300)
                     }
@@ -178,6 +178,41 @@ struct TranslationWorkflowSection: View {
                     }
                     .toggleStyle(.switch)
                 }
+            }
+
+            // Test Connection Button (only for MTranServer)
+            if viewModel.preferredTranslationEngine == .mtranServer {
+                HStack {
+                    Button {
+                        viewModel.testMTranServerConnection()
+                    } label: {
+                        HStack(spacing: 6) {
+                            if viewModel.isTestingMTranServer {
+                                ProgressView()
+                                    .controlSize(.small)
+                            }
+                            Image(systemName: "bolt.fill")
+                            Text(localized("settings.translation.mtran.test.button"))
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(viewModel.isTestingMTranServer)
+
+                    Spacer()
+
+                    if let result = viewModel.mtranTestResult {
+                        HStack(spacing: 4) {
+                            Image(systemName: viewModel.mtranTestSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                .foregroundStyle(viewModel.mtranTestSuccess ? Color.green : Color.red)
+                            Text(result)
+                                .font(.caption)
+                                .foregroundStyle(viewModel.mtranTestSuccess ? .secondary : Color.red)
+                                .lineLimit(2)
+                        }
+                    }
+                }
+                .padding(.top, 8)
             }
         }
         .padding()

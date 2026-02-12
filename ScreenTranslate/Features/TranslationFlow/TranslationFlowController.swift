@@ -287,7 +287,9 @@ final class TranslationFlowController {
     }
 
     private func showResultWindow(renderedImage: CGImage, scaleFactor: CGFloat) {
-        BilingualResultWindowController.shared.showResult(image: renderedImage, scaleFactor: scaleFactor)
+        // Get translated text from last result
+        let translatedText = lastResult?.segments.map { $0.translated }.joined(separator: "\n")
+        BilingualResultWindowController.shared.showResult(image: renderedImage, scaleFactor: scaleFactor, translatedText: translatedText)
     }
 
     private func saveToHistory(

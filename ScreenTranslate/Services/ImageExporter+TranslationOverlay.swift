@@ -184,6 +184,6 @@ extension ImageExporter {
 
     func calculateFontSize(for rect: CGRect) -> CGFloat {
         let baseFontSize = rect.height * 0.75
-        return max(10, min(baseFontSize, 32))
+        return max(14, min(baseFontSize, 32))
     }
 }

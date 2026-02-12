@@ -1,4 +1,5 @@
 import Foundation
+import os.log
 
 /// Translation engine types supported by the application
 enum TranslationEngineType: String, CaseIterable, Sendable, Codable {
@@ -69,32 +70,63 @@ enum MTranServerChecker {
     }
 
     private static func checkMTranServer() -> Bool {
-        var components = URLComponents()
-        components.scheme = "http"
-        components.host = "localhost"
-        components.port = 8989
-        components.path = "/health"
+        // Read settings directly from UserDefaults to avoid MainActor isolation issues
+        let defaults = UserDefaults.standard
+        let prefix = "ScreenTranslate."
+        var host = defaults.string(forKey: prefix + "mtranServerHost") ?? "localhost"
+        let port = defaults.object(forKey: prefix + "mtranServerPort") as? Int ?? 8989
 
-        guard let url = components.url else {
-            return false
+        // Normalize localhost to 127.0.0.1 to avoid IPv6 resolution issues
+        if host == "localhost" {
+            host = "127.0.0.1"
         }
 
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 2.0
-        request.httpMethod = "GET"
+        let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ScreenTranslate", category: "MTranServerChecker")
+        logger.info("Checking MTranServer at \(host):\(port)")
 
-        let semaphore = DispatchSemaphore(value: 0)
-        let resultBox = ResultBox()
+        // Try multiple endpoints for health check
+        let endpoints = ["/health", "/", "/translate"]
+        var isAvailable = false
 
-        let task = URLSession.shared.dataTask(with: request) { _, response, _ in
-            resultBox.value = (response as? HTTPURLResponse)?.statusCode == 200
-            semaphore.signal()
+        for endpoint in endpoints {
+            var components = URLComponents()
+            components.scheme = "http"
+            components.host = host
+            components.port = port
+            components.path = endpoint
+
+            guard let url = components.url else { continue }
+
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 2.0
+            request.httpMethod = "GET"
+
+            let semaphore = DispatchSemaphore(value: 0)
+            let resultBox = ResultBox()
+
+            let task = URLSession.shared.dataTask(with: request) { _, response, error in
+                if let error = error {
+                    logger.debug("MTranServer check \(endpoint) failed: \(error.localizedDescription)")
+                }
+                let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+                logger.debug("MTranServer check \(endpoint): status \(statusCode)")
+                // Accept any response that indicates server is running (not connection refused)
+                resultBox.value = statusCode > 0
+                semaphore.signal()
+            }
+
+            task.resume()
+            _ = semaphore.wait(timeout: .now() + 2.5)
+
+            if resultBox.value {
+                isAvailable = true
+                logger.info("MTranServer available via \(endpoint)")
+                break
+            }
         }
 
-        task.resume()
-        _ = semaphore.wait(timeout: .now() + 2.5)
-
-        return resultBox.value
+        logger.info("MTranServer final availability: \(isAvailable)")
+        return isAvailable
     }
 
     /// Reset the cached availability check

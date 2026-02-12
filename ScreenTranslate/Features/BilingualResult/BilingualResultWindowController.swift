@@ -21,7 +21,13 @@ final class BilingualResultWindowController: NSObject {
         minWidth: CGFloat = 400,
         minHeight: CGFloat = 300
     ) -> NSSize {
-        let scale = min(maxWidth / imagePointWidth, maxHeight / imagePointHeight, 1.0)
+        // Default to 100% scale, only shrink if image exceeds screen bounds
+        let scale: CGFloat
+        if imagePointWidth > maxWidth || imagePointHeight > maxHeight {
+            scale = min(maxWidth / imagePointWidth, maxHeight / imagePointHeight)
+        } else {
+            scale = 1.0
+        }
         let windowWidth = max(minWidth, imagePointWidth * scale)
         let windowHeight = max(minHeight, imagePointHeight * scale + 50)
         return NSSize(width: windowWidth, height: windowHeight)
@@ -75,8 +81,8 @@ final class BilingualResultWindowController: NSObject {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func showResult(image: CGImage, scaleFactor: CGFloat) {
-        viewModel?.showResult(image: image, displayScaleFactor: scaleFactor)
+    func showResult(image: CGImage, scaleFactor: CGFloat, translatedText: String? = nil) {
+        viewModel?.showResult(image: image, displayScaleFactor: scaleFactor, translatedText: translatedText)
 
         if let window = window {
             let imagePointWidth = CGFloat(image.width) / scaleFactor

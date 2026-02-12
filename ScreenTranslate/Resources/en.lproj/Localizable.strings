@@ -449,6 +449,9 @@
 "settings.vlm.baseURL" = "Base URL";
 "settings.vlm.model" = "Model Name";
 "settings.vlm.test.button" = "Test Connection";
+"settings.vlm.test.success" = "Connection successful! Model: %@";
+"settings.vlm.test.ollama.success" = "Server running. Model '%@' available";
+"settings.vlm.test.ollama.available" = "Server running. Available: %@";
 
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";
@@ -462,9 +465,12 @@
    Translation Workflow Configuration
    ======================================== */
 
-"settings.translation.workflow.title" = "Translation Workflow";
+"settings.translation.workflow.title" = "Translation Engine";
 "settings.translation.preferred" = "Preferred Engine";
 "settings.translation.mtran.url" = "MTransServer URL";
+"settings.translation.mtran.test.button" = "Test Connection";
+"settings.translation.mtran.test.success" = "Connection successful";
+"settings.translation.mtran.test.failed" = "Connection failed: %@";
 "settings.translation.fallback" = "Fallback";
 "settings.translation.fallback.description" = "Use Apple Translation as fallback when preferred engine fails";
 
@@ -526,12 +532,15 @@
 "bilingualResult.loading.analyzing" = "Analyzing image...";
 "bilingualResult.loading.translating" = "Translating text...";
 "bilingualResult.loading.rendering" = "Rendering result...";
-"bilingualResult.copy" = "Copy";
+"bilingualResult.copyImage" = "Copy Image";
+"bilingualResult.copyText" = "Copy Text";
 "bilingualResult.save" = "Save";
 "bilingualResult.zoomIn" = "Zoom In";
 "bilingualResult.zoomOut" = "Zoom Out";
 "bilingualResult.resetZoom" = "Reset Zoom";
 "bilingualResult.copySuccess" = "Copied to clipboard";
+"bilingualResult.copyTextSuccess" = "Translation text copied";
 "bilingualResult.saveSuccess" = "Saved successfully";
 "bilingualResult.copyFailed" = "Failed to copy image";
 "bilingualResult.saveFailed" = "Failed to save image";
+"bilingualResult.noTextToCopy" = "No translation text to copy";

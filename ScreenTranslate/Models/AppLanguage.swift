@@ -70,7 +70,7 @@ final class LanguageManager {
     
     // MARK: - UserDefaults Key
     
-    private let languageKey = "ScreenCapture.appLanguage"
+    private let languageKey = "ScreenTranslate.appLanguage"
     
     // MARK: - Initialization
     

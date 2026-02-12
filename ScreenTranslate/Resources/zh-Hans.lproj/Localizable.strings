@@ -449,6 +449,9 @@
 "settings.vlm.baseURL" = "Base URL";
 "settings.vlm.model" = "模型名称";
 "settings.vlm.test.button" = "测试连接";
+"settings.vlm.test.success" = "连接成功！模型：%@";
+"settings.vlm.test.ollama.success" = "服务运行中。模型 '%@' 可用";
+"settings.vlm.test.ollama.available" = "服务运行中。可用模型：%@";
 
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";
@@ -462,9 +465,12 @@
    翻译工作流配置
    ======================================== */
 
-"settings.translation.workflow.title" = "翻译工作流";
+"settings.translation.workflow.title" = "翻译引擎";
 "settings.translation.preferred" = "首选引擎";
 "settings.translation.mtran.url" = "MTransServer URL";
+"settings.translation.mtran.test.button" = "测试连接";
+"settings.translation.mtran.test.success" = "连接成功";
+"settings.translation.mtran.test.failed" = "连接失败: %@";
 "settings.translation.fallback" = "回退";
 "settings.translation.fallback.description" = "首选引擎失败时使用 Apple 翻译作为回退";
 
@@ -526,12 +532,15 @@
 "bilingualResult.loading.analyzing" = "正在分析图像...";
 "bilingualResult.loading.translating" = "正在翻译文本...";
 "bilingualResult.loading.rendering" = "正在渲染结果...";
-"bilingualResult.copy" = "复制";
+"bilingualResult.copyImage" = "复制图片";
+"bilingualResult.copyText" = "复制文本";
 "bilingualResult.save" = "保存";
 "bilingualResult.zoomIn" = "放大";
 "bilingualResult.zoomOut" = "缩小";
 "bilingualResult.resetZoom" = "重置缩放";
 "bilingualResult.copySuccess" = "已复制到剪贴板";
+"bilingualResult.copyTextSuccess" = "翻译文本已复制";
 "bilingualResult.saveSuccess" = "保存成功";
 "bilingualResult.copyFailed" = "复制图片失败";
 "bilingualResult.saveFailed" = "保存图片失败";
+"bilingualResult.noTextToCopy" = "没有可复制的翻译文本";
