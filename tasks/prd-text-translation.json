@@ -1,0 +1,223 @@
+{
+  "name": "Text Selection and Input Translation",
+  "description": "Add text selection translation (select text → hotkey → translation popup showing original + translated text) and input translation (hotkey → translate clipboard → insert into current input field) features to ScreenTranslate",
+  "branchName": "ralph/text-input-translation",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create TextSelectionService for capturing selected text",
+      "description": "As a developer, I need a service that can capture currently selected text from any application using macOS Accessibility APIs or clipboard simulation.",
+      "acceptanceCriteria": [
+        "Create TextSelectionService.swift in Services directory",
+        "Implement clipboard-based capture: simulate Cmd+C via CGEvent to copy selection",
+        "Preserve original clipboard content before capture, restore after",
+        "Return selected text as String with source application info",
+        "Handle edge cases: no selection, protected text fields",
+        "Add error handling for accessibility/clipboard access failures",
+        "swift build compiles without errors"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-002",
+      "title": "Add keyboard shortcut for text selection translation",
+      "description": "As a user, I want to press a hotkey to translate currently selected text in any application.",
+      "acceptanceCriteria": [
+        "Add new KeyboardShortcut definition: textSelectionTranslationShortcut",
+        "Default shortcut: Command+Shift+T (or user-configurable)",
+        "Register hotkey in HotkeyManager with unique identifier",
+        "Integrate with AppDelegate hotkey registration flow",
+        "Shortcut should not conflict with existing capture shortcuts (Cmd+Shift+3/4)",
+        "swift build compiles without errors"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-003",
+      "title": "Create TextTranslationFlow for plain text translation",
+      "description": "As a developer, I need a translation flow that handles plain text input without OCR/image analysis.",
+      "acceptanceCriteria": [
+        "Create TextTranslationFlow.swift in Features/TextTranslation directory",
+        "Accept plain text string as input",
+        "Reuse existing TranslationService for actual translation",
+        "Support source language auto-detection via TranslationEngine",
+        "Return BilingualSegment array with original and translated text",
+        "Handle translation errors gracefully with user feedback",
+        "swift build compiles without errors"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-004",
+      "title": "Create TextTranslationPopup window for showing translation results",
+      "description": "As a user, I want to see the original text and translated text in a popup window after selecting text and pressing the translation hotkey.",
+      "acceptanceCriteria": [
+        "Create TextTranslationPopupController.swift and TextTranslationPopupView.swift",
+        "Window style: borderless panel with rounded corners (similar to TranslationPopover)",
+        "Display original text section with source language label",
+        "Display translated text section with target language label",
+        "Add visual separator between original and translation",
+        "Window positions near mouse cursor, respects screen bounds",
+        "Dismiss on Escape key, click outside, or focus loss",
+        "Support light/dark mode theming via existing DesignSystem",
+        "swift build compiles without errors"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ]
+    },
+    {
+      "id": "US-005",
+      "title": "Add copy and insert buttons to translation popup",
+      "description": "As a user, I want to copy the translation to clipboard or insert it into the current input field directly from the popup.",
+      "acceptanceCriteria": [
+        "Add 'Copy' button that copies translated text using ClipboardService",
+        "Add 'Insert' button that types translated text into focused input field",
+        "Use CGEventPostToPSN or CGEventPost for keyboard simulation",
+        "Show visual feedback (checkmark) on successful action",
+        "Support keyboard shortcuts: Cmd+C for copy, Enter for insert",
+        "Insert action closes popup after typing text",
+        "swift build compiles without errors"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-004"
+      ]
+    },
+    {
+      "id": "US-006",
+      "title": "Wire up text selection translation in AppDelegate",
+      "description": "As a developer, I need to connect all components so the hotkey triggers the complete translation flow.",
+      "acceptanceCriteria": [
+        "Add handleTextSelectionTranslation() method in AppDelegate",
+        "Capture selected text via TextSelectionService",
+        "Show loading indicator (can reuse existing loading UI)",
+        "Trigger TextTranslationFlow with captured text",
+        "Display TextTranslationPopup with translation result",
+        "Handle empty selection with user notification (no crash)",
+        "Prevent concurrent translation operations with isTranslating flag",
+        "swift build compiles without errors"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005"
+      ]
+    },
+    {
+      "id": "US-007",
+      "title": "Add translate-and-insert keyboard shortcut",
+      "description": "As a user, I want a separate hotkey that translates clipboard content and directly inserts it into the current input field without showing a popup.",
+      "acceptanceCriteria": [
+        "Add new KeyboardShortcut: translateAndInsertShortcut",
+        "Default shortcut: Command+Shift+I (user-configurable)",
+        "Register hotkey in HotkeyManager",
+        "Capture clipboard content via NSPasteboard",
+        "Translate using TextTranslationFlow",
+        "Insert translated text directly into focused input field via CGEvent",
+        "Show brief success notification (NSUserNotification or similar)",
+        "Handle empty clipboard with user notification",
+        "swift build compiles without errors"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-003"
+      ]
+    },
+    {
+      "id": "US-008",
+      "title": "Add settings UI for text translation hotkeys",
+      "description": "As a user, I want to configure the text selection and translate-and-insert hotkeys in the Settings window.",
+      "acceptanceCriteria": [
+        "Add TextTranslationSettingsTab.swift in Features/Settings directory",
+        "Create UI section for 'Text Translation Shortcuts'",
+        "Show text selection translation hotkey with edit capability",
+        "Show translate-and-insert hotkey with edit capability",
+        "Reuse ShortcutRecorder component pattern from ShortcutSettingsTab",
+        "Save changes to AppSettings with proper UserDefaults persistence",
+        "Apply changes immediately without app restart",
+        "swift build compiles without errors"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-007"
+      ]
+    },
+    {
+      "id": "US-009",
+      "title": "Handle accessibility and input monitoring permissions",
+      "description": "As a user, I need proper prompts when the app requires accessibility permission for text capture and input simulation.",
+      "acceptanceCriteria": [
+        "Request Accessibility permission before first text capture attempt",
+        "Show user-friendly dialog explaining why permission is needed",
+        "Provide button to open System Preferences > Security & Privacy > Accessibility",
+        "Handle permission denied with informative error in popup",
+        "Request Input Monitoring permission if needed for keyboard simulation",
+        "Cache permission status to avoid repeated system dialogs",
+        "swift build compiles without errors"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ]
+    },
+    {
+      "id": "US-010",
+      "title": "Integration testing and edge case handling",
+      "description": "As a developer, I need to ensure all features work correctly across different applications and scenarios.",
+      "acceptanceCriteria": [
+        "Test text selection translation in Safari, Chrome, Mail, Notes, Terminal, VS Code",
+        "Test with CJK characters (Chinese, Japanese, Korean)",
+        "Test with RTL languages (Arabic, Hebrew)",
+        "Test translate-and-insert with empty clipboard",
+        "Test with very long text selections (truncate display if needed)",
+        "Test popup positioning at screen edges (top, bottom, left, right)",
+        "Test hotkey conflicts with system shortcuts",
+        "Test rapid successive translation requests (throttle/debounce)",
+        "All manual tests pass without crashes or hangs"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "",
+      "dependsOn": [
+        "US-006",
+        "US-007",
+        "US-008",
+        "US-009"
+      ]
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-02-12T12:44:22.892Z"
+  }
+}
