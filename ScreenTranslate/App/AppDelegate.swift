@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let settings = AppSettings.shared
     private let displaySelector = DisplaySelector()
     private var isCaptureInProgress = false
+    private var isTranslating = false
 
     // MARK: - NSApplicationDelegate
 
@@ -395,23 +396,127 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Translates currently selected text from any application
     @objc func translateSelectedText() {
+        // Prevent concurrent translation operations
+        guard !isTranslating else {
+            Logger.ui.debug("Translation already in progress, ignoring request")
+            return
+        }
+
         Logger.ui.info("Text selection translation triggered via hotkey")
 
-        Task {
-            do {
-                let textSelectionService = TextSelectionService()
-                let result = try await textSelectionService.captureSelectedText()
+        isTranslating = true
 
-                Logger.ui.info("Captured selected text: \(result.text.prefix(50))...")
+        Task { [weak self] in
+            defer { self?.isTranslating = false }
 
-                // TODO: US-003 will implement the translation popup display
-                // For now, just log the captured text
-                Logger.ui.info("Source app: \(result.sourceApplication ?? "unknown")")
+            await self?.handleTextSelectionTranslation()
+        }
+    }
 
-            } catch {
+    /// Handles the complete text selection translation flow
+    private func handleTextSelectionTranslation() async {
+        do {
+            // Step 1: Capture selected text
+            let textSelectionService = TextSelectionService.shared
+            let selectionResult = try await textSelectionService.captureSelectedText()
+
+            Logger.ui.info("Captured selected text: \(selectionResult.text.prefix(50))...")
+            Logger.ui.info("Source app: \(selectionResult.sourceApplication ?? "unknown")")
+
+            // Step 2: Show loading indicator
+            await showLoadingIndicator()
+
+            // Step 3: Translate the captured text
+            if #available(macOS 13.0, *) {
+                let config = await TextTranslationConfig.fromAppSettings()
+                let translationResult = try await TextTranslationFlow.shared.translate(
+                    selectionResult.text,
+                    config: config
+                )
+
+                Logger.ui.info("Translation completed in \(translationResult.processingTime * 1000)ms")
+
+                // Step 4: Hide loading and display result popup
+                await hideLoadingIndicator()
+
+                await MainActor.run {
+                    TextTranslationPopupController.shared.presentPopup(result: translationResult)
+                }
+
+            } else {
+                await hideLoadingIndicator()
+                showCaptureError(.captureFailure(underlying: NSError(
+                    domain: "ScreenTranslate",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "macOS 13.0+ required for text translation"]
+                )))
+            }
+
+        } catch let error as TextSelectionService.CaptureError {
+            await hideLoadingIndicator()
+
+            // Handle empty selection with user notification (no crash)
+            switch error {
+            case .noSelection:
+                Logger.ui.info("No text selected for translation")
+                await showNoSelectionNotification()
+            case .accessibilityPermissionDenied:
+                Logger.ui.error("Accessibility permission denied")
+                showCaptureError(.captureFailure(underlying: error))
+            default:
                 Logger.ui.error("Failed to capture selected text: \(error.localizedDescription)")
                 showCaptureError(.captureFailure(underlying: error))
             }
+
+        } catch let error as TextTranslationError {
+            await hideLoadingIndicator()
+            Logger.ui.error("Translation failed: \(error.localizedDescription)")
+            showCaptureError(.captureFailure(underlying: error))
+
+        } catch {
+            await hideLoadingIndicator()
+            Logger.ui.error("Unexpected error during text translation: \(error.localizedDescription)")
+            showCaptureError(.captureFailure(underlying: error))
+        }
+    }
+
+    /// Shows a brief loading indicator for text translation
+    private func showLoadingIndicator() async {
+        await MainActor.run {
+            // Use the existing loading window with a placeholder image
+            // Create a small placeholder image for the loading state
+            let placeholderImage = NSImage(
+                systemSymbolName: "character.textbox",
+                accessibilityDescription: "Translating"
+            )
+
+            // Create a simple loading window
+            if let cgImage = placeholderImage?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                BilingualResultWindowController.shared.showLoading(
+                    originalImage: cgImage,
+                    scaleFactor: 2.0,
+                    message: String(localized: "textTranslation.loading")
+                )
+            }
+        }
+    }
+
+    /// Hides the loading indicator
+    private func hideLoadingIndicator() async {
+        await MainActor.run {
+            BilingualResultWindowController.shared.close()
+        }
+    }
+
+    /// Shows a notification when no text is selected
+    private func showNoSelectionNotification() async {
+        await MainActor.run {
+            let alert = NSAlert()
+            alert.alertStyle = .informational
+            alert.messageText = String(localized: "textTranslation.noSelection.title")
+            alert.informativeText = String(localized: "textTranslation.noSelection.message")
+            alert.addButton(withTitle: String(localized: "common.ok"))
+            alert.runModal()
         }
     }
 
