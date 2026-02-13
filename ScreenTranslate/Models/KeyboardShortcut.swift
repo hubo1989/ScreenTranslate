@@ -49,6 +49,12 @@ struct KeyboardShortcut: Equatable, Codable, Sendable {
         modifiers: UInt32(cmdKey | shiftKey)
     )
 
+    /// Default translate and insert shortcut: Command + Shift + I
+    static let translateAndInsertDefault = KeyboardShortcut(
+        keyCode: UInt32(kVK_ANSI_I),
+        modifiers: UInt32(cmdKey | shiftKey)
+    )
+
     // MARK: - Validation
 
     /// Checks if the shortcut includes at least one modifier key
