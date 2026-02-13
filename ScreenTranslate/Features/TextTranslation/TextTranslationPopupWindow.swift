@@ -3,6 +3,7 @@
 //  ScreenTranslate
 //
 //  Created for US-004: Create TextTranslationPopup window for showing translation results
+//  Updated for US-010: Integration testing and edge case handling
 //
 
 import AppKit
@@ -37,7 +38,7 @@ final class TextTranslationPopupWindow: NSPanel {
     /// Target language display name
     private let targetLanguage: String
 
-    /// The screen this popup appears on
+    /// The screen this popup appears on (may be different from main screen in multi-display setup)
     private let targetScreen: NSScreen
 
     /// The content view handling drawing and interaction
@@ -51,6 +52,12 @@ final class TextTranslationPopupWindow: NSPanel {
 
     /// Monitor for keyboard events (Escape key, Cmd+C, Enter)
     private var keyboardMonitor: Any?
+
+    /// Padding from screen edges (US-010: Edge positioning)
+    private let edgePadding: CGFloat = 20
+
+    /// Padding from mouse cursor
+    private let cursorPadding: CGFloat = 12
 
     // MARK: - Initialization
 
@@ -130,46 +137,61 @@ final class TextTranslationPopupWindow: NSPanel {
         self.popupView = view
     }
 
-    /// Positions the popup near the mouse cursor, respecting screen bounds
+    /// Positions the popup near the mouse cursor, respecting screen bounds (US-010: Multi-display and edge handling)
     @MainActor
     private func positionPopup() {
         guard let popupView = popupView else { return }
 
-        // Calculate the size needed for the content
-        let contentSize = popupView.sizeThatFits(NSSize(width: 380, height: 1000))
+        // Calculate the size needed for the content (with max height constraint)
+        let maxSize = NSSize(width: 500, height: TextTranslationPopupView.maxContentHeight + 100)
+        let contentSize = popupView.sizeThatFits(NSSize(width: 380, height: maxSize.height))
 
         // Get mouse location in screen coordinates
         let mouseLocation = NSEvent.mouseLocation
 
-        // Position popup near mouse cursor with some padding
-        let padding: CGFloat = 12
+        // Find the screen containing the mouse (for multi-display support)
+        let mouseScreen = NSScreen.screens.first { $0.frame.contains(mouseLocation) } ?? targetScreen
+        let screenFrame = mouseScreen.frame
 
-        // Default position: below and to the right of cursor
-        var origin = CGPoint(
-            x: mouseLocation.x + padding,
-            y: mouseLocation.y - contentSize.height - padding
-        )
+        // Calculate available space in each direction from mouse cursor
+        let spaceLeft = mouseLocation.x - screenFrame.origin.x - edgePadding
+        let spaceRight = screenFrame.origin.x + screenFrame.width - mouseLocation.x - edgePadding
+        let spaceAbove = screenFrame.origin.y + screenFrame.height - mouseLocation.y - edgePadding
+        let spaceBelow = mouseLocation.y - screenFrame.origin.y - edgePadding
 
-        // Keep within screen bounds (horizontal)
-        if origin.x + contentSize.width > targetScreen.frame.width - 20 {
-            // Not enough space on right, try left
-            origin.x = mouseLocation.x - contentSize.width - padding
+        // Determine best horizontal position
+        var originX: CGFloat
+        if spaceRight >= contentSize.width + cursorPadding {
+            // Position to the right of cursor
+            originX = mouseLocation.x + cursorPadding
+        } else if spaceLeft >= contentSize.width + cursorPadding {
+            // Position to the left of cursor
+            originX = mouseLocation.x - contentSize.width - cursorPadding
+        } else {
+            // Center horizontally if not enough space on either side
+            originX = screenFrame.origin.x + (screenFrame.width - contentSize.width) / 2
         }
 
-        if origin.x < 20 {
-            origin.x = 20
+        // Clamp to screen bounds
+        originX = max(screenFrame.origin.x + edgePadding, min(originX, screenFrame.origin.x + screenFrame.width - contentSize.width - edgePadding))
+
+        // Determine best vertical position
+        var originY: CGFloat
+        if spaceBelow >= contentSize.height + cursorPadding {
+            // Position below cursor
+            originY = mouseLocation.y - contentSize.height - cursorPadding
+        } else if spaceAbove >= contentSize.height + cursorPadding {
+            // Position above cursor
+            originY = mouseLocation.y + cursorPadding
+        } else {
+            // Position as high as possible if not enough space
+            originY = screenFrame.origin.y + screenFrame.height - contentSize.height - edgePadding
         }
 
-        // Keep within screen bounds (vertical)
-        if origin.y < 20 {
-            // Not enough space below, try above cursor
-            origin.y = mouseLocation.y + padding
-        }
+        // Clamp to screen bounds
+        originY = max(screenFrame.origin.y + edgePadding, min(originY, screenFrame.origin.y + screenFrame.height - contentSize.height - edgePadding))
 
-        if origin.y + contentSize.height > targetScreen.frame.height - 20 {
-            origin.y = targetScreen.frame.height - contentSize.height - 20
-        }
-
+        let origin = CGPoint(x: originX, y: originY)
         let newFrame = CGRect(origin: origin, size: contentSize)
         setFrame(newFrame, display: true)
     }
@@ -305,6 +327,7 @@ final class TextTranslationPopupWindow: NSPanel {
 // MARK: - TextTranslationPopupController
 
 /// Controller for managing text translation popup lifecycle.
+/// Implements debounce mechanism to prevent rapid successive popup presentations (US-010).
 @MainActor
 final class TextTranslationPopupController {
     // MARK: - Properties
@@ -321,6 +344,17 @@ final class TextTranslationPopupController {
     /// Callback for when popup is dismissed
     var onDismiss: (() -> Void)?
 
+    // MARK: - Debounce Properties (US-010: Rapid request handling)
+
+    /// Minimum time between popup presentations (in seconds)
+    private let debounceInterval: TimeInterval = 0.3
+
+    /// Timestamp of last popup presentation
+    private var lastPresentationTime: Date?
+
+    /// Pending presentation task (for debouncing)
+    private var pendingPresentationTask: Task<Void, Never>?
+
     // MARK: - Initialization
 
     private init() {}
@@ -328,13 +362,27 @@ final class TextTranslationPopupController {
     // MARK: - Public API
 
     /// Presents text translation popup with the given translation result.
+    /// Implements debouncing to prevent rapid successive presentations.
     /// - Parameters:
     ///   - result: The text translation result to display
     func presentPopup(result: TextTranslationResult) {
+        // Check debounce
+        guard canPresent() else {
+            print("Popup presentation debounced - too soon after previous presentation")
+            return
+        }
+
+        // Cancel any pending presentation
+        cancelPendingPresentation()
+
         // Dismiss any existing popup
         dismissPopup()
 
-        guard let screen = NSScreen.main else { return }
+        // Get the screen containing the mouse cursor for multi-display support
+        let mouseLocation = NSEvent.mouseLocation
+        let targetScreen = NSScreen.screens.first { $0.frame.contains(mouseLocation) } ?? NSScreen.main
+
+        guard let screen = targetScreen else { return }
 
         // Get display names for languages
         let sourceLanguageName = languageDisplayName(for: result.sourceLanguage)
@@ -351,10 +399,12 @@ final class TextTranslationPopupController {
         popup.popupDelegate = self
 
         self.popupWindow = popup
+        lastPresentationTime = Date()
         popup.showPopup()
     }
 
     /// Presents text translation popup with explicit text.
+    /// Implements debouncing to prevent rapid successive presentations.
     /// - Parameters:
     ///   - originalText: The original text
     ///   - translatedText: The translated text
@@ -366,10 +416,23 @@ final class TextTranslationPopupController {
         sourceLanguage: String?,
         targetLanguage: String
     ) {
+        // Check debounce
+        guard canPresent() else {
+            print("Popup presentation debounced - too soon after previous presentation")
+            return
+        }
+
+        // Cancel any pending presentation
+        cancelPendingPresentation()
+
         // Dismiss any existing popup
         dismissPopup()
 
-        guard let screen = NSScreen.main else { return }
+        // Get the screen containing the mouse cursor for multi-display support
+        let mouseLocation = NSEvent.mouseLocation
+        let targetScreen = NSScreen.screens.first { $0.frame.contains(mouseLocation) } ?? NSScreen.main
+
+        guard let screen = targetScreen else { return }
 
         // Get display names for languages
         let sourceLanguageName = languageDisplayName(for: sourceLanguage)
@@ -386,6 +449,7 @@ final class TextTranslationPopupController {
         popup.popupDelegate = self
 
         self.popupWindow = popup
+        lastPresentationTime = Date()
         popup.showPopup()
     }
 
@@ -394,6 +458,27 @@ final class TextTranslationPopupController {
         popupWindow?.dismissPopup()
         popupWindow = nil
         onDismiss?()
+    }
+
+    // MARK: - Debounce Helpers (US-010)
+
+    /// Checks if enough time has passed since the last presentation
+    private func canPresent() -> Bool {
+        guard let lastTime = lastPresentationTime else {
+            return true
+        }
+        return Date().timeIntervalSince(lastTime) >= debounceInterval
+    }
+
+    /// Cancels any pending presentation task
+    private func cancelPendingPresentation() {
+        pendingPresentationTask?.cancel()
+        pendingPresentationTask = nil
+    }
+
+    /// Resets the debounce timer (call when explicitly allowing immediate re-presentation)
+    func resetDebounce() {
+        lastPresentationTime = nil
     }
 
     // MARK: - Private Helpers

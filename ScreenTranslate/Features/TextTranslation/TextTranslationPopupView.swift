@@ -3,6 +3,7 @@
 //  ScreenTranslate
 //
 //  Created for US-004: Create TextTranslationPopup window for showing translation results
+//  Updated for US-010: Integration testing and edge case handling
 //
 
 import AppKit
@@ -13,6 +14,7 @@ import SwiftUI
 
 /// Custom NSView for drawing the text translation popup content.
 /// Displays original text with source language label and translated text with target language label.
+/// Supports RTL languages and long text truncation.
 final class TextTranslationPopupView: NSView {
     // MARK: - Properties
 
@@ -77,6 +79,18 @@ final class TextTranslationPopupView: NSView {
     /// Feedback state for insert button (shows checkmark)
     private var showInsertSuccess = false
 
+    /// Maximum height for the popup content (for long text handling)
+    static let maxContentHeight: CGFloat = 400
+
+    /// Maximum characters to display before truncating (visual indicator)
+    static let maxDisplayCharacters = 500
+
+    /// Indicates if original text is RTL
+    private let isOriginalRTL: Bool
+
+    /// Indicates if translated text is RTL
+    private let isTranslatedRTL: Bool
+
     // MARK: - Initialization
 
     init(
@@ -91,11 +105,55 @@ final class TextTranslationPopupView: NSView {
         self.sourceLanguage = sourceLanguage
         self.targetLanguage = targetLanguage
         self.windowRef = window
+
+        // Detect RTL for original text based on source language
+        self.isOriginalRTL = Self.isRTLLanguage(sourceLanguage) || Self.containsRTLText(originalText)
+
+        // Detect RTL for translated text based on target language
+        self.isTranslatedRTL = Self.isRTLLanguage(targetLanguage) || Self.containsRTLText(translatedText)
+
         super.init(frame: .zero)
     }
 
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    // MARK: - RTL Detection
+
+    /// Checks if a language code represents an RTL language
+    private static func isRTLLanguage(_ languageName: String) -> Bool {
+        let rtlLanguageIndicators = [
+            "ARABIC", "HEBREW", "PERSIAN", "FARSI", "URDU",
+            "阿拉伯语", "希伯来语", "波斯语", "乌尔都语"
+        ]
+        let uppercasedName = languageName.uppercased()
+        return rtlLanguageIndicators.contains { uppercasedName.contains($0) }
+    }
+
+    /// Checks if text contains significant RTL characters
+    private static func containsRTLText(_ text: String) -> Bool {
+        var rtlCount = 0
+        var ltrCount = 0
+
+        for scalar in text.unicodeScalars {
+            let value = scalar.value
+            // Arabic: 0x0600-0x06FF, Arabic Extended: 0x0750-0x077F, Arabic Presentation Forms: 0xFB50-0xFDFF, 0xFE70-0xFEFF
+            // Hebrew: 0x0590-0x05FF
+            if (value >= 0x590 && value <= 0x5FF) || // Hebrew
+               (value >= 0x600 && value <= 0x6FF) || // Arabic
+               (value >= 0x750 && value <= 0x77F) || // Arabic Extended
+               (value >= 0xFB50 && value <= 0xFDFF) || // Arabic Presentation Forms-A
+               (value >= 0xFE70 && value <= 0xFEFF) { // Arabic Presentation Forms-B
+                rtlCount += 1
+            } else if (value >= 0x41 && value <= 0x5A) || (value >= 0x61 && value <= 0x7A) {
+                // Basic Latin letters
+                ltrCount += 1
+            }
+        }
+
+        // Consider RTL if more than 30% of detected directional characters are RTL
+        return rtlCount > 0 && (ltrCount == 0 || Double(rtlCount) / Double(rtlCount + ltrCount) > 0.3)
     }
 
     // MARK: - Layout
@@ -114,12 +172,16 @@ final class TextTranslationPopupView: NSView {
         let maxWidth = size.width - padding * 2
         let textWidth = max(maxWidth, 200)
 
+        // Truncate text for display if too long
+        let displayOriginalText = truncatedText(originalText, maxLength: Self.maxDisplayCharacters)
+        let displayTranslatedText = truncatedText(translatedText, maxLength: Self.maxDisplayCharacters)
+
         // Calculate original text height
         let originalFont = NSFont.systemFont(ofSize: 13, weight: .regular)
         let originalAttrs: [NSAttributedString.Key: Any] = [
             .font: originalFont
         ]
-        let originalSize = (originalText as NSString).boundingRect(
+        let originalSize = (displayOriginalText as NSString).boundingRect(
             with: NSSize(width: textWidth, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
             attributes: originalAttrs
@@ -130,7 +192,7 @@ final class TextTranslationPopupView: NSView {
         let translatedAttrs: [NSAttributedString.Key: Any] = [
             .font: translatedFont
         ]
-        let translatedSize = (translatedText as NSString).boundingRect(
+        let translatedSize = (displayTranslatedText as NSString).boundingRect(
             with: NSSize(width: textWidth, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
             attributes: translatedAttrs
@@ -154,12 +216,24 @@ final class TextTranslationPopupView: NSView {
         // Bottom padding
         totalHeight += padding
 
+        // Constrain to maximum height
+        totalHeight = min(totalHeight, Self.maxContentHeight)
+
         // Constrain width
         let maxAllowedWidth: CGFloat = 500
         let minAllowedWidth: CGFloat = 280
         let calculatedWidth = min(max(textWidth + padding * 2, minAllowedWidth), maxAllowedWidth)
 
         return NSSize(width: calculatedWidth, height: totalHeight)
+    }
+
+    /// Truncates text if it exceeds maximum length, adding ellipsis
+    private func truncatedText(_ text: String, maxLength: Int) -> String {
+        if text.count <= maxLength {
+            return text
+        }
+        let index = text.index(text.startIndex, offsetBy: maxLength)
+        return String(text[..<index]) + "..."
     }
 
     // MARK: - Drawing
@@ -174,25 +248,31 @@ final class TextTranslationPopupView: NSView {
         let textWidth = bounds.width - padding * 2
         var currentY: CGFloat = bounds.height - padding
 
+        // Truncate text for display if too long (US-010: Long text handling)
+        let displayOriginalText = truncatedText(originalText, maxLength: Self.maxDisplayCharacters)
+        let displayTranslatedText = truncatedText(translatedText, maxLength: Self.maxDisplayCharacters)
+
         // MARK: Original Text Section
 
         // Draw source language label
         currentY = drawLanguageLabel(
             sourceLanguage,
             at: CGPoint(x: padding, y: currentY),
-            context: context
+            context: context,
+            isRTL: isOriginalRTL
         )
 
         currentY -= 4
 
-        // Draw original text
+        // Draw original text with RTL support
         currentY = drawText(
-            originalText,
+            displayOriginalText,
             at: CGPoint(x: padding, y: currentY),
             font: NSFont.systemFont(ofSize: 13, weight: .regular),
             color: originalTextColor,
             maxWidth: textWidth,
-            context: context
+            context: context,
+            isRTL: isOriginalRTL
         )
 
         // MARK: Separator
@@ -207,19 +287,21 @@ final class TextTranslationPopupView: NSView {
         currentY = drawLanguageLabel(
             targetLanguage,
             at: CGPoint(x: padding, y: currentY),
-            context: context
+            context: context,
+            isRTL: isTranslatedRTL
         )
 
         currentY -= 4
 
-        // Draw translated text
+        // Draw translated text with RTL support
         currentY = drawText(
-            translatedText,
+            displayTranslatedText,
             at: CGPoint(x: padding, y: currentY),
             font: NSFont.systemFont(ofSize: 14, weight: .medium),
             color: translatedTextColor,
             maxWidth: textWidth,
-            context: context
+            context: context,
+            isRTL: isTranslatedRTL
         )
 
         // MARK: Copy Button
@@ -263,19 +345,29 @@ final class TextTranslationPopupView: NSView {
     private func drawLanguageLabel(
         _ text: String,
         at origin: CGPoint,
-        context: CGContext
+        context: CGContext,
+        isRTL: Bool = false
     ) -> CGFloat {
         let font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        let labelPadding: CGFloat = 16
+
+        // Create paragraph style for text alignment (US-010: RTL support)
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = isRTL ? .right : .left
+
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: languageLabelColor
+            .foregroundColor: languageLabelColor,
+            .paragraphStyle: paragraphStyle
         ]
 
         let attributedString = NSAttributedString(string: text.uppercased(), attributes: attributes)
         let textSize = attributedString.size()
 
+        // Adjust x position for RTL alignment
+        let xPosition = isRTL ? (bounds.width - labelPadding - textSize.width) : origin.x
         let drawPoint = CGPoint(
-            x: origin.x,
+            x: xPosition,
             y: origin.y - textSize.height
         )
 
@@ -284,18 +376,31 @@ final class TextTranslationPopupView: NSView {
         return origin.y - textSize.height
     }
 
-    /// Draws text with word wrapping at the specified position
+    /// Draws text with word wrapping at the specified position (US-010: RTL support)
     private func drawText(
         _ text: String,
         at origin: CGPoint,
         font: NSFont,
         color: NSColor,
         maxWidth: CGFloat,
-        context: CGContext
+        context: CGContext,
+        isRTL: Bool = false
     ) -> CGFloat {
+        let textPadding: CGFloat = 16
+
+        // Create paragraph style for text alignment and writing direction
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = isRTL ? .right : .left
+
+        // Set base writing direction for proper RTL rendering
+        if isRTL {
+            paragraphStyle.baseWritingDirection = .rightToLeft
+        }
+
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: color
+            .foregroundColor: color,
+            .paragraphStyle: paragraphStyle
         ]
 
         let textSize = (text as NSString).boundingRect(
@@ -304,8 +409,11 @@ final class TextTranslationPopupView: NSView {
             attributes: attributes
         )
 
+        // Adjust x position for RTL alignment
+        let xPosition = isRTL ? (bounds.width - textPadding - maxWidth) : origin.x
+
         let drawRect = CGRect(
-            x: origin.x,
+            x: xPosition,
             y: origin.y - ceil(textSize.height),
             width: maxWidth,
             height: ceil(textSize.height)

@@ -565,3 +565,40 @@
 "bilingualResult.copyFailed" = "复制图片失败";
 "bilingualResult.saveFailed" = "保存图片失败";
 "bilingualResult.noTextToCopy" = "没有可复制的翻译文本";
+
+
+/* ========================================
+   文本翻译 (US-003 至 US-010)
+   ======================================== */
+
+/* 文本翻译流程 */
+"textTranslation.phase.idle" = "就绪";
+"textTranslation.phase.translating" = "翻译中...";
+"textTranslation.phase.completed" = "已完成";
+"textTranslation.phase.failed" = "失败";
+
+"textTranslation.error.emptyInput" = "没有可翻译的文本";
+"textTranslation.error.translationFailed %@" = "翻译失败：%@";
+"textTranslation.error.cancelled" = "翻译已取消";
+"textTranslation.error.serviceUnavailable" = "翻译服务不可用";
+
+"textTranslation.recovery.emptyInput" = "请先选择一些文本";
+"textTranslation.recovery.translationFailed" = "请重试";
+"textTranslation.recovery.serviceUnavailable" = "请检查网络连接后重试";
+
+"textTranslation.loading" = "翻译中...";
+"textTranslation.noSelection.title" = "未选择文本";
+"textTranslation.noSelection.message" = "请在任意应用中选择一些文本，然后重试。";
+
+/* 翻译并插入 */
+"translateAndInsert.emptyClipboard.title" = "剪贴板为空";
+"translateAndInsert.emptyClipboard.message" = "请先将文本复制到剪贴板，然后使用此快捷键。";
+"translateAndInsert.success.title" = "翻译已插入";
+"translateAndInsert.success.message" = "翻译后的文本已插入到当前输入框中。";
+
+/* 语言显示 */
+"language.auto" = "自动检测";
+
+/* 通用文本翻译界面 */
+"common.copy" = "复制";
+"common.insert" = "插入";
