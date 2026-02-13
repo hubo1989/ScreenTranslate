@@ -54,6 +54,18 @@ struct ClipboardService {
         ])
     }
 
+    /// Copies text to the system clipboard.
+    /// - Parameter text: The text to copy
+    /// - Throws: ScreenTranslateError.clipboardWriteFailed if the operation fails
+    func copyText(_ text: String) throws {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        guard pasteboard.setString(text, forType: .string) else {
+            throw ScreenTranslateError.clipboardWriteFailed
+        }
+    }
+
     // MARK: - Annotation Compositing
 
     /// Composites annotations onto an image.

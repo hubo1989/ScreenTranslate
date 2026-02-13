@@ -49,7 +49,7 @@ final class TextTranslationPopupWindow: NSPanel {
     /// Monitor for global mouse events (click outside detection)
     private var eventMonitor: Any?
 
-    /// Monitor for keyboard events (Escape key)
+    /// Monitor for keyboard events (Escape key, Cmd+C, Enter)
     private var keyboardMonitor: Any?
 
     // MARK: - Initialization
@@ -207,7 +207,7 @@ final class TextTranslationPopupWindow: NSPanel {
             }
         }
 
-        // Monitor for keyboard events (Escape key)
+        // Monitor for keyboard events (Escape, Cmd+C, Enter)
         keyboardMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self = self else { return event }
 
@@ -215,6 +215,22 @@ final class TextTranslationPopupWindow: NSPanel {
             if event.keyCode == 53 {
                 Task { @MainActor in
                     self.dismissPopup()
+                }
+                return nil
+            }
+
+            // Enter key (with or without modifiers) inserts text and dismisses
+            if event.keyCode == 36 { // kVK_Return
+                Task { @MainActor in
+                    self.handleInsertText(self.translatedText)
+                }
+                return nil
+            }
+
+            // Cmd+C copies translated text
+            if event.keyCode == 8 && event.modifierFlags.contains(.command) { // kVK_ANSI_C + Cmd
+                Task { @MainActor in
+                    self.popupView?.performCopy()
                 }
                 return nil
             }
@@ -244,6 +260,25 @@ final class TextTranslationPopupWindow: NSPanel {
         super.resignKey()
         // Dismiss when losing focus (e.g., app switch)
         dismissPopup()
+    }
+
+    // MARK: - Text Insertion
+
+    /// Handles the insert text action - types text into focused input and dismisses popup
+    @MainActor
+    func handleInsertText(_ text: String) {
+        // Dismiss popup first to restore focus to original app
+        dismissPopup()
+
+        // Insert text using TextInsertService
+        Task {
+            do {
+                try await TextInsertService.shared.insertText(text)
+            } catch {
+                // Log error but don't fail silently - could show a brief error
+                print("Failed to insert text: \(error.localizedDescription)")
+            }
+        }
     }
 }
 

@@ -62,8 +62,20 @@ final class TextTranslationPopupView: NSView {
     /// Copy button area (in view coordinates)
     private var copyButtonRect: CGRect?
 
+    /// Insert button area (in view coordinates)
+    private var insertButtonRect: CGRect?
+
     /// Hover state for copy button
     private var isCopyButtonHovered = false
+
+    /// Hover state for insert button
+    private var isInsertButtonHovered = false
+
+    /// Feedback state for copy button (shows checkmark)
+    private var showCopySuccess = false
+
+    /// Feedback state for insert button (shows checkmark)
+    private var showInsertSuccess = false
 
     // MARK: - Initialization
 
@@ -96,7 +108,8 @@ final class TextTranslationPopupView: NSView {
         let textSpacing: CGFloat = 4
         let separatorHeight: CGFloat = 1
         let separatorSpacing: CGFloat = 12
-        let copyButtonHeight: CGFloat = 28
+        let buttonHeight: CGFloat = 28
+        let buttonSpacing: CGFloat = 8
 
         let maxWidth = size.width - padding * 2
         let textWidth = max(maxWidth, 200)
@@ -135,8 +148,8 @@ final class TextTranslationPopupView: NSView {
         // Translated section
         totalHeight += labelHeight + textSpacing + ceil(translatedSize.height)
 
-        // Copy button
-        totalHeight += sectionSpacing + copyButtonHeight
+        // Buttons row (Copy and Insert)
+        totalHeight += sectionSpacing + buttonHeight
 
         // Bottom padding
         totalHeight += padding
@@ -212,7 +225,9 @@ final class TextTranslationPopupView: NSView {
         // MARK: Copy Button
 
         currentY -= 16
-        copyButtonRect = drawCopyButton(at: CGPoint(x: padding, y: currentY), context: context)
+        let buttons = drawButtons(at: CGPoint(x: padding, y: currentY), context: context)
+        copyButtonRect = buttons.copyRect
+        insertButtonRect = buttons.insertRect
     }
 
     /// Draws the popup background with rounded corners and shadow
@@ -323,13 +338,23 @@ final class TextTranslationPopupView: NSView {
         context.restoreGState()
     }
 
-    /// Draws the copy button at the specified position
-    private func drawCopyButton(at origin: CGPoint, context: CGContext) -> CGRect {
+    /// Draws both Copy and Insert buttons at the specified position
+    private func drawButtons(at origin: CGPoint, context: CGContext) -> (copyRect: CGRect, insertRect: CGRect) {
         let buttonWidth: CGFloat = 80
         let buttonHeight: CGFloat = 28
+        let buttonSpacing: CGFloat = 8
 
-        let buttonRect = CGRect(
+        // Copy button on the left
+        let copyRect = CGRect(
             x: origin.x,
+            y: origin.y - buttonHeight,
+            width: buttonWidth,
+            height: buttonHeight
+        )
+
+        // Insert button on the right
+        let insertRect = CGRect(
+            x: origin.x + buttonWidth + buttonSpacing,
             y: origin.y - buttonHeight,
             width: buttonWidth,
             height: buttonHeight
@@ -337,39 +362,70 @@ final class TextTranslationPopupView: NSView {
 
         context.saveGState()
 
-        // Button background (highlight if hovered)
+        // Draw Copy button
+        drawButton(
+            rect: copyRect,
+            title: showCopySuccess ? "✓" : NSLocalizedString("common.copy", value: "Copy", comment: "Copy button text"),
+            isHovered: isCopyButtonHovered,
+            isSuccess: showCopySuccess,
+            accentColor: NSColor.controlAccentColor,
+            context: context
+        )
+
+        // Draw Insert button
+        drawButton(
+            rect: insertRect,
+            title: showInsertSuccess ? "✓" : NSLocalizedString("common.insert", value: "Insert", comment: "Insert button text"),
+            isHovered: isInsertButtonHovered,
+            isSuccess: showInsertSuccess,
+            accentColor: NSColor.systemGreen,
+            context: context
+        )
+
+        context.restoreGState()
+
+        return (copyRect, insertRect)
+    }
+
+    /// Draws a single button with the given properties
+    private func drawButton(
+        rect: CGRect,
+        title: String,
+        isHovered: Bool,
+        isSuccess: Bool,
+        accentColor: NSColor,
+        context: CGContext
+    ) {
         let buttonPath = NSBezierPath(
-            roundedRect: buttonRect,
+            roundedRect: rect,
             xRadius: 6,
             yRadius: 6
         )
 
-        if isCopyButtonHovered {
-            NSColor.controlAccentColor.withAlphaComponent(0.9).setFill()
+        // Button background
+        if isSuccess {
+            NSColor.systemGreen.withAlphaComponent(0.9).setFill()
+        } else if isHovered {
+            accentColor.withAlphaComponent(0.9).setFill()
         } else {
-            NSColor.controlAccentColor.setFill()
+            accentColor.setFill()
         }
         buttonPath.fill()
 
         // Button text
-        let buttonText = NSLocalizedString("common.copy", value: "Copy", comment: "Copy button text")
-        let font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        let font = NSFont.systemFont(ofSize: isSuccess ? 16 : 13, weight: .medium)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: NSColor.white
         ]
 
-        let textSize = (buttonText as NSString).size(withAttributes: attributes)
+        let textSize = (title as NSString).size(withAttributes: attributes)
         let textPoint = CGPoint(
-            x: buttonRect.midX - textSize.width / 2,
-            y: buttonRect.midY - textSize.height / 2
+            x: rect.midX - textSize.width / 2,
+            y: rect.midY - textSize.height / 2
         )
 
-        (buttonText as NSString).draw(at: textPoint, withAttributes: attributes)
-
-        context.restoreGState()
-
-        return buttonRect
+        (title as NSString).draw(at: textPoint, withAttributes: attributes)
     }
 
     // MARK: - Mouse Events
@@ -383,32 +439,55 @@ final class TextTranslationPopupView: NSView {
             return
         }
 
+        // Check if click is on insert button
+        if let buttonRect = insertButtonRect, buttonRect.contains(point) {
+            insertText()
+            return
+        }
+
         super.mouseDown(with: event)
     }
 
     override func mouseEntered(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
 
-        // Change cursor when hovering over copy button
-        if let buttonRect = copyButtonRect, buttonRect.contains(point) {
+        // Change cursor when hovering over buttons
+        let isOverCopy = copyButtonRect?.contains(point) ?? false
+        let isOverInsert = insertButtonRect?.contains(point) ?? false
+
+        if isOverCopy || isOverInsert {
             NSCursor.pointingHand.set()
-            if !isCopyButtonHovered {
-                isCopyButtonHovered = true
-                needsDisplay = true
-            }
         } else {
             NSCursor.arrow.set()
-            if isCopyButtonHovered {
-                isCopyButtonHovered = false
-                needsDisplay = true
-            }
+        }
+
+        // Update hover states
+        var needsRedraw = false
+        if isCopyButtonHovered != isOverCopy {
+            isCopyButtonHovered = isOverCopy
+            needsRedraw = true
+        }
+        if isInsertButtonHovered != isOverInsert {
+            isInsertButtonHovered = isOverInsert
+            needsRedraw = true
+        }
+        if needsRedraw {
+            needsDisplay = true
         }
     }
 
     override func mouseExited(with event: NSEvent) {
         NSCursor.arrow.set()
+        var needsRedraw = false
         if isCopyButtonHovered {
             isCopyButtonHovered = false
+            needsRedraw = true
+        }
+        if isInsertButtonHovered {
+            isInsertButtonHovered = false
+            needsRedraw = true
+        }
+        if needsRedraw {
             needsDisplay = true
         }
     }
@@ -416,19 +495,28 @@ final class TextTranslationPopupView: NSView {
     override func mouseMoved(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
 
-        // Change cursor when hovering over copy button
-        if let buttonRect = copyButtonRect, buttonRect.contains(point) {
+        // Change cursor when hovering over buttons
+        let isOverCopy = copyButtonRect?.contains(point) ?? false
+        let isOverInsert = insertButtonRect?.contains(point) ?? false
+
+        if isOverCopy || isOverInsert {
             NSCursor.pointingHand.set()
-            if !isCopyButtonHovered {
-                isCopyButtonHovered = true
-                needsDisplay = true
-            }
         } else {
             NSCursor.arrow.set()
-            if isCopyButtonHovered {
-                isCopyButtonHovered = false
-                needsDisplay = true
-            }
+        }
+
+        // Update hover states
+        var needsRedraw = false
+        if isCopyButtonHovered != isOverCopy {
+            isCopyButtonHovered = isOverCopy
+            needsRedraw = true
+        }
+        if isInsertButtonHovered != isOverInsert {
+            isInsertButtonHovered = isOverInsert
+            needsRedraw = true
+        }
+        if needsRedraw {
+            needsDisplay = true
         }
     }
 
@@ -465,24 +553,48 @@ final class TextTranslationPopupView: NSView {
         pasteboard.clearContents()
         pasteboard.setString(translatedText, forType: .string)
 
-        // Show brief visual feedback
+        // Show visual feedback
         showCopyFeedback()
     }
 
     /// Shows visual feedback when text is copied
     private func showCopyFeedback() {
-        // Brief flash effect
-        let originalAlpha = alphaValue
-        alphaValue = 0.7
+        showCopySuccess = true
+        needsDisplay = true
 
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.1
-            animator().alphaValue = 1.0
+        // Reset after delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.showCopySuccess = false
+            self?.needsDisplay = true
         }
+    }
 
-        // Restore
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.alphaValue = originalAlpha
-        }
+    // MARK: - Insert Functionality
+
+    /// Inserts the translated text into the focused input field
+    private func insertText() {
+        // Show visual feedback immediately
+        showInsertFeedback()
+
+        // Notify window to handle insertion and dismiss
+        windowRef?.handleInsertText(translatedText)
+    }
+
+    /// Shows visual feedback when text is being inserted
+    private func showInsertFeedback() {
+        showInsertSuccess = true
+        needsDisplay = true
+    }
+
+    // MARK: - Public API for Window
+
+    /// Called by window to trigger copy action
+    func performCopy() {
+        copyToClipboard()
+    }
+
+    /// Called by window to trigger insert action
+    func performInsert() {
+        insertText()
     }
 }
