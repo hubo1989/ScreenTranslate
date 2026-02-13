@@ -267,6 +267,16 @@ final class TextTranslationPopupWindow: NSPanel {
     /// Handles the insert text action - types text into focused input and dismisses popup
     @MainActor
     func handleInsertText(_ text: String) {
+        // Check accessibility permission before attempting insertion
+        let permissionManager = PermissionManager.shared
+        permissionManager.refreshPermissionStatus()
+
+        guard permissionManager.hasAccessibilityPermission else {
+            // Show permission error
+            permissionManager.showPermissionDeniedError(for: .accessibility)
+            return
+        }
+
         // Dismiss popup first to restore focus to original app
         dismissPopup()
 
@@ -274,6 +284,16 @@ final class TextTranslationPopupWindow: NSPanel {
         Task {
             do {
                 try await TextInsertService.shared.insertText(text)
+            } catch let error as TextInsertService.InsertError {
+                // Handle permission-related errors specifically
+                switch error {
+                case .accessibilityPermissionDenied:
+                    await MainActor.run {
+                        permissionManager.showPermissionDeniedError(for: .accessibility)
+                    }
+                default:
+                    print("Failed to insert text: \(error.localizedDescription)")
+                }
             } catch {
                 // Log error but don't fail silently - could show a brief error
                 print("Failed to insert text: \(error.localizedDescription)")

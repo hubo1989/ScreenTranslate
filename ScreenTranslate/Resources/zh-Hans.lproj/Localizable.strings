@@ -360,6 +360,24 @@
 "permission.prompt.continue" = "继续";
 "permission.prompt.later" = "稍后";
 
+/* 辅助功能权限 */
+"permission.accessibility.title" = "需要辅助功能权限";
+"permission.accessibility.message" = "ScreenTranslate 需要辅助功能权限来捕获选中的文本并插入翻译结果。\n\n此权限允许应用：\n• 从任何应用复制选中的文本\n• 将翻译后的文本插入输入框\n\n您的隐私受到保护 - ScreenTranslate 仅将此用于文本翻译。";
+"permission.accessibility.grant" = "授予权限";
+"permission.accessibility.open.settings" = "打开系统设置";
+"permission.accessibility.denied.title" = "需要辅助功能权限";
+"permission.accessibility.denied.message" = "文本捕获和插入需要辅助功能权限。\n\n请在系统设置 > 隐私与安全性 > 辅助功能中授予权限。";
+
+/* 输入监控权限 */
+"permission.input.monitoring.title" = "需要输入监控权限";
+"permission.input.monitoring.message" = "ScreenTranslate 需要输入监控权限来将翻译后的文本插入应用程序。\n\n您需要在以下位置启用：\n系统设置 > 隐私与安全性 > 输入监控";
+"permission.input.monitoring.open.settings" = "打开系统设置";
+"permission.input.monitoring.denied.title" = "需要输入监控权限";
+"permission.input.monitoring.denied.message" = "文本插入需要输入监控权限。\n\n请在系统设置 > 隐私与安全性 > 输入监控中授予权限。";
+
+/* 通用权限字符串 */
+"permission.open.settings" = "打开系统设置";
+
 
 /* ========================================
    引导页面

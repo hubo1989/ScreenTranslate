@@ -455,6 +455,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Handles the complete text selection translation flow
     private func handleTextSelectionTranslation() async {
+        // Check accessibility permission before attempting text capture
+        let permissionManager = PermissionManager.shared
+        permissionManager.refreshPermissionStatus()
+
+        if !permissionManager.hasAccessibilityPermission {
+            // Show permission request dialog
+            let granted = await withCheckedContinuation { continuation in
+                Task { @MainActor in
+                    let result = permissionManager.requestAccessibilityPermission()
+                    continuation.resume(returning: result)
+                }
+            }
+
+            if !granted {
+                // User declined or permission not granted - show error
+                await MainActor.run {
+                    permissionManager.showPermissionDeniedError(for: .accessibility)
+                }
+                return
+            }
+        }
+
         do {
             // Step 1: Capture selected text
             let textSelectionService = TextSelectionService.shared
@@ -562,6 +584,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Handles the translate clipboard and insert flow
     private func handleTranslateClipboardAndInsert() async {
+        // Check accessibility permission before attempting text insertion
+        let permissionManager = PermissionManager.shared
+        permissionManager.refreshPermissionStatus()
+
+        if !permissionManager.hasAccessibilityPermission {
+            // Show permission request dialog
+            let granted = await withCheckedContinuation { continuation in
+                Task { @MainActor in
+                    let result = permissionManager.requestAccessibilityPermission()
+                    continuation.resume(returning: result)
+                }
+            }
+
+            if !granted {
+                // User declined or permission not granted - show error
+                await MainActor.run {
+                    permissionManager.showPermissionDeniedError(for: .accessibility)
+                }
+                return
+            }
+        }
+
         // Step 1: Get clipboard content
         let pasteboard = NSPasteboard.general
         guard let clipboardText = pasteboard.string(forType: .string),

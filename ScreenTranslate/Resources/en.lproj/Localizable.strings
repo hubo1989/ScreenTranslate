@@ -360,6 +360,24 @@
 "permission.prompt.continue" = "Continue";
 "permission.prompt.later" = "Later";
 
+/* Accessibility Permission */
+"permission.accessibility.title" = "Accessibility Permission Required";
+"permission.accessibility.message" = "ScreenTranslate needs accessibility permission to capture selected text and insert translations.\n\nThis allows the app to:\n• Copy selected text from any application\n• Insert translated text into input fields\n\nYour privacy is protected - ScreenTranslate only uses this for text translation.";
+"permission.accessibility.grant" = "Grant Permission";
+"permission.accessibility.open.settings" = "Open System Settings";
+"permission.accessibility.denied.title" = "Accessibility Permission Required";
+"permission.accessibility.denied.message" = "Text capture and insertion requires accessibility permission.\n\nPlease grant permission in System Settings > Privacy & Security > Accessibility.";
+
+/* Input Monitoring Permission */
+"permission.input.monitoring.title" = "Input Monitoring Permission Required";
+"permission.input.monitoring.message" = "ScreenTranslate needs input monitoring permission to insert translated text into applications.\n\nYou'll need to enable this in:\nSystem Settings > Privacy & Security > Input Monitoring";
+"permission.input.monitoring.open.settings" = "Open System Settings";
+"permission.input.monitoring.denied.title" = "Input Monitoring Permission Required";
+"permission.input.monitoring.denied.message" = "Text insertion requires input monitoring permission.\n\nPlease grant permission in System Settings > Privacy & Security > Input Monitoring.";
+
+/* Common Permission Strings */
+"permission.open.settings" = "Open System Settings";
+
 
 /* ========================================
    Onboarding
