@@ -510,23 +510,23 @@ final class SettingsViewModel {
         let conflictCount = allShortcuts.filter { $0 == shortcut }.count
 
         // Check if the shortcut being recorded is already in use by a different action
-        if isRecordingFullScreenShortcut && shortcut != fullScreenShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
+        if isRecordingFullScreenShortcut && shortcut != fullScreenShortcut && allShortcuts.contains(shortcut) {
             showError("This shortcut is already in use")
             return true
         }
-        if isRecordingSelectionShortcut && shortcut != selectionShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
+        if isRecordingSelectionShortcut && shortcut != selectionShortcut && allShortcuts.contains(shortcut) {
             showError("This shortcut is already in use")
             return true
         }
-        if isRecordingTranslationModeShortcut && shortcut != translationModeShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
+        if isRecordingTranslationModeShortcut && shortcut != translationModeShortcut && allShortcuts.contains(shortcut) {
             showError("This shortcut is already in use")
             return true
         }
-        if isRecordingTextSelectionTranslationShortcut && shortcut != textSelectionTranslationShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
+        if isRecordingTextSelectionTranslationShortcut && shortcut != textSelectionTranslationShortcut && allShortcuts.contains(shortcut) {
             showError("This shortcut is already in use")
             return true
         }
-        if isRecordingTranslateAndInsertShortcut && shortcut != translateAndInsertShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
+        if isRecordingTranslateAndInsertShortcut && shortcut != translateAndInsertShortcut && allShortcuts.contains(shortcut) {
             showError("This shortcut is already in use")
             return true
         }

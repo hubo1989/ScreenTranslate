@@ -175,13 +175,7 @@ final class PermissionManager: ObservableObject {
     /// Checks Input Monitoring permission status.
     @available(macOS 10.15, *)
     private func checkInputMonitoringPermission() -> Bool {
-        // For Input Monitoring, we check if we can create an event tap
-        // This is the most reliable way to check the permission
-        // Use the string literal directly to avoid concurrency issues with kAXTrustedCheckOptionPrompt
         let options = ["AXTrustedCheckOptionPrompt": false] as CFDictionary
-
-        // If accessibility is granted, input monitoring typically works too
-        // But we should also check the actual input monitoring capability
         return AXIsProcessTrustedWithOptions(options)
     }
 

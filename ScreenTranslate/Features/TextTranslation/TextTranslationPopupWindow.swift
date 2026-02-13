@@ -209,6 +209,7 @@ final class TextTranslationPopupWindow: NSPanel {
     /// Dismisses the popup window
     @MainActor
     func dismissPopup() {
+        guard isVisible else { return }
         removeEventMonitors()
         orderOut(nil)
         popupDelegate?.textTranslationPopupDidDismiss()

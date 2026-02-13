@@ -482,7 +482,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let textSelectionService = TextSelectionService.shared
             let selectionResult = try await textSelectionService.captureSelectedText()
 
-            Logger.ui.info("Captured selected text: \(selectionResult.text.prefix(50))...")
+            Logger.ui.info("Captured selected text: \(selectionResult.text.count) characters")
             Logger.ui.info("Source app: \(selectionResult.sourceApplication ?? "unknown")")
 
             // Step 2: Show loading indicator
@@ -615,7 +615,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        Logger.ui.info("Captured clipboard text: \(clipboardText.prefix(50))...")
+        Logger.ui.info("Captured clipboard text: \(clipboardText.count) characters")
 
         // Step 2: Show brief loading indicator
         await showLoadingIndicator()

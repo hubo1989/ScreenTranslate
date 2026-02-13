@@ -180,7 +180,6 @@ actor TextInsertService {
     ///   - source: The CGEventSource to use
     /// - Throws: InsertError if event creation fails
     private func postUnicodeEvent(character: UnicodeScalar, source: CGEventSource) throws {
-        // Create a key down event with Unicode text
         guard let keyDown = CGEvent(
             keyboardEventSource: source,
             virtualKey: 0,
@@ -189,11 +188,13 @@ actor TextInsertService {
             throw InsertError.eventCreationFailed
         }
 
-        // Set the Unicode string - UniChar is UInt16
-        var char = UniChar(character.value)
-        keyDown.keyboardSetUnicodeString(stringLength: 1, unicodeString: &char)
+        // Handle surrogate pairs for characters outside BMP (e.g., emoji)
+        let utf16 = String(character).utf16
+        let count = utf16.count
+        var chars = Array(utf16)
 
-        // Create key up event
+        keyDown.keyboardSetUnicodeString(stringLength: count, unicodeString: &chars)
+
         guard let keyUp = CGEvent(
             keyboardEventSource: source,
             virtualKey: 0,
@@ -202,10 +203,8 @@ actor TextInsertService {
             throw InsertError.eventCreationFailed
         }
 
-        // Set the Unicode string for key up too
-        keyUp.keyboardSetUnicodeString(stringLength: 1, unicodeString: &char)
+        keyUp.keyboardSetUnicodeString(stringLength: count, unicodeString: &chars)
 
-        // Post events
         let loc = CGEventTapLocation.cghidEventTap
         keyDown.post(tap: loc)
         keyUp.post(tap: loc)

@@ -152,6 +152,8 @@ actor TextTranslationFlow {
         // Validate input
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else {
+            currentPhase = .failed(.emptyInput)
+            lastError = .emptyInput
             throw TextTranslationError.emptyInput
         }
 
@@ -160,12 +162,12 @@ actor TextTranslationFlow {
 
         let startTime = Date()
 
-        do {
+        let task = Task<TextTranslationResult, Error> {
             let effectiveTargetLanguage = config.targetLanguage
             let effectiveSourceLanguage = config.sourceLanguage
             let effectiveEngine = config.preferredEngine
 
-            logger.info("Starting text translation: \(trimmedText.prefix(50))... to \(effectiveTargetLanguage)")
+            logger.info("Starting text translation: \(trimmedText.count) chars to \(effectiveTargetLanguage)")
 
             // Use TranslationService for actual translation
             let bilingualSegments = try await TranslationService.shared.translate(
@@ -181,7 +183,7 @@ actor TextTranslationFlow {
 
             let processingTime = Date().timeIntervalSince(startTime)
 
-            let result = TextTranslationResult(
+            return TextTranslationResult(
                 originalText: trimmedText,
                 translatedText: firstSegment.translated,
                 sourceLanguage: firstSegment.sourceLanguage,
@@ -189,21 +191,30 @@ actor TextTranslationFlow {
                 segments: bilingualSegments,
                 processingTime: processingTime
             )
+        }
+
+        currentTask = task
+
+        do {
+            let result = try await task.value
 
             lastResult = result
             currentPhase = .completed
+            currentTask = nil
 
-            logger.info("Text translation completed in \(processingTime * 1000)ms")
+            logger.info("Text translation completed in \(result.processingTime * 1000)ms")
 
             return result
 
         } catch is CancellationError {
             currentPhase = .failed(.cancelled)
             lastError = .cancelled
+            currentTask = nil
             throw TextTranslationError.cancelled
         } catch let error as TextTranslationError {
             currentPhase = .failed(error)
             lastError = error
+            currentTask = nil
             throw error
         } catch {
             let errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
@@ -211,6 +222,7 @@ actor TextTranslationFlow {
             let translationError = TextTranslationError.translationFailed(errorMessage)
             currentPhase = .failed(translationError)
             lastError = translationError
+            currentTask = nil
             throw translationError
         }
     }

@@ -158,7 +158,7 @@ actor TextSelectionService {
         try simulateCopyShortcut()
 
         // Wait for clipboard to be updated with selected text
-        let capturedText = try await waitForClipboardUpdate(previousContent: savedClipboard?.string)
+        let capturedText = try await waitForClipboardUpdate(previousChangeCount: savedClipboard?.changeCount ?? -1)
 
         // Restore original clipboard content
         if let saved = savedClipboard {
@@ -210,30 +210,38 @@ actor TextSelectionService {
     /// Represents saved clipboard content
     private struct SavedClipboardContent: Sendable {
         let string: String?
-        let data: Data?
-        let types: [NSPasteboard.PasteboardType]
+        let items: [[String: Data]]
+        let changeCount: Int
     }
 
     /// Saves the current clipboard content for later restoration.
     private func saveClipboardContent() throws -> SavedClipboardContent? {
         let pasteboard = NSPasteboard.general
+        let changeCount = pasteboard.changeCount
+
         guard let types = pasteboard.types, !types.isEmpty else {
             return nil
         }
 
-        // Get string content if available
         let stringContent = pasteboard.string(forType: .string)
 
-        // Get data for each type (for non-string types like images)
-        var dataContent: Data?
-        if let firstType = types.first {
-            dataContent = pasteboard.data(forType: firstType)
+        var items: [[String: Data]] = []
+        for item in pasteboard.pasteboardItems ?? [] {
+            var itemData: [String: Data] = [:]
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    itemData[type.rawValue] = data
+                }
+            }
+            if !itemData.isEmpty {
+                items.append(itemData)
+            }
         }
 
         return SavedClipboardContent(
             string: stringContent,
-            data: dataContent,
-            types: types
+            items: items,
+            changeCount: changeCount
         )
     }
 
@@ -275,28 +283,22 @@ actor TextSelectionService {
     }
 
     /// Waits for clipboard to be updated with new content.
-    /// - Parameter previousContent: The previous clipboard content to compare against
+    /// - Parameter previousChangeCount: The previous clipboard change count
     /// - Returns: The new clipboard content
     /// - Throws: CaptureError if timeout or no change detected
-    private func waitForClipboardUpdate(previousContent: String?) async throws -> String {
+    private func waitForClipboardUpdate(previousChangeCount: Int) async throws -> String {
         for _ in 0..<clipboardCheckRetries {
-            // Small delay to allow clipboard to update
             try await Task.sleep(nanoseconds: UInt64(clipboardCheckInterval * 1_000_000_000))
 
             let pasteboard = NSPasteboard.general
 
-            // Check if there's string content
-            guard let currentContent = pasteboard.string(forType: .string) else {
-                continue
-            }
-
-            // If content changed from previous, we got the selection
-            if currentContent != previousContent && !currentContent.isEmpty {
-                return currentContent
+            if pasteboard.changeCount != previousChangeCount {
+                if let content = pasteboard.string(forType: .string), !content.isEmpty {
+                    return content
+                }
             }
         }
 
-        // No change detected - either nothing was selected or copy failed
         throw CaptureError.noSelection
     }
 
@@ -305,19 +307,22 @@ actor TextSelectionService {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
 
-        // Restore string content if it existed
-        if let stringContent = saved.string {
-            pasteboard.setString(stringContent, forType: .string)
-        } else if let data = saved.data, let firstType = saved.types.first {
-            // Restore data content
-            pasteboard.setData(data, forType: firstType)
+        if saved.items.isEmpty {
+            if let stringContent = saved.string {
+                pasteboard.setString(stringContent, forType: .string)
+            }
+        } else {
+            for itemData in saved.items {
+                let item = NSPasteboardItem()
+                for (typeRawValue, data) in itemData {
+                    item.setData(data, forType: NSPasteboard.PasteboardType(rawValue: typeRawValue))
+                }
+                pasteboard.writeObjects([item])
+            }
         }
 
-        // Verify restoration succeeded
-        if saved.string != nil {
-            guard pasteboard.string(forType: .string) == saved.string else {
-                throw CaptureError.clipboardRestoreFailed
-            }
+        guard pasteboard.changeCount != saved.changeCount else {
+            return
         }
     }
 }
