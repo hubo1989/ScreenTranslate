@@ -21,6 +21,8 @@ final class SettingsViewModel {
     var isRecordingFullScreenShortcut = false
     var isRecordingSelectionShortcut = false
     var isRecordingTranslationModeShortcut = false
+    var isRecordingTextSelectionTranslationShortcut = false
+    var isRecordingTranslateAndInsertShortcut = false
 
     /// Temporary storage for shortcut recording
     var recordedShortcut: KeyboardShortcut?
@@ -140,6 +142,24 @@ final class SettingsViewModel {
         get { settings.translationModeShortcut }
         set {
             settings.translationModeShortcut = newValue
+            appDelegate?.updateHotkeys()
+        }
+    }
+
+    /// Text selection translation shortcut
+    var textSelectionTranslationShortcut: KeyboardShortcut {
+        get { settings.textSelectionTranslationShortcut }
+        set {
+            settings.textSelectionTranslationShortcut = newValue
+            appDelegate?.updateHotkeys()
+        }
+    }
+
+    /// Translate and insert shortcut
+    var translateAndInsertShortcut: KeyboardShortcut {
+        get { settings.translateAndInsertShortcut }
+        set {
+            settings.translateAndInsertShortcut = newValue
             appDelegate?.updateHotkeys()
         }
     }
@@ -421,6 +441,28 @@ final class SettingsViewModel {
         isRecordingFullScreenShortcut = false
         isRecordingSelectionShortcut = false
         isRecordingTranslationModeShortcut = true
+        isRecordingTextSelectionTranslationShortcut = false
+        isRecordingTranslateAndInsertShortcut = false
+        recordedShortcut = nil
+    }
+
+    /// Starts recording a keyboard shortcut for text selection translation
+    func startRecordingTextSelectionTranslationShortcut() {
+        isRecordingFullScreenShortcut = false
+        isRecordingSelectionShortcut = false
+        isRecordingTranslationModeShortcut = false
+        isRecordingTextSelectionTranslationShortcut = true
+        isRecordingTranslateAndInsertShortcut = false
+        recordedShortcut = nil
+    }
+
+    /// Starts recording a keyboard shortcut for translate and insert
+    func startRecordingTranslateAndInsertShortcut() {
+        isRecordingFullScreenShortcut = false
+        isRecordingSelectionShortcut = false
+        isRecordingTranslationModeShortcut = false
+        isRecordingTextSelectionTranslationShortcut = false
+        isRecordingTranslateAndInsertShortcut = true
         recordedShortcut = nil
     }
 
@@ -429,6 +471,8 @@ final class SettingsViewModel {
         isRecordingFullScreenShortcut = false
         isRecordingSelectionShortcut = false
         isRecordingTranslationModeShortcut = false
+        isRecordingTextSelectionTranslationShortcut = false
+        isRecordingTranslateAndInsertShortcut = false
         recordedShortcut = nil
     }
 
@@ -436,7 +480,7 @@ final class SettingsViewModel {
     /// - Parameter event: The key event
     /// - Returns: Whether the event was handled
     func handleKeyEvent(_ event: NSEvent) -> Bool {
-        guard isRecordingFullScreenShortcut || isRecordingSelectionShortcut || isRecordingTranslationModeShortcut else {
+        guard isRecordingFullScreenShortcut || isRecordingSelectionShortcut || isRecordingTranslationModeShortcut || isRecordingTextSelectionTranslationShortcut || isRecordingTranslateAndInsertShortcut else {
             return false
         }
 
@@ -459,15 +503,30 @@ final class SettingsViewModel {
         }
 
         // Check for conflicts with other shortcuts
-        if isRecordingFullScreenShortcut && (shortcut == selectionShortcut || shortcut == translationModeShortcut) {
+        let allShortcuts = [
+            fullScreenShortcut, selectionShortcut, translationModeShortcut,
+            textSelectionTranslationShortcut, translateAndInsertShortcut
+        ]
+        let conflictCount = allShortcuts.filter { $0 == shortcut }.count
+
+        // Check if the shortcut being recorded is already in use by a different action
+        if isRecordingFullScreenShortcut && shortcut != fullScreenShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
             showError("This shortcut is already in use")
             return true
         }
-        if isRecordingSelectionShortcut && (shortcut == fullScreenShortcut || shortcut == translationModeShortcut) {
+        if isRecordingSelectionShortcut && shortcut != selectionShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
             showError("This shortcut is already in use")
             return true
         }
-        if isRecordingTranslationModeShortcut && (shortcut == fullScreenShortcut || shortcut == selectionShortcut) {
+        if isRecordingTranslationModeShortcut && shortcut != translationModeShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
+            showError("This shortcut is already in use")
+            return true
+        }
+        if isRecordingTextSelectionTranslationShortcut && shortcut != textSelectionTranslationShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
+            showError("This shortcut is already in use")
+            return true
+        }
+        if isRecordingTranslateAndInsertShortcut && shortcut != translateAndInsertShortcut && allShortcuts.filter({ $0 == shortcut }).count > 0 {
             showError("This shortcut is already in use")
             return true
         }
@@ -477,8 +536,12 @@ final class SettingsViewModel {
             fullScreenShortcut = shortcut
         } else if isRecordingSelectionShortcut {
             selectionShortcut = shortcut
-        } else {
+        } else if isRecordingTranslationModeShortcut {
             translationModeShortcut = shortcut
+        } else if isRecordingTextSelectionTranslationShortcut {
+            textSelectionTranslationShortcut = shortcut
+        } else if isRecordingTranslateAndInsertShortcut {
+            translateAndInsertShortcut = shortcut
         }
 
         // End recording
@@ -499,6 +562,16 @@ final class SettingsViewModel {
     /// Resets translation mode shortcut to default
     func resetTranslationModeShortcut() {
         translationModeShortcut = .translationModeDefault
+    }
+
+    /// Resets text selection translation shortcut to default
+    func resetTextSelectionTranslationShortcut() {
+        textSelectionTranslationShortcut = .textSelectionTranslationDefault
+    }
+
+    /// Resets translate and insert shortcut to default
+    func resetTranslateAndInsertShortcut() {
+        translateAndInsertShortcut = .translateAndInsertDefault
     }
 
     /// Resets all settings to defaults

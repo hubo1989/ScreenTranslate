@@ -43,6 +43,8 @@ struct SettingsView: View {
                             LanguageSettingsContent(viewModel: viewModel)
                         case .shortcuts:
                             ShortcutSettingsContent(viewModel: viewModel)
+                        case .textTranslation:
+                            TextTranslationSettingsContent(viewModel: viewModel)
                         case .advanced:
                             AdvancedSettingsContent(viewModel: viewModel)
                         }

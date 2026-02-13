@@ -217,6 +217,7 @@
 "settings.section.languages" = "语言";
 "settings.section.export" = "导出";
 "settings.section.shortcuts" = "键盘快捷键";
+"settings.section.text.translation" = "文本翻译";
 "settings.section.annotations" = "标注";
 
 /* 语言设置 */
@@ -255,6 +256,8 @@
 "settings.shortcut.fullscreen" = "全屏截图";
 "settings.shortcut.selection" = "区域截图";
 "settings.shortcut.translation.mode" = "翻译模式";
+"settings.shortcut.text.selection.translation" = "文本选择翻译";
+"settings.shortcut.translate.and.insert" = "翻译并插入";
 "settings.shortcut.recording" = "按下快捷键...";
 "settings.shortcut.reset" = "恢复默认";
 "settings.shortcut.error.no.modifier" = "快捷键必须包含 Command、Control 或 Option";
