@@ -1,5 +1,6 @@
 import AppKit
 import os
+import UserNotifications
 
 /// Application delegate responsible for menu bar setup, hotkey registration, and app lifecycle.
 /// Runs on the main actor to ensure thread-safe UI operations.
@@ -9,9 +10,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var fullScreenHotkeyRegistration: HotkeyManager.Registration?
     private var selectionHotkeyRegistration: HotkeyManager.Registration?
     private var translationModeHotkeyRegistration: HotkeyManager.Registration?
+    private var textSelectionTranslationHotkeyRegistration: HotkeyManager.Registration?
+    private var translateAndInsertHotkeyRegistration: HotkeyManager.Registration?
     private let settings = AppSettings.shared
     private let displaySelector = DisplaySelector()
     private var isCaptureInProgress = false
+    private var isTranslating = false
 
     // MARK: - NSApplicationDelegate
 
@@ -156,6 +160,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             Logger.ui.error("Failed to register translation mode hotkey: \(error.localizedDescription)")
         }
+
+        // Register text selection translation hotkey
+        do {
+            textSelectionTranslationHotkeyRegistration = try await hotkeyManager.register(
+                shortcut: settings.textSelectionTranslationShortcut
+            ) { [weak self] in
+                Task { @MainActor in
+                    self?.translateSelectedText()
+                }
+            }
+            Logger.ui.info("Registered text selection translation hotkey: \(self.settings.textSelectionTranslationShortcut.displayString)")
+        } catch {
+            Logger.ui.error("Failed to register text selection translation hotkey: \(error.localizedDescription)")
+        }
+
+        // Register translate and insert hotkey
+        do {
+            translateAndInsertHotkeyRegistration = try await hotkeyManager.register(
+                shortcut: settings.translateAndInsertShortcut
+            ) { [weak self] in
+                Task { @MainActor in
+                    self?.translateClipboardAndInsert()
+                }
+            }
+            Logger.ui.info("Registered translate and insert hotkey: \(self.settings.translateAndInsertShortcut.displayString)")
+        } catch {
+            Logger.ui.error("Failed to register translate and insert hotkey: \(error.localizedDescription)")
+        }
     }
 
     /// Unregisters all global hotkeys
@@ -175,6 +207,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let registration = translationModeHotkeyRegistration {
             await hotkeyManager.unregister(registration)
             translationModeHotkeyRegistration = nil
+        }
+
+        if let registration = textSelectionTranslationHotkeyRegistration {
+            await hotkeyManager.unregister(registration)
+            textSelectionTranslationHotkeyRegistration = nil
+        }
+
+        if let registration = translateAndInsertHotkeyRegistration {
+            await hotkeyManager.unregister(registration)
+            translateAndInsertHotkeyRegistration = nil
         }
     }
 
@@ -371,6 +413,287 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             showCaptureError(.captureFailure(underlying: error))
         }
+    }
+
+    /// Translates currently selected text from any application
+    @objc func translateSelectedText() {
+        // Prevent concurrent translation operations
+        guard !isTranslating else {
+            Logger.ui.debug("Translation already in progress, ignoring request")
+            return
+        }
+
+        Logger.ui.info("Text selection translation triggered via hotkey")
+
+        isTranslating = true
+
+        Task { [weak self] in
+            defer { self?.isTranslating = false }
+
+            await self?.handleTextSelectionTranslation()
+        }
+    }
+
+    /// Translates clipboard content and inserts directly into focused input field
+    @objc func translateClipboardAndInsert() {
+        // Prevent concurrent translation operations
+        guard !isTranslating else {
+            Logger.ui.debug("Translation already in progress, ignoring request")
+            return
+        }
+
+        Logger.ui.info("Translate and insert triggered via hotkey")
+
+        isTranslating = true
+
+        Task { [weak self] in
+            defer { self?.isTranslating = false }
+
+            await self?.handleTranslateClipboardAndInsert()
+        }
+    }
+
+    /// Handles the complete text selection translation flow
+    private func handleTextSelectionTranslation() async {
+        // Check accessibility permission before attempting text capture
+        let permissionManager = PermissionManager.shared
+        permissionManager.refreshPermissionStatus()
+
+        if !permissionManager.hasAccessibilityPermission {
+            // Show permission request dialog
+            let granted = await withCheckedContinuation { continuation in
+                Task { @MainActor in
+                    let result = permissionManager.requestAccessibilityPermission()
+                    continuation.resume(returning: result)
+                }
+            }
+
+            if !granted {
+                // User declined or permission not granted - show error
+                await MainActor.run {
+                    permissionManager.showPermissionDeniedError(for: .accessibility)
+                }
+                return
+            }
+        }
+
+        do {
+            // Step 1: Capture selected text
+            let textSelectionService = TextSelectionService.shared
+            let selectionResult = try await textSelectionService.captureSelectedText()
+
+            Logger.ui.info("Captured selected text: \(selectionResult.text.count) characters")
+            Logger.ui.info("Source app: \(selectionResult.sourceApplication ?? "unknown")")
+
+            // Step 2: Show loading indicator
+            await showLoadingIndicator()
+
+            // Step 3: Translate the captured text
+            if #available(macOS 13.0, *) {
+                let config = await TextTranslationConfig.fromAppSettings()
+                let translationResult = try await TextTranslationFlow.shared.translate(
+                    selectionResult.text,
+                    config: config
+                )
+
+                Logger.ui.info("Translation completed in \(translationResult.processingTime * 1000)ms")
+
+                // Step 4: Hide loading and display result popup
+                await hideLoadingIndicator()
+
+                await MainActor.run {
+                    TextTranslationPopupController.shared.presentPopup(result: translationResult)
+                }
+
+            } else {
+                await hideLoadingIndicator()
+                showCaptureError(.captureFailure(underlying: NSError(
+                    domain: "ScreenTranslate",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "macOS 13.0+ required for text translation"]
+                )))
+            }
+
+        } catch let error as TextSelectionService.CaptureError {
+            await hideLoadingIndicator()
+
+            // Handle empty selection with user notification (no crash)
+            switch error {
+            case .noSelection:
+                Logger.ui.info("No text selected for translation")
+                await showNoSelectionNotification()
+            case .accessibilityPermissionDenied:
+                Logger.ui.error("Accessibility permission denied")
+                showCaptureError(.captureFailure(underlying: error))
+            default:
+                Logger.ui.error("Failed to capture selected text: \(error.localizedDescription)")
+                showCaptureError(.captureFailure(underlying: error))
+            }
+
+        } catch let error as TextTranslationError {
+            await hideLoadingIndicator()
+            Logger.ui.error("Translation failed: \(error.localizedDescription)")
+            showCaptureError(.captureFailure(underlying: error))
+
+        } catch {
+            await hideLoadingIndicator()
+            Logger.ui.error("Unexpected error during text translation: \(error.localizedDescription)")
+            showCaptureError(.captureFailure(underlying: error))
+        }
+    }
+
+    /// Shows a brief loading indicator for text translation
+    private func showLoadingIndicator() async {
+        await MainActor.run {
+            // Use the existing loading window with a placeholder image
+            // Create a small placeholder image for the loading state
+            let placeholderImage = NSImage(
+                systemSymbolName: "character.textbox",
+                accessibilityDescription: "Translating"
+            )
+
+            // Create a simple loading window
+            if let cgImage = placeholderImage?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                BilingualResultWindowController.shared.showLoading(
+                    originalImage: cgImage,
+                    scaleFactor: 2.0,
+                    message: String(localized: "textTranslation.loading")
+                )
+            }
+        }
+    }
+
+    /// Hides the loading indicator
+    private func hideLoadingIndicator() async {
+        await MainActor.run {
+            BilingualResultWindowController.shared.close()
+        }
+    }
+
+    /// Shows a notification when no text is selected
+    private func showNoSelectionNotification() async {
+        await MainActor.run {
+            let alert = NSAlert()
+            alert.alertStyle = .informational
+            alert.messageText = String(localized: "textTranslation.noSelection.title")
+            alert.informativeText = String(localized: "textTranslation.noSelection.message")
+            alert.addButton(withTitle: String(localized: "common.ok"))
+            alert.runModal()
+        }
+    }
+
+    /// Handles the translate clipboard and insert flow
+    private func handleTranslateClipboardAndInsert() async {
+        // Check accessibility permission before attempting text insertion
+        let permissionManager = PermissionManager.shared
+        permissionManager.refreshPermissionStatus()
+
+        if !permissionManager.hasAccessibilityPermission {
+            // Show permission request dialog
+            let granted = await withCheckedContinuation { continuation in
+                Task { @MainActor in
+                    let result = permissionManager.requestAccessibilityPermission()
+                    continuation.resume(returning: result)
+                }
+            }
+
+            if !granted {
+                // User declined or permission not granted - show error
+                await MainActor.run {
+                    permissionManager.showPermissionDeniedError(for: .accessibility)
+                }
+                return
+            }
+        }
+
+        // Step 1: Get clipboard content
+        let pasteboard = NSPasteboard.general
+        guard let clipboardText = pasteboard.string(forType: .string),
+              !clipboardText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            Logger.ui.info("Clipboard is empty or contains no text")
+            await showEmptyClipboardNotification()
+            return
+        }
+
+        Logger.ui.info("Captured clipboard text: \(clipboardText.count) characters")
+
+        // Step 2: Show brief loading indicator
+        await showLoadingIndicator()
+
+        // Step 3: Translate the clipboard text
+        do {
+            if #available(macOS 13.0, *) {
+                let config = await TextTranslationConfig.fromAppSettings()
+                let translationResult = try await TextTranslationFlow.shared.translate(
+                    clipboardText,
+                    config: config
+                )
+
+                Logger.ui.info("Translation completed in \(translationResult.processingTime * 1000)ms")
+
+                // Step 4: Hide loading
+                await hideLoadingIndicator()
+
+                // Step 5: Insert translated text directly into focused input field
+                let insertService = TextInsertService.shared
+                try await insertService.insertText(translationResult.translatedText)
+
+                Logger.ui.info("Translated text inserted successfully")
+
+                // Step 6: Show success notification
+                await showSuccessNotification()
+
+            } else {
+                await hideLoadingIndicator()
+                showCaptureError(.captureFailure(underlying: NSError(
+                    domain: "ScreenTranslate",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "macOS 13.0+ required for text translation"]
+                )))
+            }
+
+        } catch let error as TextTranslationError {
+            await hideLoadingIndicator()
+            Logger.ui.error("Translation failed: \(error.localizedDescription)")
+            showCaptureError(.captureFailure(underlying: error))
+
+        } catch let error as TextInsertService.InsertError {
+            await hideLoadingIndicator()
+            Logger.ui.error("Text insertion failed: \(error.localizedDescription)")
+            showCaptureError(.captureFailure(underlying: error))
+
+        } catch {
+            await hideLoadingIndicator()
+            Logger.ui.error("Unexpected error during translate and insert: \(error.localizedDescription)")
+            showCaptureError(.captureFailure(underlying: error))
+        }
+    }
+
+    /// Shows a notification when clipboard is empty
+    private func showEmptyClipboardNotification() async {
+        await MainActor.run {
+            let alert = NSAlert()
+            alert.alertStyle = .informational
+            alert.messageText = String(localized: "translateAndInsert.emptyClipboard.title")
+            alert.informativeText = String(localized: "translateAndInsert.emptyClipboard.message")
+            alert.addButton(withTitle: String(localized: "common.ok"))
+            alert.runModal()
+        }
+    }
+
+    /// Shows a success notification after translate and insert
+    private func showSuccessNotification() async {
+        let center = UNUserNotificationCenter.current()
+        // Request authorization if needed
+        center.requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        // Create notification content
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "translateAndInsert.success.title")
+        content.body = String(localized: "translateAndInsert.success.message")
+        content.sound = .default
+        // Create trigger (immediate)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
+        try? await center.add(request)
     }
 
     // MARK: - Error Handling

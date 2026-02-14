@@ -23,6 +23,8 @@ final class AppSettings {
         static let fullScreenShortcut = prefix + "fullScreenShortcut"
         static let selectionShortcut = prefix + "selectionShortcut"
         static let translationModeShortcut = prefix + "translationModeShortcut"
+        static let textSelectionTranslationShortcut = prefix + "textSelectionTranslationShortcut"
+        static let translateAndInsertShortcut = prefix + "translateAndInsertShortcut"
         static let strokeColor = prefix + "strokeColor"
         static let strokeWidth = prefix + "strokeWidth"
         static let textSize = prefix + "textSize"
@@ -83,6 +85,16 @@ final class AppSettings {
     /// Global hotkey for translation mode
     var translationModeShortcut: KeyboardShortcut {
         didSet { saveShortcut(translationModeShortcut, forKey: Keys.translationModeShortcut) }
+    }
+
+    /// Global hotkey for text selection translation
+    var textSelectionTranslationShortcut: KeyboardShortcut {
+        didSet { saveShortcut(textSelectionTranslationShortcut, forKey: Keys.textSelectionTranslationShortcut) }
+    }
+
+    /// Global hotkey for translate clipboard and insert
+    var translateAndInsertShortcut: KeyboardShortcut {
+        didSet { saveShortcut(translateAndInsertShortcut, forKey: Keys.translateAndInsertShortcut) }
     }
 
     /// Default annotation stroke color
@@ -229,6 +241,10 @@ final class AppSettings {
             ?? KeyboardShortcut.selectionDefault
         translationModeShortcut = Self.loadShortcut(forKey: Keys.translationModeShortcut)
             ?? KeyboardShortcut.translationModeDefault
+        textSelectionTranslationShortcut = Self.loadShortcut(forKey: Keys.textSelectionTranslationShortcut)
+            ?? KeyboardShortcut.textSelectionTranslationDefault
+        translateAndInsertShortcut = Self.loadShortcut(forKey: Keys.translateAndInsertShortcut)
+            ?? KeyboardShortcut.translateAndInsertDefault
 
         // Load annotation defaults
         strokeColor = Self.loadColor(forKey: Keys.strokeColor) ?? .red
@@ -293,6 +309,8 @@ final class AppSettings {
         fullScreenShortcut = .fullScreenDefault
         selectionShortcut = .selectionDefault
         translationModeShortcut = .translationModeDefault
+        textSelectionTranslationShortcut = .textSelectionTranslationDefault
+        translateAndInsertShortcut = .translateAndInsertDefault
         strokeColor = .red
         strokeWidth = 2.0
         textSize = 14.0

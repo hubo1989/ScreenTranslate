@@ -217,6 +217,7 @@
 "settings.section.languages" = "语言";
 "settings.section.export" = "导出";
 "settings.section.shortcuts" = "键盘快捷键";
+"settings.section.text.translation" = "文本翻译";
 "settings.section.annotations" = "标注";
 
 /* 语言设置 */
@@ -255,6 +256,8 @@
 "settings.shortcut.fullscreen" = "全屏截图";
 "settings.shortcut.selection" = "区域截图";
 "settings.shortcut.translation.mode" = "翻译模式";
+"settings.shortcut.text.selection.translation" = "文本选择翻译";
+"settings.shortcut.translate.and.insert" = "翻译并插入";
 "settings.shortcut.recording" = "按下快捷键...";
 "settings.shortcut.reset" = "恢复默认";
 "settings.shortcut.error.no.modifier" = "快捷键必须包含 Command、Control 或 Option";
@@ -356,6 +359,24 @@
 "permission.prompt.message" = "ScreenTranslate 需要权限来截取您的屏幕。这是截图功能所必需的。\n\n点击继续后，macOS 将要求您授予屏幕录制权限。您可以在系统设置 > 隐私与安全性 > 屏幕录制中授权。";
 "permission.prompt.continue" = "继续";
 "permission.prompt.later" = "稍后";
+
+/* 辅助功能权限 */
+"permission.accessibility.title" = "需要辅助功能权限";
+"permission.accessibility.message" = "ScreenTranslate 需要辅助功能权限来捕获选中的文本并插入翻译结果。\n\n此权限允许应用：\n• 从任何应用复制选中的文本\n• 将翻译后的文本插入输入框\n\n您的隐私受到保护 - ScreenTranslate 仅将此用于文本翻译。";
+"permission.accessibility.grant" = "授予权限";
+"permission.accessibility.open.settings" = "打开系统设置";
+"permission.accessibility.denied.title" = "需要辅助功能权限";
+"permission.accessibility.denied.message" = "文本捕获和插入需要辅助功能权限。\n\n请在系统设置 > 隐私与安全性 > 辅助功能中授予权限。";
+
+/* 输入监控权限 */
+"permission.input.monitoring.title" = "需要输入监控权限";
+"permission.input.monitoring.message" = "ScreenTranslate 需要输入监控权限来将翻译后的文本插入应用程序。\n\n您需要在以下位置启用：\n系统设置 > 隐私与安全性 > 输入监控";
+"permission.input.monitoring.open.settings" = "打开系统设置";
+"permission.input.monitoring.denied.title" = "需要输入监控权限";
+"permission.input.monitoring.denied.message" = "文本插入需要输入监控权限。\n\n请在系统设置 > 隐私与安全性 > 输入监控中授予权限。";
+
+/* 通用权限字符串 */
+"permission.open.settings" = "打开系统设置";
 
 
 /* ========================================
@@ -544,3 +565,40 @@
 "bilingualResult.copyFailed" = "复制图片失败";
 "bilingualResult.saveFailed" = "保存图片失败";
 "bilingualResult.noTextToCopy" = "没有可复制的翻译文本";
+
+
+/* ========================================
+   文本翻译 (US-003 至 US-010)
+   ======================================== */
+
+/* 文本翻译流程 */
+"textTranslation.phase.idle" = "就绪";
+"textTranslation.phase.translating" = "翻译中...";
+"textTranslation.phase.completed" = "已完成";
+"textTranslation.phase.failed" = "失败";
+
+"textTranslation.error.emptyInput" = "没有可翻译的文本";
+"textTranslation.error.translationFailed %@" = "翻译失败：%@";
+"textTranslation.error.cancelled" = "翻译已取消";
+"textTranslation.error.serviceUnavailable" = "翻译服务不可用";
+
+"textTranslation.recovery.emptyInput" = "请先选择一些文本";
+"textTranslation.recovery.translationFailed" = "请重试";
+"textTranslation.recovery.serviceUnavailable" = "请检查网络连接后重试";
+
+"textTranslation.loading" = "翻译中...";
+"textTranslation.noSelection.title" = "未选择文本";
+"textTranslation.noSelection.message" = "请在任意应用中选择一些文本，然后重试。";
+
+/* 翻译并插入 */
+"translateAndInsert.emptyClipboard.title" = "剪贴板为空";
+"translateAndInsert.emptyClipboard.message" = "请先将文本复制到剪贴板，然后使用此快捷键。";
+"translateAndInsert.success.title" = "翻译已插入";
+"translateAndInsert.success.message" = "翻译后的文本已插入到当前输入框中。";
+
+/* 语言显示 */
+"language.auto" = "自动检测";
+
+/* 通用文本翻译界面 */
+"common.copy" = "复制";
+"common.insert" = "插入";

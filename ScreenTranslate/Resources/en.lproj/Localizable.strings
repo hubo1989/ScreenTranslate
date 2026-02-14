@@ -217,6 +217,7 @@
 "settings.section.languages" = "Languages";
 "settings.section.export" = "Export";
 "settings.section.shortcuts" = "Keyboard Shortcuts";
+"settings.section.text.translation" = "Text Translation";
 "settings.section.annotations" = "Annotations";
 
 /* Language Settings */
@@ -255,6 +256,8 @@
 "settings.shortcut.fullscreen" = "Full Screen Capture";
 "settings.shortcut.selection" = "Selection Capture";
 "settings.shortcut.translation.mode" = "Translation Mode";
+"settings.shortcut.text.selection.translation" = "Text Selection Translation";
+"settings.shortcut.translate.and.insert" = "Translate and Insert";
 "settings.shortcut.recording" = "Press keys...";
 "settings.shortcut.reset" = "Reset to default";
 "settings.shortcut.error.no.modifier" = "Shortcuts must include Command, Control, or Option";
@@ -356,6 +359,24 @@
 "permission.prompt.message" = "ScreenTranslate needs permission to capture your screen. This is required to take screenshots.\n\nAfter clicking Continue, macOS will ask you to grant Screen Recording permission. You can grant it in System Settings > Privacy & Security > Screen Recording.";
 "permission.prompt.continue" = "Continue";
 "permission.prompt.later" = "Later";
+
+/* Accessibility Permission */
+"permission.accessibility.title" = "Accessibility Permission Required";
+"permission.accessibility.message" = "ScreenTranslate needs accessibility permission to capture selected text and insert translations.\n\nThis allows the app to:\n• Copy selected text from any application\n• Insert translated text into input fields\n\nYour privacy is protected - ScreenTranslate only uses this for text translation.";
+"permission.accessibility.grant" = "Grant Permission";
+"permission.accessibility.open.settings" = "Open System Settings";
+"permission.accessibility.denied.title" = "Accessibility Permission Required";
+"permission.accessibility.denied.message" = "Text capture and insertion requires accessibility permission.\n\nPlease grant permission in System Settings > Privacy & Security > Accessibility.";
+
+/* Input Monitoring Permission */
+"permission.input.monitoring.title" = "Input Monitoring Permission Required";
+"permission.input.monitoring.message" = "ScreenTranslate needs input monitoring permission to insert translated text into applications.\n\nYou'll need to enable this in:\nSystem Settings > Privacy & Security > Input Monitoring";
+"permission.input.monitoring.open.settings" = "Open System Settings";
+"permission.input.monitoring.denied.title" = "Input Monitoring Permission Required";
+"permission.input.monitoring.denied.message" = "Text insertion requires input monitoring permission.\n\nPlease grant permission in System Settings > Privacy & Security > Input Monitoring.";
+
+/* Common Permission Strings */
+"permission.open.settings" = "Open System Settings";
 
 
 /* ========================================
@@ -544,3 +565,40 @@
 "bilingualResult.copyFailed" = "Failed to copy image";
 "bilingualResult.saveFailed" = "Failed to save image";
 "bilingualResult.noTextToCopy" = "No translation text to copy";
+
+
+/* ========================================
+   Text Translation (US-003 to US-010)
+   ======================================== */
+
+/* Text Translation Flow */
+"textTranslation.phase.idle" = "Ready";
+"textTranslation.phase.translating" = "Translating...";
+"textTranslation.phase.completed" = "Completed";
+"textTranslation.phase.failed" = "Failed";
+
+"textTranslation.error.emptyInput" = "No text to translate";
+"textTranslation.error.translationFailed %@" = "Translation failed: %@";
+"textTranslation.error.cancelled" = "Translation was cancelled";
+"textTranslation.error.serviceUnavailable" = "Translation service is unavailable";
+
+"textTranslation.recovery.emptyInput" = "Please select some text first";
+"textTranslation.recovery.translationFailed" = "Please try again";
+"textTranslation.recovery.serviceUnavailable" = "Check your network connection and try again";
+
+"textTranslation.loading" = "Translating...";
+"textTranslation.noSelection.title" = "No Text Selected";
+"textTranslation.noSelection.message" = "Please select some text in any application and try again.";
+
+/* Translate and Insert */
+"translateAndInsert.emptyClipboard.title" = "Clipboard is Empty";
+"translateAndInsert.emptyClipboard.message" = "Copy some text to clipboard first, then use this shortcut.";
+"translateAndInsert.success.title" = "Translation Inserted";
+"translateAndInsert.success.message" = "Translated text has been inserted into the focused input field.";
+
+/* Language Display */
+"language.auto" = "Auto Detected";
+
+/* Common Text Translation UI */
+"common.copy" = "Copy";
+"common.insert" = "Insert";
