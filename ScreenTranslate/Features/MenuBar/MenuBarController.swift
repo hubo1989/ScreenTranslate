@@ -26,6 +26,16 @@ final class MenuBarController {
                 self?.rebuildMenu()
             }
         }
+
+        NotificationCenter.default.addObserver(
+            forName: AppSettings.shortcutDidChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.rebuildMenu()
+            }
+        }
     }
 
     // MARK: - Setup
@@ -60,13 +70,14 @@ final class MenuBarController {
     /// Builds the complete menu for the status item
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
+        let settings = AppSettings.shared
 
         // Capture Full Screen
         menu.addItem(createMenuItem(
             titleKey: "menu.capture.full.screen",
             comment: "Capture Full Screen",
             action: #selector(AppDelegate.captureFullScreen),
-            keyEquivalent: "3",
+            shortcut: settings.fullScreenShortcut,
             target: appDelegate,
             imageName: "camera.fill"
         ))
@@ -76,7 +87,7 @@ final class MenuBarController {
             titleKey: "menu.capture.selection",
             comment: "Capture Selection",
             action: #selector(AppDelegate.captureSelection),
-            keyEquivalent: "4",
+            shortcut: settings.selectionShortcut,
             target: appDelegate,
             imageName: "crop"
         ))
@@ -86,7 +97,7 @@ final class MenuBarController {
             titleKey: "menu.translation.mode",
             comment: "Translation Mode",
             action: #selector(AppDelegate.startTranslationMode),
-            keyEquivalent: "t",
+            shortcut: settings.translationModeShortcut,
             target: appDelegate,
             imageName: "character"
         ))
@@ -136,17 +147,29 @@ final class MenuBarController {
         titleKey: String,
         comment: String,
         action: Selector?,
+        shortcut: KeyboardShortcut? = nil,
         keyEquivalent: String = "",
-        modifierMask: NSEvent.ModifierFlags = [.command, .shift],
+        modifierMask: NSEvent.ModifierFlags = [],
         target: AnyObject? = nil,
         imageName: String? = nil
     ) -> NSMenuItem {
+        let finalKeyEquivalent: String
+        let finalModifierMask: NSEvent.ModifierFlags
+
+        if let shortcut = shortcut {
+            finalKeyEquivalent = shortcut.mainKey.lowercased()
+            finalModifierMask = shortcut.nsModifierFlags
+        } else {
+            finalKeyEquivalent = keyEquivalent
+            finalModifierMask = modifierMask
+        }
+
         let item = NSMenuItem(
             title: NSLocalizedString(titleKey, tableName: "Localizable", bundle: .main, comment: comment),
             action: action,
-            keyEquivalent: keyEquivalent
+            keyEquivalent: finalKeyEquivalent
         )
-        item.keyEquivalentModifierMask = modifierMask
+        item.keyEquivalentModifierMask = finalModifierMask
         item.target = target
 
         if let imageName = imageName,
