@@ -5,22 +5,29 @@
 <h1 align="center">ScreenTranslate</h1>
 
 <p align="center">
-  macOS 菜单栏截图翻译工具，支持 OCR 识别、多引擎翻译和智能标注
+  macOS 菜单栏截图翻译工具，支持 OCR 识别、多引擎翻译、文本选择翻译和翻译插入
 </p>
 
 <p align="center">
-  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.0.2-blue.svg" alt="Version"></a>
+  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B-brightgreen.svg" alt="macOS"></a>
   <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift"></a>
 </p>
 
-## 功能特性
+## ✨ 功能特性
 
 ### 截图功能
 - **区域截图** - 选择屏幕任意区域进行截图
+- **全屏截图** - 一键截取整个屏幕
+- **翻译模式** - 截图后直接翻译，无需额外操作
 - **多显示器支持** - 自动识别并支持多显示器环境
-- **窗口高亮** - 截图前自动隐藏应用窗口，避免干扰
+- **Retina 屏幕优化** - 完美支持高分辨率显示器
+
+### 🆕 文本翻译功能
+- **文本选择翻译** - 选中任意文本，一键翻译并弹出结果窗口
+- **翻译并插入** - 选中文本翻译后，自动替换为译文（绕过输入法）
+- **独立语言设置** - 翻译并插入支持独立的目标语言配置
 
 ### OCR 文字识别
 - **Apple Vision** - 原生 OCR，无需额外配置
@@ -42,13 +49,42 @@
 - **翻译历史** - 保存翻译记录，支持搜索和导出
 - **双语对照** - 原文译文并排显示
 - **覆盖层显示** - 翻译结果直接显示在截图上方
-- **自定义快捷键** - 支持全局快捷键快速截图
+- **自定义快捷键** - 支持全局快捷键快速截图和翻译
+- **菜单栏快捷操作** - 所有功能均可通过菜单栏访问
 - **多语言支持** - 支持 25+ 种语言翻译
 
-## 安装要求
+## ⌨️ 快捷键
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Cmd+Shift+3` | 全屏截图 |
+| `Cmd+Shift+4` | 区域截图翻译（默认） |
+| `Cmd+Shift+T` | 翻译模式（截图后直接翻译） |
+| `Cmd+Shift+Y` | 文本选择翻译 |
+| `Cmd+Shift+I` | 翻译并插入 |
+
+> 所有快捷键均可在设置中自定义
+
+## 预览窗口操作
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Enter` / `Cmd+S` | 保存截图 |
+| `Cmd+C` | 复制到剪贴板 |
+| `Escape` | 关闭窗口 / 取消裁剪 |
+| `R` / `1` | 矩形工具 |
+| `D` / `2` | 手绘工具 |
+| `A` / `3` | 箭头工具 |
+| `T` / `4` | 文字工具 |
+| `C` | 裁剪模式 |
+| `Cmd+Z` | 撤销 |
+| `Cmd+Shift+Z` | 重做 |
+
+## 📦 安装要求
 
 - macOS 13.0 (Ventura) 或更高版本
 - 屏幕录制权限（首次使用时会提示）
+- 辅助功能权限（文本翻译功能需要）
 
 ## 下载安装
 
@@ -72,30 +108,7 @@
 >
 > 两种方法都只需要执行一次，之后可以正常使用。
 
-## 使用说明
-
-### 快捷键
-
-| 快捷键 | 功能 |
-|--------|------|
-| `Cmd+Shift+5` | 区域截图翻译（默认） |
-
-### 预览窗口操作
-
-| 快捷键 | 功能 |
-|--------|------|
-| `Enter` / `Cmd+S` | 保存截图 |
-| `Cmd+C` | 复制到剪贴板 |
-| `Escape` | 关闭窗口 / 取消裁剪 |
-| `R` / `1` | 矩形工具 |
-| `D` / `2` | 手绘工具 |
-| `A` / `3` | 箭头工具 |
-| `T` / `4` | 文字工具 |
-| `C` | 裁剪模式 |
-| `Cmd+Z` | 撤销 |
-| `Cmd+Shift+Z` | 重做 |
-
-## 技术栈
+## 🔧 技术栈
 
 - **Swift 6.0** - 现代 Swift 语言特性，严格并发检查
 - **SwiftUI + AppKit** - 声明式 UI 与原生 macOS 组件结合
@@ -104,34 +117,35 @@
 - **Translation** - Apple 系统翻译框架
 - **CoreGraphics** - 图像处理与渲染
 
-## 项目结构
+## 📁 项目结构
 
 ```
 ScreenTranslate/
-├── App/                    # 应用入口
+├── App/                    # 应用入口与协调器
+│   ├── AppDelegate.swift
+│   └── Coordinators/       # 功能协调器
+│       ├── CaptureCoordinator.swift
+│       ├── TextTranslationCoordinator.swift
+│       └── HotkeyCoordinator.swift
 ├── Features/               # 功能模块
 │   ├── Capture/           # 截图功能
 │   ├── Preview/           # 预览与标注
+│   ├── TextTranslation/   # 文本翻译
 │   ├── Overlay/           # 翻译覆盖层
 │   ├── BilingualResult/   # 双语结果展示
 │   ├── History/           # 历史记录
 │   ├── Settings/          # 设置界面
-│   ├── Onboarding/        # 首次引导
-│   ├── MenuBar/           # 菜单栏控制
-│   ├── Annotations/       # 标注工具
-│   └── TranslationFlow/   # 翻译流程控制
+│   └── MenuBar/           # 菜单栏控制
 ├── Services/              # 业务服务
+│   ├── Protocols/         # 服务协议（依赖注入）
 │   ├── OCREngine/         # OCR 引擎
 │   ├── Translation/       # 翻译服务
-│   ├── VLMProvider/       # 视觉语言模型
-│   └── ...
+│   └── VLMProvider/       # 视觉语言模型
 ├── Models/                # 数据模型
-├── Extensions/            # 扩展
-├── Resources/             # 资源文件
-└── Utilities/             # 工具类
+└── Resources/             # 资源文件
 ```
 
-## 构建源码
+## 🛠️ 构建源码
 
 ```bash
 # 克隆仓库
@@ -145,11 +159,28 @@ open ScreenTranslate.xcodeproj
 xcodebuild -project ScreenTranslate.xcodeproj -scheme ScreenTranslate
 ```
 
-## 贡献指南
+## 📝 更新日志
+
+### v1.1.0
+- ✨ 新增文本选择翻译功能（选中任意文本一键翻译）
+- ✨ 新增翻译并插入功能（自动替换选中文本为译文）
+- ✨ 菜单栏快捷键与设置同步
+- 🏗️ 架构重构：AppDelegate 拆分为 3 个 Coordinator
+- 🧪 添加单元测试覆盖
+- 🐛 修复 Retina 屏幕显示问题
+- 🐛 修复翻译并插入语言设置不生效问题
+
+### v1.0.2
+- 🐛 深度修复 Retina 屏幕缩放问题
+
+### v1.0.1
+- 🎉 首次发布
+
+## 🤝 贡献指南
 
 欢迎提交 Issue 和 Pull Request。
 
-## 许可证
+## 📄 许可证
 
 MIT License - 详见 [LICENSE](LICENSE) 文件
 
