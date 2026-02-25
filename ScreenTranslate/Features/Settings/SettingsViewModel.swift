@@ -262,6 +262,20 @@ final class SettingsViewModel {
         TranslationLanguage.allCases.filter { $0 != .auto }
     }
 
+    // MARK: - Translate and Insert Language Configuration
+
+    /// Source language for translate and insert
+    var translateAndInsertSourceLanguage: TranslationLanguage {
+        get { settings.translateAndInsertSourceLanguage }
+        set { settings.translateAndInsertSourceLanguage = newValue }
+    }
+
+    /// Target language for translate and insert (nil = follow system)
+    var translateAndInsertTargetLanguage: TranslationLanguage? {
+        get { settings.translateAndInsertTargetLanguage }
+        set { settings.translateAndInsertTargetLanguage = newValue }
+    }
+
     // MARK: - VLM Configuration
 
     var vlmProvider: VLMProviderType {
@@ -775,7 +789,7 @@ final class SettingsViewModel {
         case 401:
             throw VLMProviderError.authenticationFailed
         case 429:
-            throw VLMProviderError.rateLimited(retryAfter: nil)
+            throw VLMProviderError.rateLimited(retryAfter: nil, message: "Rate limited. Please try again later.")
         default:
             throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
         }

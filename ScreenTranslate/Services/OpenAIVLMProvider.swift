@@ -76,6 +76,9 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
         let base64Image = imageData.base64EncodedString()
         let imageSize = CGSize(width: image.width, height: image.height)
+        
+        // DEBUG: Log image details
+        print("[OpenAI] Image size: \(image.width)x\(image.height), JPEG data: \(imageData.count) bytes, Base64 length: \(base64Image.count) chars")
 
         // Use multi-turn conversation with continuation support
         let vlmResponse = try await analyzeWithContinuation(
@@ -223,38 +226,61 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
     /// Attempts to extract content field manually when JSON decoder fails
     private func extractContentManually(from json: String) -> String? {
-        // Look for "content":"..." pattern, handling escaped quotes
-        // The content field in OpenAI response contains the assistant's message
-        // which may have escaped quotes like \"
+        print("[OpenAI] extractContentManually: searching in \(json.count) chars")
 
-        // Try to find content between "content":" and the next unescaped "
-        if let range = json.range(of: "\"content\":\"") {
-            let start = range.upperBound
-            var end = start
-            var escaped = false
+        let patterns = ["\"content\":\"", "\"content\": \""]
 
-            for char in json[start...] {
-                if escaped {
-                    escaped = false
-                    end = json.index(after: end)
-                } else if char == "\\" {
-                    escaped = true
-                    end = json.index(after: end)
-                } else if char == "\"" {
-                    break
-                } else {
-                    end = json.index(after: end)
+        for pattern in patterns {
+            if let range = json.range(of: pattern) {
+                let start = range.upperBound
+                print("[OpenAI] Found pattern '\(pattern)' at position, start char: '\(json[start])'")
+
+                var end = start
+                var escaped = false
+                var depth = 0
+                var charCount = 0
+
+                for char in json[start...] {
+                    charCount += 1
+                    if charCount <= 20 {
+                        print("[OpenAI] char[\(charCount)]: '\(char)' escaped=\(escaped) depth=\(depth)")
+                    }
+
+                    if escaped {
+                        escaped = false
+                        end = json.index(after: end)
+                    } else if char == "\\" {
+                        escaped = true
+                        end = json.index(after: end)
+                    } else if char == "{" || char == "[" {
+                        depth += 1
+                        end = json.index(after: end)
+                    } else if char == "}" || char == "]" {
+                        depth -= 1
+                        end = json.index(after: end)
+                        if depth < 0 {
+                            print("[OpenAI] depth went negative at char '\(char)', breaking")
+                            break
+                        }
+                    } else if char == "\"" && depth == 0 {
+                        print("[OpenAI] found end quote at depth 0, breaking")
+                        break
+                    } else {
+                        end = json.index(after: end)
+                    }
                 }
-            }
 
-            let content = String(json[start..<end])
-            // Unescape the content
-            return content
-                .replacingOccurrences(of: "\\\"", with: "\"")
-                .replacingOccurrences(of: "\\\\", with: "\\")
-                .replacingOccurrences(of: "\\n", with: "\n")
+                let content = String(json[start..<end])
+                print("[OpenAI] extractContentManually: found content of \(content.count) chars, first 100: \(content.prefix(100))")
+
+                return content
+                    .replacingOccurrences(of: "\\\"", with: "\"")
+                    .replacingOccurrences(of: "\\\\", with: "\\")
+                    .replacingOccurrences(of: "\\n", with: "\n")
+            }
         }
 
+        print("[OpenAI] extractContentManually: no content pattern found")
         return nil
     }
 
@@ -292,6 +318,14 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         let (data, response): (Data, URLResponse)
 
         print("[OpenAI] Sending request to: \(request.url?.absoluteString ?? "unknown")")
+        print("[OpenAI] API Key (first 8 chars): \(String(configuration.apiKey.prefix(8)))...")
+        if let body = request.httpBody {
+            print("[OpenAI] Request body size: \(body.count) bytes")
+            // Print first 500 chars of request body for debugging
+            if let bodyStr = String(data: body, encoding: .utf8) {
+                print("[OpenAI] Request body preview: \(bodyStr.prefix(500))")
+            }
+        }
 
         do {
             (data, response) = try await URLSession.shared.data(for: request)
@@ -331,14 +365,18 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             throw VLMProviderError.authenticationFailed
 
         case 429:
+            print("[OpenAI] 429 Rate Limited - Response body: \(String(data: data, encoding: .utf8) ?? "unable to decode")")
+            print("[OpenAI] 429 Response headers: \(response.allHeaderFields)")
             let retryAfter = parseRetryAfter(from: response, data: data)
-            throw VLMProviderError.rateLimited(retryAfter: retryAfter)
+            let errorMessage = parseErrorMessage(from: data)
+            throw VLMProviderError.rateLimited(retryAfter: retryAfter, message: errorMessage)
 
         case 404:
             throw VLMProviderError.modelUnavailable(configuration.modelName)
 
         case 400:
             let message = parseErrorMessage(from: data) ?? "Bad request"
+            print("[OpenAI] 400 Error - Response body: \(String(data: data, encoding: .utf8) ?? "nil")")
             throw VLMProviderError.invalidConfiguration(message)
 
         case 500 ... 599:

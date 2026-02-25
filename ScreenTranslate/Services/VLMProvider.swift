@@ -63,7 +63,7 @@ enum VLMProviderError: LocalizedError, Sendable {
     case invalidConfiguration(String)
     case networkError(String)
     case authenticationFailed
-    case rateLimited(retryAfter: TimeInterval?)
+    case rateLimited(retryAfter: TimeInterval?, message: String? = nil)
     case invalidResponse(String)
     case modelUnavailable(String)
     case imageEncodingFailed
@@ -77,7 +77,10 @@ enum VLMProviderError: LocalizedError, Sendable {
             return "Network error: \(message)"
         case .authenticationFailed:
             return "Authentication failed. Please check your API key."
-        case .rateLimited(let retryAfter):
+        case .rateLimited(let retryAfter, let message):
+            if let msg = message {
+                return msg
+            }
             if let seconds = retryAfter {
                 return "Rate limited. Retry after \(Int(seconds)) seconds."
             }
@@ -168,7 +171,7 @@ struct VLMAnalysisResponse: Codable, Sendable {
 struct VLMTextSegment: Codable, Sendable {
     let text: String
     let boundingBox: VLMBoundingBox
-    let confidence: Float
+    let confidence: Float?
 }
 
 struct VLMBoundingBox: Codable, Sendable {
@@ -191,7 +194,7 @@ extension VLMAnalysisResponse {
             TextSegment(
                 text: segment.text,
                 boundingBox: segment.boundingBox.cgRect,
-                confidence: segment.confidence
+                confidence: segment.confidence ?? 1.0
             )
         }
         return ScreenAnalysisResult(segments: textSegments, imageSize: imageSize)
