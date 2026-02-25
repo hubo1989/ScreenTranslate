@@ -34,8 +34,11 @@ final class PermissionManager: ObservableObject {
     /// UserDefaults key for cached input monitoring permission status
     private let inputMonitoringCacheKey = "cachedInputMonitoringPermission"
 
-    /// Timer for periodic permission checks
-    private var permissionCheckTimer: Timer?
+    /// Last time permission status was checked (for throttling)
+    private var lastCheckTime: Date = .distantPast
+
+    /// Minimum interval between permission checks (in seconds)
+    private let checkInterval: TimeInterval = 5.0
 
     // MARK: - Initialization
 
@@ -46,14 +49,16 @@ final class PermissionManager: ObservableObject {
         // Check actual permissions
         refreshPermissionStatus()
 
-        // Start periodic permission checks
-        startPermissionMonitoring()
+        // Setup notification observers for app activation
+        setupNotificationObservers()
     }
 
     // MARK: - Public API
 
     /// Checks and refreshes all permission statuses.
     func refreshPermissionStatus() {
+        lastCheckTime = Date()
+
         hasAccessibilityPermission = AXIsProcessTrusted()
 
         // Check Input Monitoring permission (macOS 10.15+)
@@ -65,6 +70,15 @@ final class PermissionManager: ObservableObject {
 
         // Cache the results
         cachePermissions()
+    }
+
+    /// Refreshes permission status with throttling to avoid excessive checks.
+    /// Only refreshes if at least `checkInterval` seconds have passed since the last check.
+    func refreshIfNeeded() {
+        let now = Date()
+        if now.timeIntervalSince(lastCheckTime) >= checkInterval {
+            refreshPermissionStatus()
+        }
     }
 
     /// Requests accessibility permission with a user-friendly explanation dialog.
@@ -353,20 +367,21 @@ final class PermissionManager: ObservableObject {
 
     // MARK: - Permission Monitoring
 
-    /// Starts periodic permission status checks.
-    private func startPermissionMonitoring() {
-        // Check permissions every 2 seconds when app is active
-        permissionCheckTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.refreshPermissionStatus()
-            }
+    /// Sets up notification observers for app lifecycle events.
+    private func setupNotificationObservers() {
+        // Refresh permissions when app becomes active (user may have changed settings)
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshIfNeeded()
         }
     }
 
-    /// Stops permission monitoring.
+    /// Removes notification observers.
     func stopPermissionMonitoring() {
-        permissionCheckTimer?.invalidate()
-        permissionCheckTimer = nil
+        NotificationCenter.default.removeObserver(self)
     }
 }
 

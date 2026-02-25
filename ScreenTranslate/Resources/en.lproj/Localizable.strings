@@ -601,4 +601,13 @@
 
 /* Common Text Translation UI */
 "common.copy" = "Copy";
+"common.copied" = "Copied";
 "common.insert" = "Insert";
+
+/* Text Translation Window */
+"textTranslation.window.title" = "Text Translation";
+
+/* Translate and Insert Language Settings */
+"settings.translateAndInsert.language.section" = "Translate and Insert Languages";
+"settings.translateAndInsert.language.source" = "Source Language";
+"settings.translateAndInsert.language.target" = "Target Language";

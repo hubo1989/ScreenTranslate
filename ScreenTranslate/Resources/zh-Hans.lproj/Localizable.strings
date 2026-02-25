@@ -601,4 +601,13 @@
 
 /* 通用文本翻译界面 */
 "common.copy" = "复制";
+"common.copied" = "已复制";
 "common.insert" = "插入";
+
+/* 文本翻译窗口 */
+"textTranslation.window.title" = "文本翻译";
+
+/* 翻译并插入语言设置 */
+"settings.translateAndInsert.language.section" = "翻译并插入语言";
+"settings.translateAndInsert.language.source" = "源语言";
+"settings.translateAndInsert.language.target" = "目标语言";
