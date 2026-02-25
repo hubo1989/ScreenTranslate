@@ -210,7 +210,7 @@ final class TextTranslationCoordinator {
 
         do {
             if #available(macOS 13.0, *) {
-                let config = await TextTranslationConfig.fromAppSettings()
+                let config = await TextTranslationConfig.forTranslateAndInsert()
                 let translationResult = try await TextTranslationFlow.shared.translate(selectedText, config: config)
                 translatedText = translationResult.translatedText
 

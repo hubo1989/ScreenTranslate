@@ -306,6 +306,14 @@ extension TextTranslationConfig {
         case .mtranServer: .mtranServer
         }
 
+        // Debug logging
+        print("[TextTranslationConfig] forTranslateAndInsert:")
+        print("  - translateAndInsertTargetLanguage: \(String(describing: settings.translateAndInsertTargetLanguage?.rawValue))")
+        print("  - resolved targetLanguage: \(targetLanguage)")
+        print("  - translateAndInsertSourceLanguage: \(settings.translateAndInsertSourceLanguage.rawValue)")
+        print("  - resolved sourceLanguage: \(String(describing: sourceLanguage))")
+        print("  - preferredEngine: \(preferredEngine)")
+
         return TextTranslationConfig(
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,

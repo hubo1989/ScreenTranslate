@@ -126,11 +126,14 @@ actor TextInsertService {
         // Step 1: Delete selected text by simulating Delete key
         try postDeleteKey(source: source)
 
-        // Small delay after delete
-        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+        // Longer delay after delete to ensure focus is maintained
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
 
         // Step 2: Insert text using Unicode events (bypasses input method)
         try await insertUnicodeText(text, source: source)
+
+        // Log for debugging
+        print("[TextInsertService] Inserted \(text.count) characters via Unicode events")
     }
 
     /// Inserts text using Unicode keyboard events, bypassing input methods
@@ -139,6 +142,8 @@ actor TextInsertService {
         // The maximum safe chunk is around 20 characters
         let chunkSize = 20
         let characters = Array(text)
+
+        print("[TextInsertService] Starting Unicode insertion of \(characters.count) chars in \(max(1, (characters.count + chunkSize - 1) / chunkSize)) chunk(s)")
 
         for i in stride(from: 0, to: characters.count, by: chunkSize) {
             let endIndex = min(i + chunkSize, characters.count)
@@ -168,6 +173,8 @@ actor TextInsertService {
             let loc = CGEventTapLocation.cghidEventTap
             keyDown.post(tap: loc)
             keyUp.post(tap: loc)
+
+            print("[TextInsertService] Posted chunk \(i/chunkSize + 1): '\(chunkText)' (\(utf16Chars.count) UTF-16 chars)")
 
             // Small delay between chunks
             if i + chunkSize < characters.count {
