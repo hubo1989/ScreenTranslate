@@ -56,10 +56,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Checks if this is the first launch and shows onboarding if needed.
     private func checkFirstLaunchAndShowOnboarding() async {
         if !settings.onboardingCompleted {
-            // Show onboarding for first-time users
-            _ = await MainActor.run { [settings] in
-                OnboardingWindowController.shared.showOnboarding(settings: settings)
-            }
+            // Show onboarding for first-time users - already @MainActor
+            OnboardingWindowController.shared.showOnboarding(settings: settings)
         } else {
             // Existing users: just check screen recording permission
             await checkAndRequestScreenRecordingPermission()
@@ -72,10 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hasPermission = await CaptureManager.shared.hasPermission
 
         if !hasPermission {
-            // Show an explanatory alert before triggering the system prompt
-            await MainActor.run {
-                showPermissionExplanationAlert()
-            }
+            // Show an explanatory alert before triggering the system prompt - already @MainActor
+            showPermissionExplanationAlert()
         }
     }
 

@@ -132,8 +132,9 @@ actor TextInsertService {
         // Step 2: Insert text using Unicode events (bypasses input method)
         try await insertUnicodeText(text, source: source)
 
-        // Log for debugging
+        #if DEBUG
         print("[TextInsertService] Inserted \(text.count) characters via Unicode events")
+        #endif
     }
 
     /// Inserts text using Unicode keyboard events, bypassing input methods
@@ -143,7 +144,9 @@ actor TextInsertService {
         let chunkSize = 20
         let characters = Array(text)
 
+        #if DEBUG
         print("[TextInsertService] Starting Unicode insertion of \(characters.count) chars in \(max(1, (characters.count + chunkSize - 1) / chunkSize)) chunk(s)")
+        #endif
 
         for i in stride(from: 0, to: characters.count, by: chunkSize) {
             let endIndex = min(i + chunkSize, characters.count)
@@ -174,8 +177,10 @@ actor TextInsertService {
             keyDown.post(tap: loc)
             keyUp.post(tap: loc)
 
+            #if DEBUG
             // Log metadata only, not actual content
-            print("[TextInsertService] Posted chunk \(i/chunkSize + 1): \(utf16Chars.count) UTF-16 chars")
+            print("[TextInsertService] Posted chunk \(i / chunkSize + 1): \(utf16Chars.count) UTF-16 chars")
+            #endif
 
             // Small delay between chunks
             if i + chunkSize < characters.count {
@@ -307,6 +312,24 @@ actor TextInsertService {
         keyUp.post(tap: loc)
     }
 
+    /// Static mapping of ASCII characters to key codes (US keyboard layout)
+    /// Using a dictionary reduces cyclomatic complexity compared to a large switch
+    private static let keyCodeMap: [Character: CGKeyCode] = [
+        "a": 0, "A": 0, "s": 1, "S": 1, "d": 2, "D": 2, "f": 3, "F": 3,
+        "h": 4, "H": 4, "g": 5, "G": 5, "z": 6, "Z": 6, "x": 7, "X": 7,
+        "c": 8, "C": 8, "v": 9, "V": 9, "b": 11, "B": 11, "q": 12, "Q": 12,
+        "w": 13, "W": 13, "e": 14, "E": 14, "r": 15, "R": 15, "y": 16, "Y": 16,
+        "t": 17, "T": 17, "1": 18, "!": 18, "2": 19, "@": 19, "3": 20, "#": 20,
+        "4": 21, "$": 21, "6": 22, "^": 22, "5": 23, "%": 23, "=": 24, "+": 24,
+        "9": 25, "(": 25, "7": 26, "&": 26, "-": 27, "_": 27, "8": 28, "*": 28,
+        "0": 29, ")": 29, "]": 30, "}": 30, "o": 31, "O": 31, "u": 32, "U": 32,
+        "[": 33, "{": 33, "i": 34, "I": 34, "p": 35, "P": 35, "\n": 36, "\r": 36,
+        "l": 37, "L": 37, "j": 38, "J": 38, "'": 39, "\"": 39, "k": 40, "K": 40,
+        ";": 41, ":": 41, "\\": 42, "|": 42, ",": 43, "<": 43, "/": 44, "?": 44,
+        "n": 45, "N": 45, "m": 46, "M": 46, ".": 47, ">": 47, " ": 49,
+        "`": 50, "~": 50
+    ]
+
     /// Returns the key code for a given ASCII character, or nil for non-ASCII.
     ///
     /// This method provides key codes based on the US keyboard layout for ASCII characters.
@@ -317,61 +340,7 @@ actor TextInsertService {
     /// - Parameter character: The character to get the key code for
     /// - Returns: The CGKeyCode for the character, or nil if not an ASCII character
     private func keyCodeForCharacter(_ character: Character) -> CGKeyCode? {
-        // Map of ASCII characters to key codes
-        // Based on macOS keyboard layout (US)
-        // Note: Non-ASCII characters are handled via Unicode input in postUnicodeEvent
-        switch character {
-        case "a", "A": return 0
-        case "s", "S": return 1
-        case "d", "D": return 2
-        case "f", "F": return 3
-        case "h", "H": return 4
-        case "g", "G": return 5
-        case "z", "Z": return 6
-        case "x", "X": return 7
-        case "c", "C": return 8
-        case "v", "V": return 9
-        case "b", "B": return 11
-        case "q", "Q": return 12
-        case "w", "W": return 13
-        case "e", "E": return 14
-        case "r", "R": return 15
-        case "y", "Y": return 16
-        case "t", "T": return 17
-        case "1", "!": return 18
-        case "2", "@": return 19
-        case "3", "#": return 20
-        case "4", "$": return 21
-        case "6", "^": return 22
-        case "5", "%": return 23
-        case "=", "+": return 24
-        case "9", "(": return 25
-        case "7", "&": return 26
-        case "-", "_": return 27
-        case "8", "*": return 28
-        case "0", ")": return 29
-        case "]", "}": return 30
-        case "o", "O": return 31
-        case "u", "U": return 32
-        case "[", "{": return 33
-        case "i", "I": return 34
-        case "p", "P": return 35
-        case "\n", "\r": return 36  // Return
-        case "l", "L": return 37
-        case "j", "J": return 38
-        case "'", "\"": return 39
-        case "k", "K": return 40
-        case ";", ":": return 41
-        case "\\", "|": return 42
-        case ",", "<": return 43
-        case "/", "?": return 44
-        case "n", "N": return 45
-        case "m", "M": return 46
-        case ".", ">": return 47
-        case " ", " ": return 49  // Space
-        case "`", "~": return 50
-        default: return nil
-        }
+        return Self.keyCodeMap[character]
     }
 }
 
