@@ -23,7 +23,7 @@ final class SettingsViewModel {
     // MARK: - Properties
 
     /// Reference to shared app settings
-    private let settings: AppSettings
+    let settings: AppSettings
 
     /// Reference to app delegate for hotkey re-registration
     private weak var appDelegate: AppDelegate?

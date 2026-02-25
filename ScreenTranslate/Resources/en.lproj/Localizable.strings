@@ -301,6 +301,107 @@
 "translation.engine.mtran" = "MTranServer";
 "translation.engine.mtran.description" = "Self-hosted translation server";
 
+/* New Translation Engines */
+"translation.engine.openai" = "OpenAI";
+"translation.engine.openai.description" = "GPT-4 translation via OpenAI API";
+"translation.engine.claude" = "Claude";
+"translation.engine.claude.description" = "Claude translation via Anthropic API";
+"translation.engine.ollama" = "Ollama";
+"translation.engine.ollama.description" = "Local LLM translation via Ollama";
+"translation.engine.google" = "Google Translate";
+"translation.engine.google.description" = "Google Cloud Translation API";
+"translation.engine.deepl" = "DeepL";
+"translation.engine.deepl.description" = "High-quality translation via DeepL API";
+"translation.engine.baidu" = "Baidu Translate";
+"translation.engine.baidu.description" = "Baidu Translation API";
+"translation.engine.custom" = "Custom";
+"translation.engine.custom.description" = "Custom OpenAI-compatible endpoint";
+
+/* Engine Categories */
+"engine.category.builtin" = "Built-in";
+"engine.category.llm" = "LLM Translation";
+"engine.category.cloud" = "Cloud Services";
+"engine.category.compatible" = "Compatible";
+
+/* Engine Selection Modes */
+"engine.selection.mode.title" = "Engine Selection Mode";
+"engine.selection.mode.primary_fallback" = "Primary with Fallback";
+"engine.selection.mode.primary_fallback.description" = "Use primary engine, fall back to secondary on failure";
+"engine.selection.mode.parallel" = "Parallel";
+"engine.selection.mode.parallel.description" = "Run multiple engines simultaneously and compare results";
+"engine.selection.mode.quick_switch" = "Quick Switch";
+"engine.selection.mode.quick_switch.description" = "Start with primary, quickly switch to other engines on demand";
+"engine.selection.mode.scene_binding" = "Scene Binding";
+"engine.selection.mode.scene_binding.description" = "Use different engines for different translation scenarios";
+
+/* Translation Scenes */
+"translation.scene.screenshot" = "Screenshot Translation";
+"translation.scene.screenshot.description" = "OCR and translate captured screenshot regions";
+"translation.scene.text_selection" = "Text Selection Translation";
+"translation.scene.text_selection.description" = "Translate selected text from any application";
+"translation.scene.translate_and_insert" = "Translate and Insert";
+"translation.scene.translate_and_insert.description" = "Translate clipboard text and insert at cursor";
+
+/* Engine Configuration */
+"engine.config.enabled" = "Enable this engine";
+"engine.config.apiKey" = "API Key";
+"engine.config.apiKey.placeholder" = "Enter your API key";
+"engine.config.baseURL" = "Base URL";
+"engine.config.model" = "Model Name";
+"engine.config.test" = "Test Connection";
+"engine.config.test.success" = "Connection successful";
+"engine.config.test.failed" = "Connection failed";
+"engine.config.baidu.credentials" = "Baidu Credentials";
+"engine.config.baidu.appID" = "App ID";
+"engine.config.baidu.secretKey" = "Secret Key";
+
+/* Engine Status */
+"engine.status.configured" = "Configured";
+"engine.status.unconfigured" = "Not configured";
+"engine.available.title" = "Available Engines";
+"engine.parallel.title" = "Parallel Engines";
+"engine.parallel.description" = "Select engines to run simultaneously in parallel mode";
+"engine.scene.binding.title" = "Scene Engine Binding";
+"engine.scene.binding.description" = "Configure which engine to use for each translation scenario";
+"engine.scene.fallback.tooltip" = "Enable fallback to other engines";
+
+/* Keychain Errors */
+"keychain.error.item_not_found" = "Credentials not found in Keychain";
+"keychain.error.item_not_found.recovery" = "Please configure your API credentials in Settings";
+"keychain.error.duplicate_item" = "Credentials already exist in Keychain";
+"keychain.error.duplicate_item.recovery" = "Try deleting existing credentials first";
+"keychain.error.invalid_data" = "Invalid credential data format";
+"keychain.error.invalid_data.recovery" = "Try re-entering your credentials";
+"keychain.error.unexpected_status" = "Keychain operation failed";
+"keychain.error.unexpected_status.recovery" = "Please check your Keychain access permissions";
+
+/* Multi-Engine Errors */
+"multiengine.error.all_failed" = "All translation engines failed";
+"multiengine.error.no_engines" = "No translation engines are configured";
+"multiengine.error.primary_unavailable" = "Primary engine %@ is not available";
+"multiengine.error.no_results" = "No translation results available";
+
+/* Registry Errors */
+"registry.error.already_registered" = "Provider is already registered";
+"registry.error.not_registered" = "No provider registered for %@";
+"registry.error.config_missing" = "Configuration missing for %@";
+"registry.error.credentials_not_found" = "Credentials not found for %@";
+
+/* Prompt Configuration */
+"prompt.engine.title" = "Engine Prompts";
+"prompt.engine.description" = "Customize translation prompts for each LLM engine";
+"prompt.scene.title" = "Scene Prompts";
+"prompt.scene.description" = "Customize translation prompts for each translation scenario";
+"prompt.default.title" = "Default Prompt Template";
+"prompt.default.description" = "This template is used when no custom prompt is configured";
+"prompt.button.edit" = "Edit";
+"prompt.button.reset" = "Reset";
+"prompt.editor.title" = "Edit Prompt";
+"prompt.editor.variables" = "Available Variables:";
+"prompt.variable.source_language" = "Source language name";
+"prompt.variable.target_language" = "Target language name";
+"prompt.variable.text" = "Text to translate";
+
 
 /* ========================================
    Translation Modes

@@ -51,6 +51,13 @@ final class AppSettings {
         // Translate and Insert Language Configuration
         static let translateAndInsertSourceLanguage = prefix + "translateAndInsertSourceLanguage"
         static let translateAndInsertTargetLanguage = prefix + "translateAndInsertTargetLanguage"
+        // Multi-Engine Configuration
+        static let engineSelectionMode = prefix + "engineSelectionMode"
+        static let engineConfigs = prefix + "engineConfigs"
+        static let promptConfig = prefix + "promptConfig"
+        static let sceneBindings = prefix + "sceneBindings"
+        static let parallelEngines = prefix + "parallelEngines"
+        static let compatibleProviderConfigs = prefix + "compatibleProviderConfigs"
     }
 
     // MARK: - Properties
@@ -223,6 +230,38 @@ final class AppSettings {
         }
     }
 
+    // MARK: - Multi-Engine Configuration
+
+    /// Engine selection mode
+    var engineSelectionMode: EngineSelectionMode {
+        didSet { save(engineSelectionMode.rawValue, forKey: Keys.engineSelectionMode) }
+    }
+
+    /// Engine configurations (JSON encoded)
+    var engineConfigs: [TranslationEngineType: TranslationEngineConfig] {
+        didSet { saveEngineConfigs() }
+    }
+
+    /// Prompt configuration
+    var promptConfig: TranslationPromptConfig {
+        didSet { savePromptConfig() }
+    }
+
+    /// Scene-to-engine bindings
+    var sceneBindings: [TranslationScene: SceneEngineBinding] {
+        didSet { saveSceneBindings() }
+    }
+
+    /// Engines to run in parallel mode
+    var parallelEngines: [TranslationEngineType] {
+        didSet { saveParallelEngines() }
+    }
+
+    /// Compatible provider configurations
+    var compatibleProviderConfigs: [CompatibleTranslationProvider.CompatibleConfig] {
+        didSet { saveCompatibleConfigs() }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -309,6 +348,16 @@ final class AppSettings {
         translateAndInsertTargetLanguage = defaults.string(forKey: Keys.translateAndInsertTargetLanguage)
             .flatMap { TranslationLanguage(rawValue: $0) }
 
+        // Load multi-engine configuration
+        engineSelectionMode = defaults.string(forKey: Keys.engineSelectionMode)
+            .flatMap { EngineSelectionMode(rawValue: $0) } ?? .primaryWithFallback
+
+        engineConfigs = Self.loadEngineConfigs()
+        promptConfig = Self.loadPromptConfig()
+        sceneBindings = Self.loadSceneBindings()
+        parallelEngines = Self.loadParallelEngines()
+        compatibleProviderConfigs = Self.loadCompatibleConfigs()
+
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
 
@@ -391,6 +440,83 @@ final class AppSettings {
     private static func loadColor(forKey key: String) -> CodableColor? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(CodableColor.self, from: data)
+    }
+
+    // MARK: - Multi-Engine Persistence Helpers
+
+    private func saveEngineConfigs() {
+        let configArray = Array(engineConfigs.values)
+        if let data = try? JSONEncoder().encode(configArray) {
+            UserDefaults.standard.set(data, forKey: Keys.engineConfigs)
+        }
+    }
+
+    private static func loadEngineConfigs() -> [TranslationEngineType: TranslationEngineConfig] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.engineConfigs),
+              let configs = try? JSONDecoder().decode([TranslationEngineConfig].self, from: data) else {
+            // Return defaults
+            var defaults: [TranslationEngineType: TranslationEngineConfig] = [:]
+            for type in TranslationEngineType.allCases {
+                defaults[type] = .default(for: type)
+            }
+            return defaults
+        }
+        return Dictionary(uniqueKeysWithValues: configs.map { ($0.id, $0) })
+    }
+
+    private func savePromptConfig() {
+        if let data = try? JSONEncoder().encode(promptConfig) {
+            UserDefaults.standard.set(data, forKey: Keys.promptConfig)
+        }
+    }
+
+    private static func loadPromptConfig() -> TranslationPromptConfig {
+        guard let data = UserDefaults.standard.data(forKey: Keys.promptConfig),
+              let config = try? JSONDecoder().decode(TranslationPromptConfig.self, from: data) else {
+            return TranslationPromptConfig()
+        }
+        return config
+    }
+
+    private func saveSceneBindings() {
+        let bindingArray = Array(sceneBindings.values)
+        if let data = try? JSONEncoder().encode(bindingArray) {
+            UserDefaults.standard.set(data, forKey: Keys.sceneBindings)
+        }
+    }
+
+    private static func loadSceneBindings() -> [TranslationScene: SceneEngineBinding] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.sceneBindings),
+              let bindings = try? JSONDecoder().decode([SceneEngineBinding].self, from: data) else {
+            return SceneEngineBinding.allDefaults
+        }
+        return Dictionary(uniqueKeysWithValues: bindings.map { ($0.scene, $0) })
+    }
+
+    private func saveParallelEngines() {
+        let rawValues = parallelEngines.map { $0.rawValue }
+        UserDefaults.standard.set(rawValues, forKey: Keys.parallelEngines)
+    }
+
+    private static func loadParallelEngines() -> [TranslationEngineType] {
+        guard let rawValues = UserDefaults.standard.array(forKey: Keys.parallelEngines) as? [String] else {
+            return [.apple, .mtranServer]
+        }
+        return rawValues.compactMap { TranslationEngineType(rawValue: $0) }
+    }
+
+    private func saveCompatibleConfigs() {
+        if let data = try? JSONEncoder().encode(compatibleProviderConfigs) {
+            UserDefaults.standard.set(data, forKey: Keys.compatibleProviderConfigs)
+        }
+    }
+
+    private static func loadCompatibleConfigs() -> [CompatibleTranslationProvider.CompatibleConfig] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.compatibleProviderConfigs),
+              let configs = try? JSONDecoder().decode([CompatibleTranslationProvider.CompatibleConfig].self, from: data) else {
+            return []
+        }
+        return configs
     }
 
     /// Resolves a security-scoped bookmark to a URL

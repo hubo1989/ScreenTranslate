@@ -4,10 +4,18 @@ struct EngineSettingsContent: View {
     @Bindable var viewModel: SettingsViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VLMConfigurationSection(viewModel: viewModel)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                // VLM Configuration (for image analysis)
+                VLMConfigurationSection(viewModel: viewModel)
 
-            TranslationWorkflowSection(viewModel: viewModel)
+                // Multi-Engine Translation Configuration
+                MultiEngineSettingsSection(viewModel: viewModel)
+
+                // Legacy Translation Workflow (for backward compatibility)
+                TranslationWorkflowSection(viewModel: viewModel)
+            }
+            .padding()
         }
     }
 }
