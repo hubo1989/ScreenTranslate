@@ -1,0 +1,289 @@
+//
+//  TextTranslationCoordinator.swift
+//  ScreenTranslate
+//
+//  Created during architecture refactoring - extracts text translation logic from AppDelegate
+//
+//  ## Responsibilities
+//  - Text selection translation: Captures selected text, translates, shows popup
+//  - Translate and insert: Captures text, translates, replaces original text
+//
+//  ## Usage
+//  Access via AppDelegate.textTranslationCoordinator:
+//  ```swift
+//  appDelegate.textTranslationCoordinator?.translateSelectedText()
+//  appDelegate.textTranslationCoordinator?.translateClipboardAndInsert()
+//  ```
+//
+
+import AppKit
+import os
+
+/// Coordinates text translation functionality:
+/// text selection translation and translate-and-insert workflows.
+///
+/// This coordinator was extracted from AppDelegate as part of the architecture
+/// refactoring to improve separation of concerns and testability.
+@MainActor
+final class TextTranslationCoordinator {
+    // MARK: - Properties
+
+    /// Reference to app delegate for error handling
+    private weak var appDelegate: AppDelegate?
+
+    /// Whether a translation operation is currently in progress
+    private var isTranslating = false
+
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ScreenTranslate", category: "TextTranslationCoordinator")
+
+    // MARK: - Initialization
+
+    init(appDelegate: AppDelegate) {
+        self.appDelegate = appDelegate
+    }
+
+    // MARK: - Public API
+
+    /// Triggers text selection translation workflow
+    func translateSelectedText() {
+        guard !isTranslating else {
+            logger.debug("Translation already in progress, ignoring request")
+            return
+        }
+
+        logger.info("Text selection translation triggered")
+
+        isTranslating = true
+
+        Task { [weak self] in
+            defer { self?.isTranslating = false }
+            await self?.handleTextSelectionTranslation()
+        }
+    }
+
+    /// Triggers translate-and-insert workflow
+    func translateClipboardAndInsert() {
+        guard !isTranslating else {
+            logger.debug("Translation already in progress, ignoring request")
+            return
+        }
+
+        logger.info("Translate and insert triggered")
+
+        isTranslating = true
+
+        Task { [weak self] in
+            defer { self?.isTranslating = false }
+            await self?.handleTranslateClipboardAndInsert()
+        }
+    }
+
+    // MARK: - Private Implementation
+
+    /// Ensures accessibility permission is granted before performing text operations.
+    /// - Returns: true if permission is available, false otherwise (error already shown)
+    private func ensureAccessibilityPermission() async -> Bool {
+        let permissionManager = PermissionManager.shared
+        permissionManager.refreshPermissionStatus()
+
+        if !permissionManager.hasAccessibilityPermission {
+            // Show permission request dialog
+            let granted = await withCheckedContinuation { continuation in
+                Task { @MainActor in
+                    let result = permissionManager.requestAccessibilityPermission()
+                    continuation.resume(returning: result)
+                }
+            }
+
+            if !granted {
+                // User declined or permission not granted - show error
+                await MainActor.run {
+                    permissionManager.showPermissionDeniedError(for: .accessibility)
+                }
+                return false
+            }
+        }
+        return true
+    }
+
+    /// Handles the complete text selection translation flow
+    private func handleTextSelectionTranslation() async {
+        // Check accessibility permission before attempting text capture
+        guard await ensureAccessibilityPermission() else { return }
+
+        do {
+            // Step 1: Capture selected text
+            let textSelectionService = TextSelectionService.shared
+            let selectionResult = try await textSelectionService.captureSelectedText()
+
+            logger.info("Captured selected text: \(selectionResult.text.count) characters")
+            logger.info("Source app: \(selectionResult.sourceApplication ?? "unknown")")
+
+            // Step 2: Show loading indicator
+            await showLoadingIndicator()
+
+            // Step 3: Translate the captured text
+            if #available(macOS 13.0, *) {
+                let config = await TextTranslationConfig.fromAppSettings()
+                let translationResult = try await TextTranslationFlow.shared.translate(
+                    selectionResult.text,
+                    config: config
+                )
+
+                logger.info("Translation completed in \(translationResult.processingTime * 1000)ms")
+
+                // Step 4: Hide loading and display result popup
+                await hideLoadingIndicator()
+
+                await MainActor.run {
+                    TextTranslationPopupController.shared.presentPopup(result: translationResult)
+                }
+
+            } else {
+                await hideLoadingIndicator()
+                appDelegate?.showCaptureError(.captureFailure(underlying: NSError(
+                    domain: "ScreenTranslate",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "macOS 13.0+ required for text translation"]
+                )))
+            }
+
+        } catch let error as TextSelectionService.CaptureError {
+            await hideLoadingIndicator()
+
+            // Handle empty selection with user notification (no crash)
+            switch error {
+            case .noSelection:
+                logger.info("No text selected for translation")
+                await showNoSelectionNotification()
+            case .accessibilityPermissionDenied:
+                logger.error("Accessibility permission denied")
+                appDelegate?.showCaptureError(.captureFailure(underlying: error))
+            default:
+                logger.error("Failed to capture selected text: \(error.localizedDescription)")
+                appDelegate?.showCaptureError(.captureFailure(underlying: error))
+            }
+
+        } catch let error as TextTranslationError {
+            await hideLoadingIndicator()
+            logger.error("Translation failed: \(error.localizedDescription)")
+            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+
+        } catch {
+            await hideLoadingIndicator()
+            logger.error("Unexpected error during text translation: \(error.localizedDescription)")
+            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+        }
+    }
+
+    /// Handles the translate selected text and insert flow
+    private func handleTranslateClipboardAndInsert() async {
+        // Check accessibility permission before attempting text capture and insertion
+        guard await ensureAccessibilityPermission() else { return }
+
+        // Step 1: Capture selected text
+        let textSelectionService = TextSelectionService.shared
+        let selectedText: String
+
+        do {
+            let selectionResult = try await textSelectionService.captureSelectedText()
+            selectedText = selectionResult.text
+            logger.info("Captured selected text: \(selectedText.count) characters")
+        } catch let error as TextSelectionService.CaptureError {
+            switch error {
+            case .noSelection:
+                logger.info("No text selected for translate-and-insert")
+                return
+            default:
+                logger.error("Failed to capture selected text: \(error.localizedDescription)")
+                appDelegate?.showCaptureError(.captureFailure(underlying: error))
+                return
+            }
+        } catch {
+            logger.error("Unexpected error capturing text: \(error.localizedDescription)")
+            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+            return
+        }
+
+        // Step 2: Translate the text
+        let translatedText: String
+
+        do {
+            if #available(macOS 13.0, *) {
+                let config = await TextTranslationConfig.fromAppSettings()
+                let translationResult = try await TextTranslationFlow.shared.translate(selectedText, config: config)
+                translatedText = translationResult.translatedText
+
+                logger.info("Translation completed in \(translationResult.processingTime * 1000)ms")
+            } else {
+                appDelegate?.showCaptureError(.captureFailure(underlying: NSError(
+                    domain: "ScreenTranslate",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "macOS 13.0+ required for text translation"]
+                )))
+                return
+            }
+        } catch let error as TextTranslationError {
+            logger.error("Translation failed: \(error.localizedDescription)")
+            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+            return
+        } catch {
+            logger.error("Unexpected error during translation: \(error.localizedDescription)")
+            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+            return
+        }
+
+        // Step 3: Delete selection and insert translated text
+        do {
+            try await TextInsertService.shared.deleteSelectionAndInsert(translatedText)
+            logger.info("Successfully inserted translated text")
+        } catch let error as TextInsertService.InsertError {
+            logger.error("Text insertion failed: \(error.localizedDescription)")
+            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+        } catch {
+            logger.error("Unexpected error during translate and insert: \(error.localizedDescription)")
+            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+        }
+    }
+
+    // MARK: - UI Helpers
+
+    /// Shows a brief loading indicator for text translation
+    private func showLoadingIndicator() async {
+        await MainActor.run {
+            let placeholderImage = NSImage(
+                systemSymbolName: "character.textbox",
+                accessibilityDescription: "Translating"
+            )
+
+            let scaleFactor = NSScreen.main?.backingScaleFactor ?? 2.0
+
+            if let cgImage = placeholderImage?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                BilingualResultWindowController.shared.showLoading(
+                    originalImage: cgImage,
+                    scaleFactor: scaleFactor,
+                    message: String(localized: "textTranslation.loading")
+                )
+            }
+        }
+    }
+
+    /// Hides the loading indicator
+    private func hideLoadingIndicator() async {
+        await MainActor.run {
+            BilingualResultWindowController.shared.close()
+        }
+    }
+
+    /// Shows a notification when no text is selected
+    private func showNoSelectionNotification() async {
+        await MainActor.run {
+            let alert = NSAlert()
+            alert.alertStyle = .informational
+            alert.messageText = String(localized: "textTranslation.noSelection.title")
+            alert.informativeText = String(localized: "textTranslation.noSelection.message")
+            alert.addButton(withTitle: String(localized: "common.ok"))
+            alert.runModal()
+        }
+    }
+}

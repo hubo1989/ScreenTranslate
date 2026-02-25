@@ -300,11 +300,18 @@ actor TextInsertService {
     }
 
     /// Returns the key code for a given ASCII character, or nil for non-ASCII.
+    ///
+    /// This method provides key codes based on the US keyboard layout for ASCII characters.
+    /// For non-ASCII characters (including international characters), the system falls back
+    /// to Unicode input via `postUnicodeEvent`, which works correctly regardless of the
+    /// current keyboard layout.
+    ///
     /// - Parameter character: The character to get the key code for
     /// - Returns: The CGKeyCode for the character, or nil if not an ASCII character
     private func keyCodeForCharacter(_ character: Character) -> CGKeyCode? {
         // Map of ASCII characters to key codes
         // Based on macOS keyboard layout (US)
+        // Note: Non-ASCII characters are handled via Unicode input in postUnicodeEvent
         switch character {
         case "a", "A": return 0
         case "s", "S": return 1

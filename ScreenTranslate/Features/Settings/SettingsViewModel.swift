@@ -4,6 +4,17 @@ import AppKit
 import Carbon.HIToolbox
 import ScreenCaptureKit
 
+// MARK: - Shortcut Recording Type
+
+/// Represents which shortcut is currently being recorded
+enum ShortcutRecordingType: Equatable {
+    case fullScreen
+    case selection
+    case translationMode
+    case textSelectionTranslation
+    case translateAndInsert
+}
+
 /// ViewModel for the Settings view.
 /// Manages user preferences and provides bindings for the settings UI.
 @MainActor
@@ -17,15 +28,38 @@ final class SettingsViewModel {
     /// Reference to app delegate for hotkey re-registration
     private weak var appDelegate: AppDelegate?
 
-    /// Whether a shortcut is currently being recorded
-    var isRecordingFullScreenShortcut = false
-    var isRecordingSelectionShortcut = false
-    var isRecordingTranslationModeShortcut = false
-    var isRecordingTextSelectionTranslationShortcut = false
-    var isRecordingTranslateAndInsertShortcut = false
+    /// The type of shortcut currently being recorded (nil if not recording)
+    var recordingType: ShortcutRecordingType?
 
     /// Temporary storage for shortcut recording
     var recordedShortcut: KeyboardShortcut?
+
+    // MARK: - Backward Compatibility Properties for UI
+
+    /// Whether full screen shortcut is being recorded (for UI binding)
+    var isRecordingFullScreenShortcut: Bool {
+        recordingType == .fullScreen
+    }
+
+    /// Whether selection shortcut is being recorded (for UI binding)
+    var isRecordingSelectionShortcut: Bool {
+        recordingType == .selection
+    }
+
+    /// Whether translation mode shortcut is being recorded (for UI binding)
+    var isRecordingTranslationModeShortcut: Bool {
+        recordingType == .translationMode
+    }
+
+    /// Whether text selection translation shortcut is being recorded (for UI binding)
+    var isRecordingTextSelectionTranslationShortcut: Bool {
+        recordingType == .textSelectionTranslation
+    }
+
+    /// Whether translate and insert shortcut is being recorded (for UI binding)
+    var isRecordingTranslateAndInsertShortcut: Bool {
+        recordingType == .translateAndInsert
+    }
 
     /// Error message to display
     var errorMessage: String?
@@ -421,58 +455,41 @@ final class SettingsViewModel {
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: saveLocation.path)
     }
 
+    /// Starts recording a keyboard shortcut for the specified type
+    /// - Parameter type: The type of shortcut to record
+    func startRecording(_ type: ShortcutRecordingType) {
+        recordingType = type
+        recordedShortcut = nil
+    }
+
     /// Starts recording a keyboard shortcut for full screen capture
     func startRecordingFullScreenShortcut() {
-        isRecordingFullScreenShortcut = true
-        isRecordingSelectionShortcut = false
-        recordedShortcut = nil
+        startRecording(.fullScreen)
     }
 
     /// Starts recording a keyboard shortcut for selection capture
     func startRecordingSelectionShortcut() {
-        isRecordingFullScreenShortcut = false
-        isRecordingSelectionShortcut = true
-        isRecordingTranslationModeShortcut = false
-        recordedShortcut = nil
+        startRecording(.selection)
     }
 
     /// Starts recording a keyboard shortcut for translation mode
     func startRecordingTranslationModeShortcut() {
-        isRecordingFullScreenShortcut = false
-        isRecordingSelectionShortcut = false
-        isRecordingTranslationModeShortcut = true
-        isRecordingTextSelectionTranslationShortcut = false
-        isRecordingTranslateAndInsertShortcut = false
-        recordedShortcut = nil
+        startRecording(.translationMode)
     }
 
     /// Starts recording a keyboard shortcut for text selection translation
     func startRecordingTextSelectionTranslationShortcut() {
-        isRecordingFullScreenShortcut = false
-        isRecordingSelectionShortcut = false
-        isRecordingTranslationModeShortcut = false
-        isRecordingTextSelectionTranslationShortcut = true
-        isRecordingTranslateAndInsertShortcut = false
-        recordedShortcut = nil
+        startRecording(.textSelectionTranslation)
     }
 
     /// Starts recording a keyboard shortcut for translate and insert
     func startRecordingTranslateAndInsertShortcut() {
-        isRecordingFullScreenShortcut = false
-        isRecordingSelectionShortcut = false
-        isRecordingTranslationModeShortcut = false
-        isRecordingTextSelectionTranslationShortcut = false
-        isRecordingTranslateAndInsertShortcut = true
-        recordedShortcut = nil
+        startRecording(.translateAndInsert)
     }
 
     /// Cancels shortcut recording
     func cancelRecording() {
-        isRecordingFullScreenShortcut = false
-        isRecordingSelectionShortcut = false
-        isRecordingTranslationModeShortcut = false
-        isRecordingTextSelectionTranslationShortcut = false
-        isRecordingTranslateAndInsertShortcut = false
+        recordingType = nil
         recordedShortcut = nil
     }
 
@@ -480,7 +497,7 @@ final class SettingsViewModel {
     /// - Parameter event: The key event
     /// - Returns: Whether the event was handled
     func handleKeyEvent(_ event: NSEvent) -> Bool {
-        guard isRecordingFullScreenShortcut || isRecordingSelectionShortcut || isRecordingTranslationModeShortcut || isRecordingTextSelectionTranslationShortcut || isRecordingTranslateAndInsertShortcut else {
+        guard recordingType != nil else {
             return false
         }
 
@@ -503,45 +520,26 @@ final class SettingsViewModel {
         }
 
         // Check for conflicts with other shortcuts
-        let allShortcuts = [
-            fullScreenShortcut, selectionShortcut, translationModeShortcut,
-            textSelectionTranslationShortcut, translateAndInsertShortcut
-        ]
-        let conflictCount = allShortcuts.filter { $0 == shortcut }.count
-
-        // Check if the shortcut being recorded is already in use by a different action
-        if isRecordingFullScreenShortcut && shortcut != fullScreenShortcut && allShortcuts.contains(shortcut) {
-            showError("This shortcut is already in use")
-            return true
-        }
-        if isRecordingSelectionShortcut && shortcut != selectionShortcut && allShortcuts.contains(shortcut) {
-            showError("This shortcut is already in use")
-            return true
-        }
-        if isRecordingTranslationModeShortcut && shortcut != translationModeShortcut && allShortcuts.contains(shortcut) {
-            showError("This shortcut is already in use")
-            return true
-        }
-        if isRecordingTextSelectionTranslationShortcut && shortcut != textSelectionTranslationShortcut && allShortcuts.contains(shortcut) {
-            showError("This shortcut is already in use")
-            return true
-        }
-        if isRecordingTranslateAndInsertShortcut && shortcut != translateAndInsertShortcut && allShortcuts.contains(shortcut) {
+        let currentShortcut = getCurrentRecordingShortcut()
+        if hasShortcutConflict(shortcut, excluding: currentShortcut) {
             showError("This shortcut is already in use")
             return true
         }
 
-        // Apply the shortcut
-        if isRecordingFullScreenShortcut {
+        // Apply the shortcut based on recording type
+        switch recordingType {
+        case .fullScreen:
             fullScreenShortcut = shortcut
-        } else if isRecordingSelectionShortcut {
+        case .selection:
             selectionShortcut = shortcut
-        } else if isRecordingTranslationModeShortcut {
+        case .translationMode:
             translationModeShortcut = shortcut
-        } else if isRecordingTextSelectionTranslationShortcut {
+        case .textSelectionTranslation:
             textSelectionTranslationShortcut = shortcut
-        } else if isRecordingTranslateAndInsertShortcut {
+        case .translateAndInsert:
             translateAndInsertShortcut = shortcut
+        case .none:
+            break
         }
 
         // End recording
@@ -578,6 +576,34 @@ final class SettingsViewModel {
     func resetAllToDefaults() {
         settings.resetToDefaults()
         appDelegate?.updateHotkeys()
+    }
+
+    // MARK: - Shortcut Conflict Detection
+
+    /// Gets the current shortcut being recorded (if any)
+    /// - Returns: The current shortcut value, or nil if not recording
+    private func getCurrentRecordingShortcut() -> KeyboardShortcut? {
+        switch recordingType {
+        case .fullScreen: return fullScreenShortcut
+        case .selection: return selectionShortcut
+        case .translationMode: return translationModeShortcut
+        case .textSelectionTranslation: return textSelectionTranslationShortcut
+        case .translateAndInsert: return translateAndInsertShortcut
+        case .none: return nil
+        }
+    }
+
+    /// Checks if a shortcut conflicts with existing shortcuts
+    /// - Parameters:
+    ///   - shortcut: The shortcut to check
+    ///   - excluding: A shortcut to exclude from the check (the one being edited)
+    /// - Returns: true if there's a conflict
+    private func hasShortcutConflict(_ shortcut: KeyboardShortcut, excluding: KeyboardShortcut?) -> Bool {
+        let allShortcuts = [
+            fullScreenShortcut, selectionShortcut, translationModeShortcut,
+            textSelectionTranslationShortcut, translateAndInsertShortcut
+        ].filter { $0 != excluding }
+        return allShortcuts.contains(shortcut)
     }
 
     // MARK: - Private Helpers
