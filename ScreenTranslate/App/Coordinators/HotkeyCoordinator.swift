@@ -32,11 +32,11 @@ final class HotkeyCoordinator {
 
     /// Types of hotkeys managed by the coordinator
     enum HotkeyType: String, CaseIterable {
-        case fullScreen = "fullScreen"
-        case selection = "selection"
-        case translationMode = "translationMode"
-        case textSelectionTranslation = "textSelectionTranslation"
-        case translateAndInsert = "translateAndInsert"
+        case fullScreen
+        case selection
+        case translationMode
+        case textSelectionTranslation
+        case translateAndInsert
     }
 
     // MARK: - Properties

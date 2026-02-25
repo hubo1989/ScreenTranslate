@@ -9,13 +9,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Coordinators
 
     /// Coordinates capture functionality (full screen, selection, translation mode)
-    var captureCoordinator: CaptureCoordinator?
+    private(set) var captureCoordinator: CaptureCoordinator?
 
     /// Coordinates text translation functionality
-    var textTranslationCoordinator: TextTranslationCoordinator?
+    private(set) var textTranslationCoordinator: TextTranslationCoordinator?
 
     /// Coordinates hotkey management
-    var hotkeyCoordinator: HotkeyCoordinator?
+    private(set) var hotkeyCoordinator: HotkeyCoordinator?
 
     // MARK: - Other Properties
 
@@ -101,10 +101,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // Unregister hotkeys via coordinator
+        // Unregister hotkeys synchronously with timeout
+        // Use semaphore to ensure completion before process exits
+        let semaphore = DispatchSemaphore(value: 0)
         Task {
             await hotkeyCoordinator?.unregisterAllHotkeys()
+            semaphore.signal()
         }
+        // Wait up to 2 seconds for hotkey unregistration
+        _ = semaphore.wait(timeout: .now() + 2.0)
 
         // Remove menu bar item
         menuBarController?.teardown()

@@ -87,19 +87,12 @@ final class TextTranslationCoordinator {
         permissionManager.refreshPermissionStatus()
 
         if !permissionManager.hasAccessibilityPermission {
-            // Show permission request dialog
-            let granted = await withCheckedContinuation { continuation in
-                Task { @MainActor in
-                    let result = permissionManager.requestAccessibilityPermission()
-                    continuation.resume(returning: result)
-                }
-            }
+            // Show permission request dialog - direct call since we're already @MainActor
+            let granted = permissionManager.requestAccessibilityPermission()
 
             if !granted {
                 // User declined or permission not granted - show error
-                await MainActor.run {
-                    permissionManager.showPermissionDeniedError(for: .accessibility)
-                }
+                permissionManager.showPermissionDeniedError(for: .accessibility)
                 return false
             }
         }
@@ -250,40 +243,37 @@ final class TextTranslationCoordinator {
 
     /// Shows a brief loading indicator for text translation
     private func showLoadingIndicator() async {
-        await MainActor.run {
-            let placeholderImage = NSImage(
-                systemSymbolName: "character.textbox",
-                accessibilityDescription: "Translating"
+        // Already @MainActor, no need for MainActor.run
+        let placeholderImage = NSImage(
+            systemSymbolName: "character.textbox",
+            accessibilityDescription: "Translating"
+        )
+
+        let scaleFactor = NSScreen.main?.backingScaleFactor ?? 2.0
+
+        if let cgImage = placeholderImage?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+            BilingualResultWindowController.shared.showLoading(
+                originalImage: cgImage,
+                scaleFactor: scaleFactor,
+                message: String(localized: "textTranslation.loading")
             )
-
-            let scaleFactor = NSScreen.main?.backingScaleFactor ?? 2.0
-
-            if let cgImage = placeholderImage?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-                BilingualResultWindowController.shared.showLoading(
-                    originalImage: cgImage,
-                    scaleFactor: scaleFactor,
-                    message: String(localized: "textTranslation.loading")
-                )
-            }
         }
     }
 
     /// Hides the loading indicator
     private func hideLoadingIndicator() async {
-        await MainActor.run {
-            BilingualResultWindowController.shared.close()
-        }
+        // Already @MainActor, no need for MainActor.run
+        BilingualResultWindowController.shared.close()
     }
 
     /// Shows a notification when no text is selected
     private func showNoSelectionNotification() async {
-        await MainActor.run {
-            let alert = NSAlert()
-            alert.alertStyle = .informational
-            alert.messageText = String(localized: "textTranslation.noSelection.title")
-            alert.informativeText = String(localized: "textTranslation.noSelection.message")
-            alert.addButton(withTitle: String(localized: "common.ok"))
-            alert.runModal()
-        }
+        // Already @MainActor, no need for MainActor.run
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = String(localized: "textTranslation.noSelection.title")
+        alert.informativeText = String(localized: "textTranslation.noSelection.message")
+        alert.addButton(withTitle: String(localized: "common.ok"))
+        alert.runModal()
     }
 }

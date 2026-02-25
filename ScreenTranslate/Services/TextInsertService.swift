@@ -174,7 +174,8 @@ actor TextInsertService {
             keyDown.post(tap: loc)
             keyUp.post(tap: loc)
 
-            print("[TextInsertService] Posted chunk \(i/chunkSize + 1): '\(chunkText)' (\(utf16Chars.count) UTF-16 chars)")
+            // Log metadata only, not actual content
+            print("[TextInsertService] Posted chunk \(i/chunkSize + 1): \(utf16Chars.count) UTF-16 chars")
 
             // Small delay between chunks
             if i + chunkSize < characters.count {
