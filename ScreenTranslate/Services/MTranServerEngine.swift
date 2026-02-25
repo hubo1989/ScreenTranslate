@@ -93,7 +93,8 @@ actor MTranServerEngine: TranslationProvider {
         // Build request
         let url = try buildURL(config: config)
         logger.info("Translation URL: \(url.absoluteString)")
-        let jsonData = try buildRequestBody(text: text, from: effectiveSourceLanguage, to: targetLanguage)
+        let normalizedTarget = normalizeLanguageCode(targetLanguage)
+        let jsonData = try buildRequestBody(text: text, from: effectiveSourceLanguage, to: normalizedTarget)
 
         // Perform request with timeout
         do {
@@ -168,9 +169,37 @@ actor MTranServerEngine: TranslationProvider {
     /// Resolves the effective source language for translation
     private func resolveSourceLanguage(_ source: String?, autoDetect: Bool) -> String {
         if let source = source, !source.isEmpty {
-            return source
+            return normalizeLanguageCode(source)
         }
-        return autoDetect ? "auto" : "auto"
+        return "auto"
+    }
+
+    /// Normalizes language codes for MTranServer compatibility
+    /// MTranServer expects simple codes like "zh", "en" rather than "zh-Hans", "en-US"
+    private func normalizeLanguageCode(_ code: String) -> String {
+        let lowercased = code.lowercased()
+        // Map common variants to simple codes
+        switch lowercased {
+        case "zh-hans", "zh-cn", "zh_hans", "zh_cn":
+            return "zh"
+        case "zh-hant", "zh-tw", "zh_hant", "zh_tw":
+            return "zh-TW"
+        case "en-us", "en-gb", "en_us", "en_gb":
+            return "en"
+        case "ja-jp", "ja_jp":
+            return "ja"
+        case "ko-kr", "ko_kr":
+            return "ko"
+        default:
+            // Extract base language code (e.g., "en-US" -> "en")
+            if let hyphenIndex = lowercased.firstIndex(of: "-") {
+                return String(lowercased[..<hyphenIndex])
+            }
+            if let underscoreIndex = lowercased.firstIndex(of: "_") {
+                return String(lowercased[..<underscoreIndex])
+            }
+            return lowercased
+        }
     }
 
     /// Builds the URL for MTranServer API endpoint
@@ -235,12 +264,25 @@ actor MTranServerEngine: TranslationProvider {
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = jsonData
+            
+            // Debug: log request body
+            if let jsonString = String(data: jsonData, encoding: .utf8) {
+                logger.debug("Request body: \(jsonString)")
+            }
 
             let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // Debug: log response
+            if let responseString = String(data: data, encoding: .utf8) {
+                logger.debug("Response body: \(responseString)")
+            }
 
             guard let httpResponse = response as? HTTPURLResponse else {
+                logger.error("Invalid response type")
                 return .failure(MTranServerError.invalidResponse)
             }
+            
+            logger.debug("Response status code: \(httpResponse.statusCode)")
 
             guard httpResponse.statusCode == 200 else {
                 if httpResponse.statusCode == 503 {
@@ -254,6 +296,7 @@ actor MTranServerEngine: TranslationProvider {
         } catch let error as MTranServerError {
             return .failure(error)
         } catch {
+            logger.error("Request failed: \(error)")
             return .failure(MTranServerError.requestFailed(underlying: error))
         }
     }
@@ -269,6 +312,33 @@ private struct TranslationResponse: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case translatedText = "translated_text"
         case detectedLanguage = "detected_language"
+        case result = "result"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        if let text = try? container.decode(String.self, forKey: .translatedText) {
+            translatedText = text
+        } else if let text = try? container.decode(String.self, forKey: .result) {
+            translatedText = text
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.translatedText,
+                DecodingError.Context(
+                    codingPath: decoder.codingPath,
+                    debugDescription: "Neither 'translated_text' nor 'result' field found"
+                )
+            )
+        }
+
+        detectedLanguage = try? container.decode(String.self, forKey: .detectedLanguage)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(translatedText, forKey: .translatedText)
+        try? container.encode(detectedLanguage, forKey: .detectedLanguage)
     }
 }
 

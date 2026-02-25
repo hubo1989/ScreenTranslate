@@ -108,6 +108,95 @@ actor TextInsertService {
         }
     }
 
+    /// Deletes the currently selected text and inserts new text via Unicode events.
+    /// This bypasses the input method and inserts text directly.
+    /// - Parameter text: The text to insert after deleting the selection
+    /// - Throws: InsertError if the operation fails
+    func deleteSelectionAndInsert(_ text: String) async throws {
+        // Check accessibility permission
+        guard AXIsProcessTrusted() else {
+            throw InsertError.accessibilityPermissionDenied
+        }
+
+        // Get the event source
+        guard let source = CGEventSource(stateID: .hidSystemState) else {
+            throw InsertError.eventCreationFailed
+        }
+
+        // Step 1: Delete selected text by simulating Delete key
+        try postDeleteKey(source: source)
+
+        // Small delay after delete
+        try await Task.sleep(nanoseconds: 50_000_000) // 50ms
+
+        // Step 2: Insert text using Unicode events (bypasses input method)
+        try await insertUnicodeText(text, source: source)
+    }
+
+    /// Inserts text using Unicode keyboard events, bypassing input methods
+    private func insertUnicodeText(_ text: String, source: CGEventSource) async throws {
+        // Process text in chunks that can be sent via keyboardSetUnicodeString
+        // The maximum safe chunk is around 20 characters
+        let chunkSize = 20
+        let characters = Array(text)
+
+        for i in stride(from: 0, to: characters.count, by: chunkSize) {
+            let endIndex = min(i + chunkSize, characters.count)
+            let chunk = characters[i..<endIndex]
+            let chunkText = String(chunk)
+
+            // Convert to UTF-16 for keyboardSetUnicodeString
+            let utf16Chars = Array(chunkText.utf16)
+
+            guard let keyDown = CGEvent(
+                keyboardEventSource: source,
+                virtualKey: 0,
+                keyDown: true
+            ),
+            let keyUp = CGEvent(
+                keyboardEventSource: source,
+                virtualKey: 0,
+                keyDown: false
+            ) else {
+                throw InsertError.eventCreationFailed
+            }
+
+            var mutableChars = utf16Chars
+            keyDown.keyboardSetUnicodeString(stringLength: utf16Chars.count, unicodeString: &mutableChars)
+            keyUp.keyboardSetUnicodeString(stringLength: utf16Chars.count, unicodeString: &mutableChars)
+
+            let loc = CGEventTapLocation.cghidEventTap
+            keyDown.post(tap: loc)
+            keyUp.post(tap: loc)
+
+            // Small delay between chunks
+            if i + chunkSize < characters.count {
+                try await Task.sleep(nanoseconds: UInt64(keystrokeDelay * 1_000_000_000))
+            }
+        }
+    }
+
+    /// Posts a Delete key event to remove selected text
+    private func postDeleteKey(source: CGEventSource) throws {
+        // Delete key code is 51 on macOS
+        guard let keyDown = CGEvent(
+            keyboardEventSource: source,
+            virtualKey: 51,
+            keyDown: true
+        ),
+        let keyUp = CGEvent(
+            keyboardEventSource: source,
+            virtualKey: 51,
+            keyDown: false
+        ) else {
+            throw InsertError.eventCreationFailed
+        }
+
+        let loc = CGEventTapLocation.cghidEventTap
+        keyDown.post(tap: loc)
+        keyUp.post(tap: loc)
+    }
+
     /// Checks if text insertion is likely to work.
     /// Returns false if accessibility permission is not granted.
     var canInsert: Bool {

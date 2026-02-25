@@ -281,7 +281,30 @@ extension TextTranslationConfig {
         let settings = AppSettings.shared
         let targetLanguage = settings.translationTargetLanguage?.rawValue ?? "zh-Hans"
         let sourceLanguage: String? = settings.translationSourceLanguage == .auto ? nil : settings.translationSourceLanguage.rawValue
-        let preferredEngine = settings.translationEngine
+        let preferredEngine: TranslationEngineType = switch settings.preferredTranslationEngine {
+        case .apple: .apple
+        case .mtranServer: .mtranServer
+        }
+
+        return TextTranslationConfig(
+            targetLanguage: targetLanguage,
+            sourceLanguage: sourceLanguage,
+            preferredEngine: preferredEngine
+        )
+    }
+
+    /// Creates a configuration specifically for translate and insert functionality.
+    /// Uses separate language settings from global translation settings.
+    /// Must be called from @MainActor context.
+    @MainActor
+    static func forTranslateAndInsert() -> TextTranslationConfig {
+        let settings = AppSettings.shared
+        let targetLanguage = settings.translateAndInsertTargetLanguage?.rawValue ?? "zh-Hans"
+        let sourceLanguage: String? = settings.translateAndInsertSourceLanguage == .auto ? nil : settings.translateAndInsertSourceLanguage.rawValue
+        let preferredEngine: TranslationEngineType = switch settings.preferredTranslationEngine {
+        case .apple: .apple
+        case .mtranServer: .mtranServer
+        }
 
         return TextTranslationConfig(
             targetLanguage: targetLanguage,

@@ -582,9 +582,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Handles the translate clipboard and insert flow
+    /// Handles the translate selected text and insert flow
     private func handleTranslateClipboardAndInsert() async {
-        // Check accessibility permission before attempting text insertion
+        // Check accessibility permission before attempting text capture and insertion
         let permissionManager = PermissionManager.shared
         permissionManager.refreshPermissionStatus()
 
@@ -606,45 +606,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        // Step 1: Get clipboard content
-        let pasteboard = NSPasteboard.general
-        guard let clipboardText = pasteboard.string(forType: .string),
-              !clipboardText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            Logger.ui.info("Clipboard is empty or contains no text")
-            await showEmptyClipboardNotification()
+        // Step 1: Capture selected text
+        let textSelectionService = TextSelectionService.shared
+        let selectedText: String
+
+        do {
+            let selectionResult = try await textSelectionService.captureSelectedText()
+            selectedText = selectionResult.text
+            Logger.ui.info("Captured selected text: \(selectedText.count) characters")
+        } catch let error as TextSelectionService.CaptureError {
+            switch error {
+            case .noSelection:
+                Logger.ui.info("No text selected for translate and insert")
+                await showNoSelectionNotification()
+            default:
+                Logger.ui.error("Failed to capture selected text: \(error.localizedDescription)")
+                showCaptureError(.captureFailure(underlying: error))
+            }
+            return
+        } catch {
+            Logger.ui.error("Failed to capture selected text: \(error.localizedDescription)")
+            showCaptureError(.captureFailure(underlying: error))
             return
         }
 
-        Logger.ui.info("Captured clipboard text: \(clipboardText.count) characters")
+        guard !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            Logger.ui.info("Selected text is empty")
+            await showNoSelectionNotification()
+            return
+        }
 
-        // Step 2: Show brief loading indicator
-        await showLoadingIndicator()
-
-        // Step 3: Translate the clipboard text
+        // Step 2: Translate the selected text (no loading indicator - silent operation)
         do {
             if #available(macOS 13.0, *) {
-                let config = await TextTranslationConfig.fromAppSettings()
+                let config = await TextTranslationConfig.forTranslateAndInsert()
                 let translationResult = try await TextTranslationFlow.shared.translate(
-                    clipboardText,
+                    selectedText,
                     config: config
                 )
 
                 Logger.ui.info("Translation completed in \(translationResult.processingTime * 1000)ms")
 
-                // Step 4: Hide loading
-                await hideLoadingIndicator()
-
-                // Step 5: Insert translated text directly into focused input field
+                // Step 3: Delete selected text and insert translated text
                 let insertService = TextInsertService.shared
-                try await insertService.insertText(translationResult.translatedText)
+                try await insertService.deleteSelectionAndInsert(translationResult.translatedText)
 
                 Logger.ui.info("Translated text inserted successfully")
 
-                // Step 6: Show success notification
-                await showSuccessNotification()
-
             } else {
-                await hideLoadingIndicator()
                 showCaptureError(.captureFailure(underlying: NSError(
                     domain: "ScreenTranslate",
                     code: -1,
@@ -653,17 +662,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
         } catch let error as TextTranslationError {
-            await hideLoadingIndicator()
             Logger.ui.error("Translation failed: \(error.localizedDescription)")
             showCaptureError(.captureFailure(underlying: error))
 
         } catch let error as TextInsertService.InsertError {
-            await hideLoadingIndicator()
             Logger.ui.error("Text insertion failed: \(error.localizedDescription)")
             showCaptureError(.captureFailure(underlying: error))
 
         } catch {
-            await hideLoadingIndicator()
             Logger.ui.error("Unexpected error during translate and insert: \(error.localizedDescription)")
             showCaptureError(.captureFailure(underlying: error))
         }

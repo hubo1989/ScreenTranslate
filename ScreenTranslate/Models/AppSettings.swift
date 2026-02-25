@@ -48,6 +48,9 @@ final class AppSettings {
         static let preferredTranslationEngine = prefix + "preferredTranslationEngine"
         static let mtranServerURL = prefix + "mtranServerURL"
         static let translationFallbackEnabled = prefix + "translationFallbackEnabled"
+        // Translate and Insert Language Configuration
+        static let translateAndInsertSourceLanguage = prefix + "translateAndInsertSourceLanguage"
+        static let translateAndInsertTargetLanguage = prefix + "translateAndInsertTargetLanguage"
     }
 
     // MARK: - Properties
@@ -202,6 +205,24 @@ final class AppSettings {
         didSet { save(translationFallbackEnabled, forKey: Keys.translationFallbackEnabled) }
     }
 
+    // MARK: - Translate and Insert Language Configuration
+
+    /// Source language for translate and insert (default: auto-detect)
+    var translateAndInsertSourceLanguage: TranslationLanguage {
+        didSet { save(translateAndInsertSourceLanguage.rawValue, forKey: Keys.translateAndInsertSourceLanguage) }
+    }
+
+    /// Target language for translate and insert (nil = follow system)
+    var translateAndInsertTargetLanguage: TranslationLanguage? {
+        didSet {
+            if let language = translateAndInsertTargetLanguage {
+                save(language.rawValue, forKey: Keys.translateAndInsertTargetLanguage)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Keys.translateAndInsertTargetLanguage)
+            }
+        }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -282,6 +303,12 @@ final class AppSettings {
         mtranServerURL = defaults.string(forKey: Keys.mtranServerURL) ?? "http://localhost:8989"
         translationFallbackEnabled = defaults.object(forKey: Keys.translationFallbackEnabled) as? Bool ?? true
 
+        // Load translate and insert language settings
+        translateAndInsertSourceLanguage = defaults.string(forKey: Keys.translateAndInsertSourceLanguage)
+            .flatMap { TranslationLanguage(rawValue: $0) } ?? .auto
+        translateAndInsertTargetLanguage = defaults.string(forKey: Keys.translateAndInsertTargetLanguage)
+            .flatMap { TranslationLanguage(rawValue: $0) }
+
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
 
@@ -322,7 +349,14 @@ final class AppSettings {
         translationEngine = .apple
         translationMode = .below
         onboardingCompleted = false
+        translateAndInsertSourceLanguage = .auto
+        translateAndInsertTargetLanguage = nil
     }
+
+    // MARK: - Notifications
+
+    /// Posted when any keyboard shortcut is changed
+    static let shortcutDidChangeNotification = Notification.Name("AppSettings.shortcutDidChange")
 
     // MARK: - Private Persistence Helpers
 
@@ -336,6 +370,7 @@ final class AppSettings {
             "modifiers": shortcut.modifiers
         ]
         UserDefaults.standard.set(data, forKey: key)
+        NotificationCenter.default.post(name: Self.shortcutDidChangeNotification, object: nil)
     }
 
     private static func loadShortcut(forKey key: String) -> KeyboardShortcut? {

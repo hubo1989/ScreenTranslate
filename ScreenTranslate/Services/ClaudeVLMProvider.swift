@@ -262,7 +262,8 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
         case 429:
             let retryAfter = parseRetryAfter(from: response, data: data)
-            throw VLMProviderError.rateLimited(retryAfter: retryAfter)
+            let errorMessage = parseErrorMessage(from: data)
+            throw VLMProviderError.rateLimited(retryAfter: retryAfter, message: errorMessage)
 
         case 404:
             throw VLMProviderError.modelUnavailable(configuration.modelName)

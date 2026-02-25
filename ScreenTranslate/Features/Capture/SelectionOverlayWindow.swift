@@ -386,8 +386,8 @@ final class SelectionOverlayView: NSView {
 
         let dimensionsText = "\(pixelWidth) × \(pixelHeight)"
 
-        // Text attributes
-        let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium)
+        // Text attributes - use fallback font if system font unavailable
+        let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .medium) ?? NSFont.systemFont(ofSize: 12)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: labelTextColor
