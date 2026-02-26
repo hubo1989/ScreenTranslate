@@ -49,17 +49,29 @@ struct TranslationPromptConfig: Codable, Equatable, Sendable {
         """
 
     /// Resolve the effective prompt for a given engine and scene
+    /// - Parameters:
+    ///   - engine: The translation engine type
+    ///   - scene: The translation scene
+    ///   - sourceLanguage: Source language name
+    ///   - targetLanguage: Target language name
+    ///   - text: Text to translate
+    ///   - compatibleIndex: Optional index for compatible engine instances (0-4)
+    /// - Returns: The resolved prompt with variables substituted
     func resolvedPrompt(
         for engine: TranslationEngineType,
         scene: TranslationScene,
         sourceLanguage: String,
         targetLanguage: String,
-        text: String
+        text: String,
+        compatibleIndex: Int? = nil
     ) -> String {
-        // Priority: scene-specific > engine-specific > default
+        // Priority: scene-specific > compatible-specific > engine-specific > default
         let basePrompt: String
         if let scenePrompt = scenePrompts[scene], !scenePrompt.isEmpty {
             basePrompt = scenePrompt
+        } else if engine == .custom, let index = compatibleIndex,
+                  let compatiblePrompt = compatibleEnginePrompts[index], !compatiblePrompt.isEmpty {
+            basePrompt = compatiblePrompt
         } else if let enginePrompt = enginePrompts[engine], !enginePrompt.isEmpty {
             basePrompt = enginePrompt
         } else if scene == .translateAndInsert {
@@ -76,12 +88,22 @@ struct TranslationPromptConfig: Codable, Equatable, Sendable {
     }
 
     /// Get prompt preview for a specific context
+    /// - Parameters:
+    ///   - engine: The translation engine type
+    ///   - scene: The translation scene
+    ///   - compatibleIndex: Optional index for compatible engine instances (0-4)
+    /// - Returns: The prompt preview string
     func promptPreview(
         for engine: TranslationEngineType,
-        scene: TranslationScene
+        scene: TranslationScene,
+        compatibleIndex: Int? = nil
     ) -> String {
         if let scenePrompt = scenePrompts[scene], !scenePrompt.isEmpty {
             return scenePrompt
+        }
+        if engine == .custom, let index = compatibleIndex,
+           let compatiblePrompt = compatibleEnginePrompts[index], !compatiblePrompt.isEmpty {
+            return compatiblePrompt
         }
         if let enginePrompt = enginePrompts[engine], !enginePrompt.isEmpty {
             return enginePrompt

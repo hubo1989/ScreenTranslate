@@ -60,7 +60,10 @@ actor DeepLTranslationProvider: TranslationProvider {
 
         let start = Date()
 
-        var request = URLRequest(url: URL(string: baseURL)!)
+        guard let url = URL(string: baseURL) else {
+            throw TranslationProviderError.invalidConfiguration("Invalid DeepL base URL: \(baseURL)")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("DeepL-Auth-Key \(credentials.apiKey)", forHTTPHeaderField: "Authorization")
@@ -123,7 +126,10 @@ actor DeepLTranslationProvider: TranslationProvider {
             throw TranslationProviderError.invalidConfiguration("API key not configured")
         }
 
-        var request = URLRequest(url: URL(string: baseURL)!)
+        guard let url = URL(string: baseURL) else {
+            throw TranslationProviderError.invalidConfiguration("Invalid DeepL base URL: \(baseURL)")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("DeepL-Auth-Key \(credentials.apiKey)", forHTTPHeaderField: "Authorization")
@@ -153,6 +159,10 @@ actor DeepLTranslationProvider: TranslationProvider {
         }
 
         let translations = try parseBatchResponse(data)
+
+        guard translations.count == texts.count else {
+            throw TranslationProviderError.translationFailed("DeepL batch response count mismatch: expected \(texts.count), got \(translations.count)")
+        }
 
         return zip(texts, translations).map { source, translated in
             TranslationResult(

@@ -54,10 +54,17 @@ actor GoogleTranslationProvider: TranslationProvider {
 
         let start = Date()
 
-        var request = URLRequest(url: URL(string: baseURL)!)
+        // Google Cloud Translation API v2 uses query parameter for API key
+        var urlComponents = URLComponents(string: baseURL)!
+        urlComponents.queryItems = [URLQueryItem(name: "key", value: credentials.apiKey)]
+
+        guard let url = urlComponents.url else {
+            throw TranslationProviderError.invalidConfiguration("Invalid Google Translation API URL")
+        }
+
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(credentials.apiKey)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = config.options?.timeout ?? 30
 
         var body: [String: Any] = [
@@ -116,10 +123,17 @@ actor GoogleTranslationProvider: TranslationProvider {
             throw TranslationProviderError.invalidConfiguration("API key not configured")
         }
 
-        var request = URLRequest(url: URL(string: baseURL)!)
+        // Google Cloud Translation API v2 uses query parameter for API key
+        var urlComponents = URLComponents(string: baseURL)!
+        urlComponents.queryItems = [URLQueryItem(name: "key", value: credentials.apiKey)]
+
+        guard let url = urlComponents.url else {
+            throw TranslationProviderError.invalidConfiguration("Invalid Google Translation API URL")
+        }
+
+        var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(credentials.apiKey)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = config.options?.timeout ?? 30
 
         var body: [String: Any] = [
@@ -147,6 +161,10 @@ actor GoogleTranslationProvider: TranslationProvider {
         }
 
         let translations = try parseBatchResponse(data)
+
+        guard translations.count == texts.count else {
+            throw TranslationProviderError.translationFailed("Google batch response count mismatch: expected \(texts.count), got \(translations.count)")
+        }
 
         return zip(texts, translations).map { source, translated in
             TranslationResult(

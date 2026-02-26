@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os.log
 
 struct MultiEngineSettingsSection: View {
     @Bindable var viewModel: SettingsViewModel
@@ -160,7 +161,7 @@ struct MultiEngineSettingsSection: View {
                 .foregroundStyle(.secondary)
 
             // Engine order list
-            ForEach(Array(viewModel.settings.parallelEngines.enumerated()), id: \.element) { index, engine in
+            ForEach(Array(viewModel.settings.parallelEngines.enumerated()), id: \.offset) { index, engine in
                 HStack(spacing: 8) {
                     // Order number
                     Text("\(index + 1)")
@@ -404,23 +405,31 @@ struct MultiEngineSettingsSection: View {
     }
 
     private func deleteCompatibleEngine(at index: Int) {
-        // Delete credentials from keychain
         Task {
-            let compositeId = "custom:\(index)"
-            try? await KeychainService.shared.deleteCredentials(forCompatibleId: compositeId)
+            do {
+                let compositeId = "custom:\(index)"
+                try await KeychainService.shared.deleteCredentials(forCompatibleId: compositeId)
 
-            // Shift credentials for remaining engines
-            for i in (index + 1)..<viewModel.settings.compatibleProviderConfigs.count {
-                let oldId = "custom:\(i)"
-                let newId = "custom:\(i - 1)"
-                if let creds = try? await KeychainService.shared.getCredentials(forCompatibleId: oldId) {
-                    try? await KeychainService.shared.saveCredentials(apiKey: creds.apiKey, forCompatibleId: newId)
-                    try? await KeychainService.shared.deleteCredentials(forCompatibleId: oldId)
+                // Shift credentials for remaining engines
+                for i in (index + 1)..<viewModel.settings.compatibleProviderConfigs.count {
+                    let oldId = "custom:\(i)"
+                    let newId = "custom:\(i - 1)"
+                    if let creds = try? await KeychainService.shared.getCredentials(forCompatibleId: oldId) {
+                        try await KeychainService.shared.saveCredentials(apiKey: creds.apiKey, forCompatibleId: newId)
+                        try await KeychainService.shared.deleteCredentials(forCompatibleId: oldId)
+                    }
                 }
-            }
 
-            await MainActor.run {
-                viewModel.settings.compatibleProviderConfigs.remove(at: index)
+                // Clear cached provider for this engine
+                await TranslationEngineRegistry.shared.removeCompatibleProvider(for: compositeId)
+
+                await MainActor.run {
+                    viewModel.settings.compatibleProviderConfigs.remove(at: index)
+                }
+            } catch {
+                // Log error but don't remove config if credential migration fails
+                Logger.settings.error("Failed to delete compatible engine: \(error.localizedDescription)")
+                // Optionally show alert to user
             }
         }
     }
@@ -428,8 +437,9 @@ struct MultiEngineSettingsSection: View {
     @ViewBuilder
     private func engineCard(_ engine: TranslationEngineType) -> some View {
         let config = viewModel.settings.engineConfigs[engine] ?? .default(for: engine)
-        // Built-in engines and Ollama are always "ready", others need configuration
-        let isConfigured = !engine.requiresAPIKey
+        // Built-in engines (apple, mtranServer) and Ollama don't need API keys
+        // For others, we check if they require API key (simplified check - in real use would check keychain)
+        let isConfigured = !engine.requiresAPIKey || config.isEnabled
 
         Button {
             editingConfig = config

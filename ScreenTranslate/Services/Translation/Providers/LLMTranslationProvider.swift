@@ -175,7 +175,7 @@ actor LLMTranslationProvider: TranslationProvider {
         prompt: String,
         credentials: StoredCredentials?
     ) async throws -> String {
-        let baseURL = getBaseURL()
+        let baseURL = try getBaseURL()
         let modelName = getModelName()
 
         var request = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
@@ -249,11 +249,24 @@ actor LLMTranslationProvider: TranslationProvider {
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func getBaseURL() -> URL {
-        if let customURL = config.options?.baseURL {
-            return URL(string: customURL) ?? engineType.defaultBaseURL.map { URL(string: $0)! }!
+    private func getBaseURL() throws -> URL {
+        // First try custom URL from config
+        if let customURL = config.options?.baseURL,
+           let url = URL(string: customURL) {
+            return url
         }
-        return URL(string: engineType.defaultBaseURL ?? "https://api.openai.com/v1")!
+
+        // Fall back to engine default
+        if let defaultURL = engineType.defaultBaseURL,
+           let url = URL(string: defaultURL) {
+            return url
+        }
+
+        // Final fallback
+        guard let url = URL(string: "https://api.openai.com/v1") else {
+            throw TranslationProviderError.invalidConfiguration("Failed to create API URL")
+        }
+        return url
     }
 
     private func getModelName() -> String {

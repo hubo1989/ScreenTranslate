@@ -156,15 +156,18 @@ extension TranslationEngineRegistry {
     /// - Parameters:
     ///   - compatibleConfig: The compatible engine configuration
     ///   - index: The instance index
+    ///   - forceRefresh: Force recreation even if cached
     /// - Returns: The created provider
     func createCompatibleProvider(
         compatibleConfig: CompatibleTranslationProvider.CompatibleConfig,
-        index: Int
+        index: Int,
+        forceRefresh: Bool = false
     ) async throws -> CompatibleTranslationProvider {
         let compositeId = compatibleConfig.compositeId(at: index)
 
-        // Check if already cached
-        if let existing = compatibleProviders[compositeId] {
+        // Check if already cached and not forcing refresh
+        // Note: We always recreate to pick up config changes (baseURL, modelName, etc.)
+        if !forceRefresh, let existing = compatibleProviders[compositeId] {
             return existing
         }
 

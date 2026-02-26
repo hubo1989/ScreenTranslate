@@ -112,6 +112,7 @@ actor TranslationService {
         from sourceLanguage: String?,
         primaryEngine: TranslationEngineType,
         fallbackEnabled: Bool,
+        fallbackEngine: TranslationEngineType? = nil,
         scene: TranslationScene?
     ) async throws -> TranslationResultBundle {
         var errors: [Error] = []
@@ -123,7 +124,8 @@ actor TranslationService {
                 segments: segments,
                 to: targetLanguage,
                 from: sourceLanguage,
-                scene: scene
+                scene: scene,
+                mode: .primaryWithFallback
             )
             return result
         } catch {
@@ -133,20 +135,22 @@ actor TranslationService {
 
         // Try fallback if enabled
         if fallbackEnabled {
-            let fallbackEngine = primaryEngine == .apple ? TranslationEngineType.mtranServer : TranslationEngineType.apple
+            // Use provided fallback engine, or default to alternating between apple and mtranServer
+            let actualFallback = fallbackEngine ?? (primaryEngine == .apple ? TranslationEngineType.mtranServer : TranslationEngineType.apple)
             do {
                 let result = try await translateWithEngine(
-                    fallbackEngine,
+                    actualFallback,
                     segments: segments,
                     to: targetLanguage,
                     from: sourceLanguage,
-                    scene: scene
+                    scene: scene,
+                    mode: .primaryWithFallback
                 )
-                logger.info("Fallback to \(fallbackEngine.rawValue) succeeded")
+                logger.info("Fallback to \(actualFallback.rawValue) succeeded")
                 return result
             } catch {
                 errors.append(error)
-                logger.warning("Fallback engine \(fallbackEngine.rawValue) also failed: \(error.localizedDescription)")
+                logger.warning("Fallback engine \(actualFallback.rawValue) also failed: \(error.localizedDescription)")
             }
         }
 
@@ -163,7 +167,7 @@ actor TranslationService {
     ) async throws -> TranslationResultBundle {
         let primaryEngine = engines.first ?? .apple
 
-        await withTaskGroup(of: EngineResult.self) { group in
+        let results = await withTaskGroup(of: EngineResult.self, returning: [EngineResult].self) { group in
             for engine in engines {
                 group.addTask {
                     do {
@@ -175,12 +179,12 @@ actor TranslationService {
                                 latency: 0
                             )
                         }
-                        let results = try await provider.translate(
+                        let providerResults = try await provider.translate(
                             texts: segments,
                             from: sourceLanguage,
                             to: targetLanguage
                         )
-                        let bilingualSegments = results.map { BilingualSegment(from: $0) }
+                        let bilingualSegments = providerResults.map { BilingualSegment(from: $0) }
                         return EngineResult(
                             engine: engine,
                             segments: bilingualSegments,
@@ -192,19 +196,17 @@ actor TranslationService {
                 }
             }
 
-            var results: [EngineResult] = []
+            var collectedResults: [EngineResult] = []
             for await result in group {
-                results.append(result)
+                collectedResults.append(result)
             }
+            return collectedResults
         }
 
-        // This will be replaced with proper implementation
-        return try await translateWithFallback(
-            segments: segments,
-            to: targetLanguage,
-            from: sourceLanguage,
+        return TranslationResultBundle(
+            results: results,
             primaryEngine: primaryEngine,
-            fallbackEnabled: false,
+            selectionMode: .parallel,
             scene: scene
         )
     }
@@ -224,7 +226,8 @@ actor TranslationService {
             segments: segments,
             to: targetLanguage,
             from: sourceLanguage,
-            scene: scene
+            scene: scene,
+            mode: .quickSwitch
         )
     }
 
@@ -245,6 +248,7 @@ actor TranslationService {
             from: sourceLanguage,
             primaryEngine: binding.primaryEngine,
             fallbackEnabled: binding.fallbackEnabled,
+            fallbackEngine: binding.fallbackEngine,
             scene: scene
         )
     }
@@ -257,7 +261,8 @@ actor TranslationService {
         segments: [String],
         to targetLanguage: String,
         from sourceLanguage: String?,
-        scene: TranslationScene?
+        scene: TranslationScene?,
+        mode: EngineSelectionMode = .primaryWithFallback
     ) async throws -> TranslationResultBundle {
         let start = Date()
 
@@ -282,7 +287,7 @@ actor TranslationService {
             engine: engine,
             segments: bilingualSegments,
             latency: latency,
-            selectionMode: .primaryWithFallback,
+            selectionMode: mode,
             scene: scene
         )
     }

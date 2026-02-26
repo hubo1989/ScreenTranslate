@@ -400,6 +400,13 @@ final class AppSettings {
         onboardingCompleted = false
         translateAndInsertSourceLanguage = .auto
         translateAndInsertTargetLanguage = nil
+        // Reset multi-engine configuration
+        engineSelectionMode = .primaryWithFallback
+        engineConfigs = Self.loadEngineConfigs()
+        promptConfig = TranslationPromptConfig()
+        sceneBindings = SceneEngineBinding.allDefaults
+        parallelEngines = [.apple, .mtranServer]
+        compatibleProviderConfigs = []
     }
 
     // MARK: - Notifications
@@ -452,16 +459,24 @@ final class AppSettings {
     }
 
     private static func loadEngineConfigs() -> [TranslationEngineType: TranslationEngineConfig] {
+        // Start with defaults
+        var result: [TranslationEngineType: TranslationEngineConfig] = [:]
+        for type in TranslationEngineType.allCases {
+            result[type] = .default(for: type)
+        }
+
+        // Load saved configs and merge
         guard let data = UserDefaults.standard.data(forKey: Keys.engineConfigs),
               let configs = try? JSONDecoder().decode([TranslationEngineConfig].self, from: data) else {
-            // Return defaults
-            var defaults: [TranslationEngineType: TranslationEngineConfig] = [:]
-            for type in TranslationEngineType.allCases {
-                defaults[type] = .default(for: type)
-            }
-            return defaults
+            return result
         }
-        return Dictionary(uniqueKeysWithValues: configs.map { ($0.id, $0) })
+
+        // Merge loaded configs over defaults (using reduce to handle duplicates safely)
+        _ = configs.reduce(into: result) { dict, config in
+            dict[config.id] = config
+        }
+
+        return result
     }
 
     private func savePromptConfig() {
@@ -486,11 +501,21 @@ final class AppSettings {
     }
 
     private static func loadSceneBindings() -> [TranslationScene: SceneEngineBinding] {
+        // Start with defaults
+        var result = SceneEngineBinding.allDefaults
+
+        // Load saved bindings and merge
         guard let data = UserDefaults.standard.data(forKey: Keys.sceneBindings),
               let bindings = try? JSONDecoder().decode([SceneEngineBinding].self, from: data) else {
-            return SceneEngineBinding.allDefaults
+            return result
         }
-        return Dictionary(uniqueKeysWithValues: bindings.map { ($0.scene, $0) })
+
+        // Merge loaded bindings over defaults (using reduce to handle duplicates safely)
+        _ = bindings.reduce(into: result) { dict, binding in
+            dict[binding.scene] = binding
+        }
+
+        return result
     }
 
     private func saveParallelEngines() {

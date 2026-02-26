@@ -246,8 +246,8 @@ actor CompatibleTranslationProvider: TranslationProvider {
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            logger.error("API error (\(httpResponse.statusCode)): \(errorMessage)")
+            // Log status code only to avoid exposing user text in logs
+            logger.error("API error status=\(httpResponse.statusCode)")
 
             if httpResponse.statusCode == 401 {
                 throw TranslationProviderError.invalidConfiguration("Invalid API key")

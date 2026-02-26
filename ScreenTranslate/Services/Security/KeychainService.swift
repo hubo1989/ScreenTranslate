@@ -46,27 +46,45 @@ actor KeychainService {
             throw KeychainError.invalidData
         }
 
-        // Try to update existing item first
-        if hasCredentials(for: engine) {
-            try deleteCredentials(for: engine)
-        }
-
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: engine.rawValue,
-            kSecValueData as String: encodedData,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            kSecAttrAccount as String: engine.rawValue
         ]
 
-        let status = SecItemAdd(query as CFDictionary, nil)
-
-        guard status == errSecSuccess else {
-            logger.error("Failed to save credentials for \(engine.rawValue): \(status)")
+        // Check if item exists and update it, or add new if not found
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        if status == errSecSuccess {
+            // Item exists - update it
+            let updateQuery: [String: Any] = [
+                kSecValueData as String: encodedData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
+            let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
+            guard updateStatus == errSecSuccess else {
+                logger.error("Failed to update credentials for \(engine.rawValue): \(updateStatus)")
+                throw KeychainError.unexpectedStatus(updateStatus)
+            }
+            logger.info("Updated credentials for \(engine.rawValue)")
+        } else if status == errSecItemNotFound {
+            // Item doesn't exist - add new
+            let addQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: engine.rawValue,
+                kSecValueData as String: encodedData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
+            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+            guard addStatus == errSecSuccess else {
+                logger.error("Failed to save credentials for \(engine.rawValue): \(addStatus)")
+                throw KeychainError.unexpectedStatus(addStatus)
+            }
+            logger.info("Saved credentials for \(engine.rawValue)")
+        } else {
+            logger.error("Failed to check credentials for \(engine.rawValue): \(status)")
             throw KeychainError.unexpectedStatus(status)
         }
-
-        logger.info("Saved credentials for \(engine.rawValue)")
     }
 
     /// Retrieve stored credentials for an engine
@@ -164,27 +182,45 @@ actor KeychainService {
             throw KeychainError.invalidData
         }
 
-        // Try to update existing item first
-        if hasCredentials(forCompatibleId: compatibleId) {
-            try deleteCredentials(forCompatibleId: compatibleId)
-        }
-
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: compatibleId,
-            kSecValueData as String: encodedData,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            kSecAttrAccount as String: compatibleId
         ]
 
-        let status = SecItemAdd(query as CFDictionary, nil)
-
-        guard status == errSecSuccess else {
-            logger.error("Failed to save credentials for \(compatibleId): \(status)")
+        // Check if item exists and update it, or add new if not found
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        if status == errSecSuccess {
+            // Item exists - update it
+            let updateQuery: [String: Any] = [
+                kSecValueData as String: encodedData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
+            let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
+            guard updateStatus == errSecSuccess else {
+                logger.error("Failed to update credentials for \(compatibleId): \(updateStatus)")
+                throw KeychainError.unexpectedStatus(updateStatus)
+            }
+            logger.info("Updated credentials for compatible engine \(compatibleId)")
+        } else if status == errSecItemNotFound {
+            // Item doesn't exist - add new
+            let addQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: compatibleId,
+                kSecValueData as String: encodedData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
+            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+            guard addStatus == errSecSuccess else {
+                logger.error("Failed to save credentials for \(compatibleId): \(addStatus)")
+                throw KeychainError.unexpectedStatus(addStatus)
+            }
+            logger.info("Saved credentials for compatible engine \(compatibleId)")
+        } else {
+            logger.error("Failed to check credentials for \(compatibleId): \(status)")
             throw KeychainError.unexpectedStatus(status)
         }
-
-        logger.info("Saved credentials for compatible engine \(compatibleId)")
     }
 
     /// Retrieve stored credentials for a compatible engine instance

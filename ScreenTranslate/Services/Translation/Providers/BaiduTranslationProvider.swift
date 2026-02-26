@@ -171,10 +171,10 @@ actor BaiduTranslationProvider: TranslationProvider {
            let errorMsg = errorResponse["error_msg"] as? String {
             logger.error("Baidu API error: \(errorCode) - \(errorMsg)")
 
-            if errorCode == "54003" || errorCode == "54004" {
-                throw TranslationProviderError.invalidConfiguration("Invalid AppID or Secret Key")
-            } else if errorCode == "54003" {
+            if errorCode == "54003" {
                 throw TranslationProviderError.rateLimited(retryAfter: nil)
+            } else if errorCode == "54004" {
+                throw TranslationProviderError.invalidConfiguration("Invalid AppID or Secret Key")
             }
 
             throw TranslationProviderError.translationFailed("Baidu error: \(errorMsg)")
