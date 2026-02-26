@@ -339,6 +339,8 @@ actor TranslationService {
 
         if customPrompt != TranslationPromptConfig.defaultPrompt {
             await llmProvider.setCustomPromptTemplate(customPrompt)
+        } else {
+            await llmProvider.setCustomPromptTemplate(nil)
         }
     }
 

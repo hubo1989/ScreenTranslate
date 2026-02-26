@@ -87,8 +87,8 @@ actor CompatibleTranslationProvider: TranslationProvider {
         }
 
         self.id = "custom"
-        self.name = compatibleConfig.displayName
-        self.configHash = compatibleConfig.configHash
+        self.name = self.compatibleConfig.displayName
+        self.configHash = self.compatibleConfig.configHash
     }
 
     init(

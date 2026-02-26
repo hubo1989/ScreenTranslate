@@ -68,13 +68,20 @@ actor TranslationEngineRegistry {
 
     /// List all available engines (registered and configured)
     func availableEngines() async -> [TranslationEngineType] {
-        var available: [TranslationEngineType] = []
-        for (type, provider) in providers {
-            if await provider.isAvailable {
-                available.append(type)
+        let results = await withTaskGroup(of: (TranslationEngineType, Bool).self) { group in
+            for (type, provider) in providers {
+                group.addTask { await (type, provider.isAvailable) }
             }
+            var availability: [TranslationEngineType: Bool] = [:]
+            for await (type, isAvailable) in group {
+                availability[type] = isAvailable
+            }
+            return availability
         }
-        return available.sorted { $0.rawValue < $1.rawValue }
+        return results
+            .filter { $0.value }
+            .keys
+            .sorted { $0.rawValue < $1.rawValue }
     }
 
     /// Check if an engine is configured (has required credentials)

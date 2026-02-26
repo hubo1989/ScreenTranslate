@@ -145,8 +145,7 @@ actor LLMTranslationProvider: TranslationProvider {
 
     func checkConnection() async -> Bool {
         do {
-            // Try a minimal translation to check connection
-            let _ = try await translate(
+            _ = try await translate(
                 text: "Hello",
                 from: "en",
                 to: "zh"
