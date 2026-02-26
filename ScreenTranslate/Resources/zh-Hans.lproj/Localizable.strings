@@ -344,6 +344,9 @@
 "engine.config.fallback" = "备用引擎";
 "engine.config.switch.order" = "切换顺序";
 "engine.config.parallel.select" = "选择并行运行的引擎";
+"engine.config.replace" = "替换引擎";
+"engine.config.remove" = "移除";
+"engine.config.add" = "添加引擎";
 
 /* 翻译场景 */
 "translation.scene.screenshot" = "截图翻译";

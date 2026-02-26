@@ -151,40 +151,91 @@ struct MultiEngineSettingsSection: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            HStack(spacing: 8) {
-                ForEach(Array(viewModel.settings.parallelEngines.enumerated()), id: \.element) { index, engine in
-                    HStack(spacing: 4) {
-                        Text("\(index + 1)")
-                            .font(.caption2)
-                            .foregroundStyle(.white)
-                            .frame(width: 16, height: 16)
-                            .background(Color.accentColor)
-                            .cornerRadius(8)
-                        Text(engine.localizedName)
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color(.controlBackgroundColor))
-                    .cornerRadius(4)
-                }
+            // Engine order list with drag-to-reorder
+            ForEach(Array(viewModel.settings.parallelEngines.enumerated()), id: \.element) { index, engine in
+                HStack(spacing: 8) {
+                    // Order number
+                    Text("\(index + 1)")
+                        .font(.caption)
+                        .foregroundStyle(.white)
+                        .frame(width: 18, height: 18)
+                        .background(Color.accentColor)
+                        .cornerRadius(9)
 
-                // Add engine button if less than enabled engines
-                if viewModel.settings.parallelEngines.count < enabledEngines.count {
+                    // Engine name
+                    Text(engine.localizedName)
+                        .font(.subheadline)
+
+                    Spacer()
+
+                    // Replace button
                     Menu {
                         ForEach(enabledEngines, id: \.id) { config in
-                            if !viewModel.settings.parallelEngines.contains(config.id) {
-                                Button(config.id.localizedName) {
-                                    viewModel.settings.parallelEngines.append(config.id)
-                                }
+                            Button(config.id.localizedName) {
+                                viewModel.settings.parallelEngines[index] = config.id
                             }
                         }
                     } label: {
-                        Image(systemName: "plus.circle")
+                        Image(systemName: "arrow.triangle.2.circlepath")
                             .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     .menuStyle(.borderlessButton)
+                    .help(localized("engine.config.replace"))
+
+                    // Remove button (if more than 1)
+                    if viewModel.settings.parallelEngines.count > 1 {
+                        Button {
+                            viewModel.settings.parallelEngines.remove(at: index)
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                        .buttonStyle(.plain)
+                        .help(localized("engine.config.remove"))
+                    }
+
+                    // Drag handle
+                    Image(systemName: "line.3.horizontal")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .contentShape(Rectangle())
                 }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .background(Color(.controlBackgroundColor))
+                .cornerRadius(6)
+                .moveDisabled(false)
+            }
+            .onMove { source, destination in
+                viewModel.settings.parallelEngines.move(fromOffsets: source, toOffset: destination)
+            }
+
+            // Add engine button if less than enabled engines
+            if viewModel.settings.parallelEngines.count < enabledEngines.count {
+                Menu {
+                    ForEach(enabledEngines, id: \.id) { config in
+                        if !viewModel.settings.parallelEngines.contains(config.id) {
+                            Button {
+                                viewModel.settings.parallelEngines.append(config.id)
+                            } label: {
+                                HStack {
+                                    Image(systemName: engineIcon(config.id))
+                                    Text(config.id.localizedName)
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus.circle")
+                        Text(localized("engine.config.add"))
+                    }
+                    .font(.caption)
+                    .foregroundStyle(Color.accentColor)
+                }
+                .menuStyle(.borderlessButton)
             }
         }
     }

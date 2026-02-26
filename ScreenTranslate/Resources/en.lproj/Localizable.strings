@@ -344,6 +344,9 @@
 "engine.config.fallback" = "Fallback";
 "engine.config.switch.order" = "Switch Order";
 "engine.config.parallel.select" = "Select engines to run in parallel";
+"engine.config.replace" = "Replace engine";
+"engine.config.remove" = "Remove";
+"engine.config.add" = "Add Engine";
 
 /* Translation Scenes */
 "translation.scene.screenshot" = "Screenshot Translation";
