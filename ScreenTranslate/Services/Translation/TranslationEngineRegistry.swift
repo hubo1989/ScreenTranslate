@@ -205,6 +205,33 @@ extension TranslationEngineRegistry {
         return compatibleProviders[compositeId]
     }
 
+    /// Get a provider by unified engine identifier
+    /// - Parameters:
+    ///   - identifier: The engine identifier
+    ///   - compatibleConfigs: The compatible engine configs from settings
+    /// - Returns: The translation provider
+    func getProvider(
+        for identifier: EngineIdentifier,
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig]
+    ) async throws -> any TranslationProvider {
+        switch identifier {
+        case .standard(let type):
+            guard let provider = providers[type] else {
+                throw RegistryError.notRegistered(type)
+            }
+            return provider
+        case .compatible(let uuid):
+            guard let config = compatibleConfigs.first(where: { $0.id == uuid }) else {
+                throw RegistryError.notRegistered(.custom)
+            }
+            let index = compatibleConfigs.firstIndex(where: { $0.id == uuid }) ?? 0
+            return try await createCompatibleProvider(
+                compatibleConfig: config,
+                index: index
+            )
+        }
+    }
+
     /// Remove a cached compatible engine provider
     /// - Parameter compositeId: The composite identifier
     func removeCompatibleProvider(for compositeId: String) {

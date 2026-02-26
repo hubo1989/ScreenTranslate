@@ -47,6 +47,8 @@ actor LLMTranslationProvider: TranslationProvider {
             self.name = "Gemini Translation"
         case .ollama:
             self.name = "Ollama Translation"
+        case .custom:
+            self.name = "Custom Translation"
         default:
             throw TranslationProviderError.invalidConfiguration("Invalid LLM type: \(type.rawValue)")
         }
@@ -207,25 +209,10 @@ actor LLMTranslationProvider: TranslationProvider {
         let baseURL = try getBaseURL()
         let modelName = getModelName()
 
-        // Build endpoint and headers based on engine type
-        let endpoint: URL
-        var headers: [String: String] = ["Content-Type": "application/json"]
-
-        switch engineType {
-        case .claude:
-            // Claude uses /v1/messages endpoint
-            endpoint = baseURL.appendingPathComponent("v1/messages")
-            if let apiKey = credentials?.apiKey {
-                headers["x-api-key"] = apiKey
-                headers["anthropic-version"] = "2023-06-01"
-            }
-        default:
-            // OpenAI, Gemini, Ollama use /chat/completions endpoint
-            endpoint = baseURL.appendingPathComponent("chat/completions")
-            if let apiKey = credentials?.apiKey {
-                headers["Authorization"] = "Bearer \(apiKey)"
-            }
-        }
+        let (endpoint, headers) = buildEndpointAndHeaders(
+            baseURL: baseURL,
+            credentials: credentials
+        )
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -234,53 +221,11 @@ actor LLMTranslationProvider: TranslationProvider {
             request.setValue(value, forHTTPHeaderField: key)
         }
 
-        // Build request body based on engine type
-        let body: [String: Any]
-        switch engineType {
-        case .claude:
-            // Claude API format
-            body = [
-                "model": modelName,
-                "max_tokens": config.options?.maxTokens ?? 2048,
-                "messages": [
-                    ["role": "user", "content": prompt]
-                ]
-            ]
-        default:
-            // OpenAI/Gemini/Ollama format
-            body = [
-                "model": modelName,
-                "messages": [
-                    ["role": "user", "content": prompt]
-                ],
-                "temperature": config.options?.temperature ?? 0.3,
-                "max_tokens": config.options?.maxTokens ?? 2048
-            ]
-        }
+        request.httpBody = try JSONSerialization.data(
+            withJSONObject: buildRequestBody(modelName: modelName, prompt: prompt)
+        )
 
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        // Execute request
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TranslationProviderError.connectionFailed("Invalid response")
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            // Log status code only to avoid exposing user text in logs
-            logger.error("API error status=\(httpResponse.statusCode)")
-
-            if httpResponse.statusCode == 401 {
-                throw TranslationProviderError.invalidConfiguration("Invalid API key")
-            } else if httpResponse.statusCode == 429 {
-                throw TranslationProviderError.rateLimited(retryAfter: nil)
-            }
-
-            throw TranslationProviderError.translationFailed("API error: \(httpResponse.statusCode)")
-        }
-
-        // Parse response based on engine type
+        let data = try await executeRequest(request)
         return try parseResponse(data, for: engineType)
     }
 
@@ -328,5 +273,88 @@ actor LLMTranslationProvider: TranslationProvider {
 
     private func getModelName() -> String {
         return config.options?.modelName ?? engineType.defaultModelName ?? "gpt-4o-mini"
+    }
+
+    // MARK: - Request Building Helpers
+
+    /// Builds the API endpoint URL and HTTP headers based on engine type.
+    /// - Parameters:
+    ///   - baseURL: The base URL for the API
+    ///   - credentials: Optional stored credentials for authentication
+    /// - Returns: Tuple of (endpoint URL, HTTP headers dictionary)
+    private func buildEndpointAndHeaders(
+        baseURL: URL,
+        credentials: StoredCredentials?
+    ) -> (endpoint: URL, headers: [String: String]) {
+        var headers: [String: String] = ["Content-Type": "application/json"]
+        let endpoint: URL
+
+        switch engineType {
+        case .claude:
+            endpoint = baseURL.appendingPathComponent("v1/messages")
+            if let apiKey = credentials?.apiKey {
+                headers["x-api-key"] = apiKey
+                headers["anthropic-version"] = "2023-06-01"
+            }
+        default:
+            endpoint = baseURL.appendingPathComponent("chat/completions")
+            if let apiKey = credentials?.apiKey {
+                headers["Authorization"] = "Bearer \(apiKey)"
+            }
+        }
+
+        return (endpoint, headers)
+    }
+
+    /// Builds the JSON request body based on engine type.
+    /// - Parameters:
+    ///   - modelName: The model name to use
+    ///   - prompt: The translation prompt
+    /// - Returns: Dictionary ready for JSON serialization
+    private func buildRequestBody(
+        modelName: String,
+        prompt: String
+    ) -> [String: Any] {
+        let messages: [[String: Any]] = [["role": "user", "content": prompt]]
+
+        switch engineType {
+        case .claude:
+            return [
+                "model": modelName,
+                "max_tokens": config.options?.maxTokens ?? 2048,
+                "messages": messages
+            ]
+        default:
+            return [
+                "model": modelName,
+                "messages": messages,
+                "temperature": config.options?.temperature ?? 0.3,
+                "max_tokens": config.options?.maxTokens ?? 2048
+            ]
+        }
+    }
+
+    /// Executes the HTTP request and handles common error cases.
+    /// - Parameter request: The configured URLRequest
+    /// - Returns: The response data on success
+    /// - Throws: TranslationProviderError for various failure cases
+    private func executeRequest(_ request: URLRequest) async throws -> Data {
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TranslationProviderError.connectionFailed("Invalid response")
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            return data
+        case 401:
+            throw TranslationProviderError.invalidConfiguration("Invalid API key")
+        case 429:
+            throw TranslationProviderError.rateLimited(retryAfter: nil)
+        default:
+            logger.error("API error status=\(httpResponse.statusCode)")
+            throw TranslationProviderError.translationFailed("API error: \(httpResponse.statusCode)")
+        }
     }
 }

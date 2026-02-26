@@ -366,7 +366,11 @@ struct EngineConfigSheet: View {
             }
 
             // Test connection
-            let success = await TranslationService.shared.testConnection(for: engine)
+            let identifier = EngineIdentifier.standard(engine)
+            let success = await TranslationService.shared.testConnection(
+                for: identifier,
+                compatibleConfigs: []
+            )
 
             await MainActor.run {
                 testSuccess = success

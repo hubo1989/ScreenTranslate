@@ -20,7 +20,7 @@ protocol TranslationServicing: Sendable {
     func translate(
         segments: [String],
         to targetLanguage: String,
-        preferredEngine: TranslationEngineType,
+        preferredEngine: EngineIdentifier,
         from sourceLanguage: String?
     ) async throws -> [BilingualSegment]
 }

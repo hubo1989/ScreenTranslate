@@ -173,7 +173,7 @@ actor TextTranslationFlow {
             let bilingualSegments = try await TranslationService.shared.translate(
                 segments: [trimmedText],
                 to: effectiveTargetLanguage,
-                preferredEngine: effectiveEngine,
+                preferredEngine: .standard(effectiveEngine),
                 from: effectiveSourceLanguage
             )
 

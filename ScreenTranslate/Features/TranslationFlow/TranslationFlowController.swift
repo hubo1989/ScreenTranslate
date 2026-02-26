@@ -202,7 +202,7 @@ final class TranslationFlowController {
                 let translatedSegments = try await TranslationService.shared.translate(
                     segments: texts,
                     to: targetLanguage,
-                    preferredEngine: engine,
+                    preferredEngine: .standard(engine),
                     from: sourceLanguage
                 )
                 

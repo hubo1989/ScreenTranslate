@@ -48,10 +48,11 @@ actor TranslationService {
         from sourceLanguage: String? = nil,
         scene: TranslationScene? = nil,
         mode: EngineSelectionMode,
-        preferredEngine: TranslationEngineType = .apple,
+        preferredEngine: EngineIdentifier = .standard(.apple),
         fallbackEnabled: Bool = true,
-        parallelEngines: [TranslationEngineType] = [],
-        sceneBindings: [TranslationScene: SceneEngineBinding] = [:]
+        parallelEngines: [EngineIdentifier] = [],
+        sceneBindings: [TranslationScene: SceneEngineBinding] = [:],
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig] = []
     ) async throws -> TranslationResultBundle {
         guard !segments.isEmpty else {
             return TranslationResultBundle(
@@ -70,7 +71,8 @@ actor TranslationService {
                 from: sourceLanguage,
                 primaryEngine: preferredEngine,
                 fallbackEnabled: fallbackEnabled,
-                scene: scene
+                scene: scene,
+                compatibleConfigs: compatibleConfigs
             )
 
         case .parallel:
@@ -79,7 +81,8 @@ actor TranslationService {
                 to: targetLanguage,
                 from: sourceLanguage,
                 engines: parallelEngines.isEmpty ? [preferredEngine] : parallelEngines,
-                scene: scene
+                scene: scene,
+                compatibleConfigs: compatibleConfigs
             )
 
         case .quickSwitch:
@@ -88,7 +91,8 @@ actor TranslationService {
                 to: targetLanguage,
                 from: sourceLanguage,
                 primaryEngine: preferredEngine,
-                scene: scene
+                scene: scene,
+                compatibleConfigs: compatibleConfigs
             )
 
         case .sceneBinding:
@@ -98,7 +102,7 @@ actor TranslationService {
                 from: sourceLanguage,
                 scene: scene ?? .screenshot,
                 bindings: sceneBindings,
-                preferredEngine: preferredEngine
+                compatibleConfigs: compatibleConfigs
             )
         }
     }
@@ -110,10 +114,11 @@ actor TranslationService {
         segments: [String],
         to targetLanguage: String,
         from sourceLanguage: String?,
-        primaryEngine: TranslationEngineType,
+        primaryEngine: EngineIdentifier,
         fallbackEnabled: Bool,
-        fallbackEngine: TranslationEngineType? = nil,
-        scene: TranslationScene?
+        fallbackEngine: EngineIdentifier? = nil,
+        scene: TranslationScene?,
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig]
     ) async throws -> TranslationResultBundle {
         var errors: [Error] = []
 
@@ -125,23 +130,25 @@ actor TranslationService {
                 to: targetLanguage,
                 from: sourceLanguage,
                 scene: scene,
-                mode: .primaryWithFallback
+                mode: .primaryWithFallback,
+                compatibleConfigs: compatibleConfigs
             )
             return result
         } catch {
             errors.append(error)
-            logger.warning("Primary engine \(primaryEngine.rawValue) failed: \(error.localizedDescription)")
+            logger.warning("Primary engine \(primaryEngine.id) failed: \(error.localizedDescription)")
         }
 
         // Try fallback if enabled
         if fallbackEnabled {
-            let actualFallback: TranslationEngineType
+            let actualFallback: EngineIdentifier
             if let engine = fallbackEngine {
                 actualFallback = engine
             } else if let scene = scene {
-                actualFallback = SceneEngineBinding.default(for: scene).fallbackEngine ?? .mtranServer
+                let binding = SceneEngineBinding.default(for: scene)
+                actualFallback = binding.fallbackEngine.map { .standard($0) } ?? .standard(.mtranServer)
             } else {
-                actualFallback = primaryEngine == .apple ? .mtranServer : .apple
+                actualFallback = primaryEngine == .standard(.apple) ? .standard(.mtranServer) : .standard(.apple)
             }
 
             do {
@@ -151,13 +158,14 @@ actor TranslationService {
                     to: targetLanguage,
                     from: sourceLanguage,
                     scene: scene,
-                    mode: .primaryWithFallback
+                    mode: .primaryWithFallback,
+                    compatibleConfigs: compatibleConfigs
                 )
-                logger.info("Fallback to \(actualFallback.rawValue) succeeded")
+                logger.info("Fallback to \(actualFallback.id) succeeded")
                 return result
             } catch {
                 errors.append(error)
-                logger.warning("Fallback engine \(actualFallback.rawValue) also failed: \(error.localizedDescription)")
+                logger.warning("Fallback engine \(actualFallback.id) also failed: \(error.localizedDescription)")
             }
         }
 
@@ -169,27 +177,22 @@ actor TranslationService {
         segments: [String],
         to targetLanguage: String,
         from sourceLanguage: String?,
-        engines: [TranslationEngineType],
-        scene: TranslationScene?
+        engines: [EngineIdentifier],
+        scene: TranslationScene?,
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig]
     ) async throws -> TranslationResultBundle {
-        let primaryEngine = engines.first ?? .apple
+        let primaryEngine = engines.first ?? .standard(.apple)
 
         let results = await withTaskGroup(of: EngineResult.self, returning: [EngineResult].self) { group in
             for engine in engines {
                 group.addTask {
                     do {
                         let start = Date()
-                        guard let provider = await self.registry.provider(for: engine) else {
-                            return EngineResult.failed(
-                                engine: engine,
-                                error: RegistryError.notRegistered(engine),
-                                latency: 0
-                            )
-                        }
+                        let provider = try await self.registry.getProvider(for: engine, compatibleConfigs: compatibleConfigs)
 
                         await self.applyPromptConfig(
                             to: provider,
-                            engine: engine,
+                            identifier: engine,
                             scene: scene,
                             sourceLanguage: sourceLanguage,
                             targetLanguage: targetLanguage
@@ -232,59 +235,59 @@ actor TranslationService {
         segments: [String],
         to targetLanguage: String,
         from sourceLanguage: String?,
-        primaryEngine: TranslationEngineType,
-        scene: TranslationScene?
+        primaryEngine: EngineIdentifier,
+        scene: TranslationScene?,
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig]
     ) async throws -> TranslationResultBundle {
-        // For now, behaves like primary without fallback
-        // UI layer will handle switching to other engines
         return try await translateWithEngine(
             primaryEngine,
             segments: segments,
             to: targetLanguage,
             from: sourceLanguage,
             scene: scene,
-            mode: .quickSwitch
+            mode: .quickSwitch,
+            compatibleConfigs: compatibleConfigs
         )
     }
 
-    /// Scene binding mode - use engine configured for the scene
+    /// Scene binding mode - use engine binding for specific scene
     private func translateByScene(
         segments: [String],
         to targetLanguage: String,
         from sourceLanguage: String?,
         scene: TranslationScene,
         bindings: [TranslationScene: SceneEngineBinding],
-        preferredEngine: TranslationEngineType
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig]
     ) async throws -> TranslationResultBundle {
         let binding = bindings[scene] ?? SceneEngineBinding.default(for: scene)
+
+        let primaryIdentifier: EngineIdentifier = .standard(binding.primaryEngine)
+        let fallbackIdentifier: EngineIdentifier? = binding.fallbackEngine.map { .standard($0) }
 
         return try await translateWithFallback(
             segments: segments,
             to: targetLanguage,
             from: sourceLanguage,
-            primaryEngine: binding.primaryEngine,
+            primaryEngine: primaryIdentifier,
             fallbackEnabled: binding.fallbackEnabled,
-            fallbackEngine: binding.fallbackEngine,
-            scene: scene
+            fallbackEngine: fallbackIdentifier,
+            scene: scene,
+            compatibleConfigs: compatibleConfigs
         )
     }
 
-    // MARK: - Helper Methods
-
     /// Translate with a specific engine
     private func translateWithEngine(
-        _ engine: TranslationEngineType,
+        _ identifier: EngineIdentifier,
         segments: [String],
         to targetLanguage: String,
         from sourceLanguage: String?,
         scene: TranslationScene?,
-        mode: EngineSelectionMode = .primaryWithFallback
+        mode: EngineSelectionMode = .primaryWithFallback,
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig]
     ) async throws -> TranslationResultBundle {
         let start = Date()
-
-        guard let provider = await registry.provider(for: engine) else {
-            throw RegistryError.notRegistered(engine)
-        }
+        let provider = try await registry.getProvider(for: identifier, compatibleConfigs: compatibleConfigs)
 
         guard await provider.isAvailable else {
             throw TranslationProviderError.notAvailable
@@ -293,7 +296,7 @@ actor TranslationService {
         // Apply custom prompt configuration if available
         await applyPromptConfig(
             to: provider,
-            engine: engine,
+            identifier: identifier,
             scene: scene,
             sourceLanguage: sourceLanguage,
             targetLanguage: targetLanguage
@@ -309,7 +312,7 @@ actor TranslationService {
         let latency = Date().timeIntervalSince(start)
 
         return TranslationResultBundle.single(
-            engine: engine,
+            engine: identifier,
             segments: bilingualSegments,
             latency: latency,
             selectionMode: mode,
@@ -330,7 +333,7 @@ actor TranslationService {
     /// Apply prompt configuration to a provider if supported
     private func applyPromptConfig(
         to provider: any TranslationProvider,
-        engine: TranslationEngineType,
+        identifier: EngineIdentifier,
         scene: TranslationScene?,
         sourceLanguage: String?,
         targetLanguage: String
@@ -338,13 +341,18 @@ actor TranslationService {
         guard let llmProvider = provider as? LLMTranslationProvider else { return }
 
         let sceneToUse = scene ?? .screenshot
-        let sourceLang = sourceLanguage ?? "auto"
+        let customPrompt: String
 
-        let customPrompt = promptConfig.promptPreview(
-            for: engine,
-            scene: sceneToUse,
-            compatibleIndex: nil
-        )
+        switch identifier {
+        case .standard(let engine):
+            customPrompt = promptConfig.promptPreview(
+                for: engine,
+                scene: sceneToUse,
+                compatibleIndex: nil
+            )
+        case .compatible:
+            customPrompt = TranslationPromptConfig.defaultPrompt
+        }
 
         if customPrompt != TranslationPromptConfig.defaultPrompt {
             await llmProvider.setCustomPromptTemplate(customPrompt)
@@ -365,7 +373,7 @@ actor TranslationService {
     func translate(
         segments: [String],
         to targetLanguage: String,
-        preferredEngine: TranslationEngineType = .apple,
+        preferredEngine: EngineIdentifier = .standard(.apple),
         from sourceLanguage: String? = nil
     ) async throws -> [BilingualSegment] {
         guard !segments.isEmpty else { return [] }
@@ -384,10 +392,15 @@ actor TranslationService {
     // MARK: - Connection Testing
 
     /// Test connection to a specific engine
-    func testConnection(for engine: TranslationEngineType) async -> Bool {
-        guard let provider = await registry.provider(for: engine) else {
+    func testConnection(
+        for identifier: EngineIdentifier,
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig]
+    ) async -> Bool {
+        do {
+            let provider = try await registry.getProvider(for: identifier, compatibleConfigs: compatibleConfigs)
+            return await provider.checkConnection()
+        } catch {
             return false
         }
-        return await provider.checkConnection()
     }
 }

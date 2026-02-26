@@ -20,6 +20,7 @@ struct CompatibleEngineConfigSheet: View {
     @State private var baseURL: String = ""
     @State private var modelName: String = ""
     @State private var hasAPIKey: Bool = true
+    @State private var isEnabled: Bool = true
     @State private var isTesting = false
     @State private var testResult: String?
     @State private var testSuccess = false
@@ -46,6 +47,20 @@ struct CompatibleEngineConfigSheet: View {
             // Configuration Form
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    // Enable Toggle
+                    Toggle(isOn: $isEnabled) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(localized("engine.config.enabled"))
+                                .font(.subheadline)
+                            Text(localized("engine.config.enabled.description"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .toggleStyle(.switch)
+
+                    Divider()
+
                     // Display Name
                     VStack(alignment: .leading, spacing: 8) {
                         Text(localized("engine.compatible.displayName"))
@@ -177,6 +192,7 @@ struct CompatibleEngineConfigSheet: View {
         baseURL = config.baseURL
         modelName = config.modelName
         hasAPIKey = config.hasAPIKey
+        isEnabled = config.isEnabled
 
         // Load credentials from keychain
         Task {
@@ -198,7 +214,8 @@ struct CompatibleEngineConfigSheet: View {
             displayName: displayName,
             baseURL: baseURL,
             modelName: modelName,
-            hasAPIKey: hasAPIKey
+            hasAPIKey: hasAPIKey,
+            isEnabled: isEnabled
         )
 
         onSave(savedConfig)
@@ -231,7 +248,8 @@ struct CompatibleEngineConfigSheet: View {
                 displayName: displayName,
                 baseURL: baseURL,
                 modelName: modelName,
-                hasAPIKey: hasAPIKey
+                hasAPIKey: hasAPIKey,
+                isEnabled: isEnabled
             )
 
             // Test by creating a provider and calling checkConnection

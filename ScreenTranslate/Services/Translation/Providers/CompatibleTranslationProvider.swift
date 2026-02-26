@@ -33,19 +33,22 @@ actor CompatibleTranslationProvider: TranslationProvider {
         var baseURL: String
         var modelName: String
         var hasAPIKey: Bool
+        var isEnabled: Bool
 
         init(
             id: UUID = UUID(),
             displayName: String,
             baseURL: String,
             modelName: String,
-            hasAPIKey: Bool = true
+            hasAPIKey: Bool = true,
+            isEnabled: Bool = true
         ) {
             self.id = id
             self.displayName = displayName
             self.baseURL = baseURL
             self.modelName = modelName
             self.hasAPIKey = hasAPIKey
+            self.isEnabled = isEnabled
         }
 
         static var `default`: CompatibleConfig {
@@ -53,7 +56,8 @@ actor CompatibleTranslationProvider: TranslationProvider {
                 displayName: "Custom",
                 baseURL: "http://localhost:8000/v1",
                 modelName: "default",
-                hasAPIKey: false
+                hasAPIKey: false,
+                isEnabled: false
             )
         }
 

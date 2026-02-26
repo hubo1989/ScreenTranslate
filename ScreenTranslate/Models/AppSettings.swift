@@ -253,7 +253,7 @@ final class AppSettings {
     }
 
     /// Engines to run in parallel mode
-    var parallelEngines: [TranslationEngineType] {
+    var parallelEngines: [EngineIdentifier] {
         didSet { saveParallelEngines() }
     }
 
@@ -409,7 +409,7 @@ final class AppSettings {
         engineConfigs = defaultConfigs
         promptConfig = TranslationPromptConfig()
         sceneBindings = SceneEngineBinding.allDefaults
-        parallelEngines = [.apple, .mtranServer]
+        parallelEngines = [.standard(.apple), .standard(.mtranServer)]
         compatibleProviderConfigs = []
     }
 
@@ -523,17 +523,25 @@ final class AppSettings {
     }
 
     private func saveParallelEngines() {
-        let rawValues = parallelEngines.map { $0.rawValue }
-        UserDefaults.standard.set(rawValues, forKey: Keys.parallelEngines)
+        if let data = try? JSONEncoder().encode(parallelEngines) {
+            UserDefaults.standard.set(data, forKey: Keys.parallelEngines)
+        }
     }
 
-    private static func loadParallelEngines() -> [TranslationEngineType] {
-        guard let rawValues = UserDefaults.standard.array(forKey: Keys.parallelEngines) as? [String] else {
-            return [.apple, .mtranServer]
+    private static func loadParallelEngines() -> [EngineIdentifier] {
+        // Try new format first
+        if let data = UserDefaults.standard.data(forKey: Keys.parallelEngines),
+           let engines = try? JSONDecoder().decode([EngineIdentifier].self, from: data) {
+            return engines.isEmpty ? [.standard(.apple), .standard(.mtranServer)] : engines
         }
-        let engines = rawValues.compactMap { TranslationEngineType(rawValue: $0) }
-        // Return default if result is empty (dirty data case)
-        return engines.isEmpty ? [.apple, .mtranServer] : engines
+        // Migrate from old format [TranslationEngineType]
+        if let rawValues = UserDefaults.standard.array(forKey: Keys.parallelEngines) as? [String] {
+            let engines = rawValues.compactMap { TranslationEngineType(rawValue: $0) }.map { EngineIdentifier.standard($0) }
+            if !engines.isEmpty {
+                return engines
+            }
+        }
+        return [.standard(.apple), .standard(.mtranServer)]
     }
 
     private func saveCompatibleConfigs() {

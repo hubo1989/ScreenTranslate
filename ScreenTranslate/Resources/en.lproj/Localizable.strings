@@ -359,6 +359,7 @@
 
 /* Engine Configuration */
 "engine.config.enabled" = "Enable this engine";
+"engine.config.enabled.description" = "When enabled, this engine can be used for translation";
 "engine.config.apiKey" = "API Key";
 "engine.config.apiKey.placeholder" = "Enter your API key";
 "engine.config.getApiKey" = "Get API Key";

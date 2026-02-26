@@ -96,7 +96,7 @@ struct MultiEngineSettingsSection: View {
 
     @ViewBuilder
     private var primaryFallbackSection: some View {
-        let enabledEngines = viewModel.settings.engineConfigs.values.filter { $0.isEnabled }
+        let allEngines = allEnabledEngines
 
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 24) {
@@ -106,7 +106,7 @@ struct MultiEngineSettingsSection: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Picker("", selection: Binding(
-                        get: { viewModel.settings.parallelEngines.first ?? .apple },
+                        get: { viewModel.settings.parallelEngines.first ?? .standard(.apple) },
                         set: { newValue in
                             if viewModel.settings.parallelEngines.isEmpty {
                                 viewModel.settings.parallelEngines = [newValue]
@@ -115,8 +115,8 @@ struct MultiEngineSettingsSection: View {
                             }
                         }
                     )) {
-                        ForEach(enabledEngines, id: \.id) { config in
-                            Text(config.id.localizedName).tag(config.id)
+                        ForEach(allEngines, id: \.id) { engine in
+                            Text(engineDisplayName(engine)).tag(engine)
                         }
                     }
                     .pickerStyle(.menu)
@@ -129,7 +129,7 @@ struct MultiEngineSettingsSection: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Picker("", selection: Binding(
-                        get: { viewModel.settings.parallelEngines.count > 1 ? viewModel.settings.parallelEngines[1] : (enabledEngines.first?.id ?? .apple) },
+                        get: { viewModel.settings.parallelEngines.count > 1 ? viewModel.settings.parallelEngines[1] : (allEngines.first ?? .standard(.apple)) },
                         set: { newValue in
                             if viewModel.settings.parallelEngines.count > 1 {
                                 viewModel.settings.parallelEngines[1] = newValue
@@ -138,8 +138,8 @@ struct MultiEngineSettingsSection: View {
                             }
                         }
                     )) {
-                        ForEach(enabledEngines, id: \.id) { config in
-                            Text(config.id.localizedName).tag(config.id)
+                        ForEach(allEngines, id: \.id) { engine in
+                            Text(engineDisplayName(engine)).tag(engine)
                         }
                     }
                     .pickerStyle(.menu)
@@ -153,7 +153,7 @@ struct MultiEngineSettingsSection: View {
 
     @ViewBuilder
     private var quickSwitchSection: some View {
-        let enabledEngines = viewModel.settings.engineConfigs.values.filter { $0.isEnabled }
+        let allEngines = allEnabledEngines
 
         VStack(alignment: .leading, spacing: 8) {
             Text(localized("engine.config.switch.order"))
@@ -172,16 +172,16 @@ struct MultiEngineSettingsSection: View {
                         .cornerRadius(9)
 
                     // Engine name
-                    Text(engine.localizedName)
+                    Text(engineDisplayName(engine))
                         .font(.subheadline)
 
                     Spacer()
 
                     // Replace button
                     Menu {
-                        ForEach(enabledEngines, id: \.id) { config in
-                            Button(config.id.localizedName) {
-                                viewModel.settings.parallelEngines[index] = config.id
+                        ForEach(allEngines, id: \.id) { engineOpt in
+                            Button(engineDisplayName(engineOpt)) {
+                                viewModel.settings.parallelEngines[index] = engineOpt
                             }
                         }
                     } label: {
@@ -212,16 +212,16 @@ struct MultiEngineSettingsSection: View {
             }
 
             // Add engine button if less than enabled engines
-            if viewModel.settings.parallelEngines.count < enabledEngines.count {
+            if viewModel.settings.parallelEngines.count < allEngines.count {
                 Menu {
-                    ForEach(enabledEngines, id: \.id) { config in
-                        if !viewModel.settings.parallelEngines.contains(config.id) {
+                    ForEach(allEngines, id: \.id) { engine in
+                        if !viewModel.settings.parallelEngines.contains(engine) {
                             Button {
-                                viewModel.settings.parallelEngines.append(config.id)
+                                viewModel.settings.parallelEngines.append(engine)
                             } label: {
                                 HStack {
-                                    Image(systemName: engineIcon(config.id))
-                                    Text(config.id.localizedName)
+                                    Image(systemName: engineIcon(for: engine))
+                                    Text(engineDisplayName(engine))
                                 }
                             }
                         }
@@ -492,32 +492,35 @@ struct MultiEngineSettingsSection: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            let enabledEngines = viewModel.settings.engineConfigs.values.filter { $0.isEnabled }
-
             FlowLayout(spacing: 8) {
-                ForEach(enabledEngines, id: \.id) { config in
-                    HStack(spacing: 4) {
-                        Image(systemName: engineIcon(config.id))
-                            .font(.caption)
-                        Text(config.id.localizedName)
-                            .font(.caption)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(viewModel.settings.parallelEngines.contains(config.id) ? Color.accentColor.opacity(0.2) : Color.clear)
-                    .cornerRadius(4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(viewModel.settings.parallelEngines.contains(config.id) ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: 1)
-                    )
-                    .onTapGesture {
-                        if viewModel.settings.parallelEngines.contains(config.id) {
-                            viewModel.settings.parallelEngines.removeAll { $0 == config.id }
-                        } else {
-                            viewModel.settings.parallelEngines.append(config.id)
-                        }
-                    }
+                ForEach(allEnabledEngines, id: \.id) { identifier in
+                    engineChip(identifier)
                 }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func engineChip(_ identifier: EngineIdentifier) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: engineIcon(for: identifier))
+                .font(.caption)
+            Text(engineDisplayName(identifier))
+                .font(.caption)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(viewModel.settings.parallelEngines.contains(identifier) ? Color.accentColor.opacity(0.2) : Color.clear)
+        .cornerRadius(4)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(viewModel.settings.parallelEngines.contains(identifier) ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: 1)
+        )
+        .onTapGesture {
+            if viewModel.settings.parallelEngines.contains(identifier) {
+                viewModel.settings.parallelEngines.removeAll { $0 == identifier }
+            } else {
+                viewModel.settings.parallelEngines.append(identifier)
             }
         }
     }
@@ -572,6 +575,45 @@ struct MultiEngineSettingsSection: View {
         case .deepl: return "character.bubble"
         case .baidu: return "network"
         case .custom: return "gearshape.2"
+        }
+    }
+
+    private func engineIcon(for identifier: EngineIdentifier) -> String {
+        switch identifier {
+        case .standard(let type):
+            return engineIcon(type)
+        case .compatible:
+            return "gearshape.2"
+        }
+    }
+
+    // MARK: - Engine Helpers
+
+    private var allEnabledEngines: [EngineIdentifier] {
+        var engines: [EngineIdentifier] = []
+
+        // Add enabled standard engines
+        for config in viewModel.settings.engineConfigs.values where config.isEnabled {
+            engines.append(.standard(config.id))
+        }
+
+        // Add enabled compatible engines
+        for config in viewModel.settings.compatibleProviderConfigs where config.isEnabled {
+            engines.append(.compatible(config.id))
+        }
+
+        return engines
+    }
+
+    private func engineDisplayName(_ identifier: EngineIdentifier) -> String {
+        switch identifier {
+        case .standard(let type):
+            return type.localizedName
+        case .compatible(let uuid):
+            if let config = viewModel.settings.compatibleProviderConfigs.first(where: { $0.id == uuid }) {
+                return config.displayName
+            }
+            return "Custom"
         }
     }
 }

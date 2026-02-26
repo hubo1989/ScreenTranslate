@@ -166,12 +166,10 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable, Identifiabl
         switch self {
         case .apple, .mtranServer:
             return .builtIn
-        case .openai, .claude, .gemini, .ollama:
+        case .openai, .claude, .gemini, .ollama, .custom:
             return .llm
         case .google, .deepl, .baidu:
             return .cloudService
-        case .custom:
-            return .compatible
         }
     }
 
@@ -340,5 +338,29 @@ enum MTranServerChecker {
     /// Reset the cached availability check
     static func resetCache() {
         _isAvailable = nil
+    }
+}
+
+/// Unified identifier for both standard engines and compatible engines
+enum EngineIdentifier: Sendable, Codable, Equatable, Hashable, Identifiable {
+    case standard(TranslationEngineType)
+    case compatible(UUID)
+
+    var id: String {
+        switch self {
+        case .standard(let type):
+            return "standard:\(type.rawValue)"
+        case .compatible(let uuid):
+            return "compatible:\(uuid.uuidString)"
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .standard(let type):
+            return type.localizedName
+        case .compatible:
+            return "Custom"
+        }
     }
 }

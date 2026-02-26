@@ -9,23 +9,14 @@ import Foundation
 
 /// Result from a single translation engine
 struct EngineResult: Sendable, Identifiable {
-    /// Engine type that produced this result
-    let engine: TranslationEngineType
-
-    /// Translated segments
+    let engine: EngineIdentifier
     let segments: [BilingualSegment]
-
-    /// Time taken for translation in seconds
     let latency: TimeInterval
-
-    /// Error if translation failed
     let error: Error?
-
-    /// Unique identifier
     let id: UUID
 
     init(
-        engine: TranslationEngineType,
+        engine: EngineIdentifier,
         segments: [BilingualSegment],
         latency: TimeInterval,
         error: Error? = nil
@@ -37,13 +28,11 @@ struct EngineResult: Sendable, Identifiable {
         self.error = error
     }
 
-    /// Whether this result was successful
     var isSuccess: Bool {
         error == nil && !segments.isEmpty
     }
 
-    /// Create a failed result
-    static func failed(engine: TranslationEngineType, error: Error, latency: TimeInterval = 0) -> EngineResult {
+    static func failed(engine: EngineIdentifier, error: Error, latency: TimeInterval = 0) -> EngineResult {
         EngineResult(
             engine: engine,
             segments: [],
@@ -55,24 +44,15 @@ struct EngineResult: Sendable, Identifiable {
 
 /// Bundle containing results from multiple translation engines
 struct TranslationResultBundle: Sendable {
-    /// Results from all attempted engines
     let results: [EngineResult]
-
-    /// The primary engine that was used
-    let primaryEngine: TranslationEngineType
-
-    /// Selection mode used for this translation
+    let primaryEngine: EngineIdentifier
     let selectionMode: EngineSelectionMode
-
-    /// Scene that triggered this translation
     let scene: TranslationScene?
-
-    /// When the translation was performed
     let timestamp: Date
 
     init(
         results: [EngineResult],
-        primaryEngine: TranslationEngineType,
+        primaryEngine: EngineIdentifier,
         selectionMode: EngineSelectionMode,
         scene: TranslationScene? = nil,
         timestamp: Date = Date()
@@ -84,55 +64,42 @@ struct TranslationResultBundle: Sendable {
         self.timestamp = timestamp
     }
 
-    // MARK: - Computed Properties
-
-    /// Primary result (from the primary engine)
     var primaryResult: [BilingualSegment] {
         results.first { $0.engine == primaryEngine && $0.isSuccess }?.segments ?? []
     }
 
-    /// Whether any engine had errors
     var hasErrors: Bool {
         results.contains { $0.error != nil }
     }
 
-    /// Whether all engines failed
     var allFailed: Bool {
         results.allSatisfy { $0.error != nil }
     }
 
-    /// List of engines that succeeded
-    var successfulEngines: [TranslationEngineType] {
+    var successfulEngines: [EngineIdentifier] {
         results.filter { $0.isSuccess }.map { $0.engine }
     }
 
-    /// List of engines that failed
-    var failedEngines: [TranslationEngineType] {
+    var failedEngines: [EngineIdentifier] {
         results.filter { !$0.isSuccess }.map { $0.engine }
     }
 
-    /// Get result for a specific engine
-    func result(for engine: TranslationEngineType) -> EngineResult? {
+    func result(for engine: EngineIdentifier) -> EngineResult? {
         results.first { $0.engine == engine }
     }
 
-    /// Get segments from a specific engine
-    func segments(for engine: TranslationEngineType) -> [BilingualSegment]? {
+    func segments(for engine: EngineIdentifier) -> [BilingualSegment]? {
         result(for: engine)?.segments
     }
 
-    /// Average latency across successful engines
     var averageLatency: TimeInterval {
         let successfulResults = results.filter { $0.isSuccess }
         guard !successfulResults.isEmpty else { return 0 }
         return successfulResults.map(\.latency).reduce(0, +) / Double(successfulResults.count)
     }
 
-    // MARK: - Factory Methods
-
-    /// Create a bundle from a single engine result (backward compatible)
     static func single(
-        engine: TranslationEngineType,
+        engine: EngineIdentifier,
         segments: [BilingualSegment],
         latency: TimeInterval,
         selectionMode: EngineSelectionMode = .primaryWithFallback,
@@ -151,9 +118,8 @@ struct TranslationResultBundle: Sendable {
         )
     }
 
-    /// Create a failed bundle
     static func failed(
-        engine: TranslationEngineType,
+        engine: EngineIdentifier,
         error: Error,
         selectionMode: EngineSelectionMode = .primaryWithFallback,
         scene: TranslationScene? = nil
