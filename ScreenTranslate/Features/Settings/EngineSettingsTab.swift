@@ -11,9 +11,6 @@ struct EngineSettingsContent: View {
 
                 // Multi-Engine Translation Configuration
                 MultiEngineSettingsSection(viewModel: viewModel)
-
-                // Prompt Configuration
-                PromptSettingsView(viewModel: viewModel)
             }
             .padding()
         }

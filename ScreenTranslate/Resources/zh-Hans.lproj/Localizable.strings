@@ -214,6 +214,7 @@
 "settings.section.permissions" = "权限";
 "settings.section.general" = "通用";
 "settings.section.engines" = "引擎";
+"settings.section.prompts" = "提示词配置";
 "settings.section.languages" = "语言";
 "settings.section.export" = "导出";
 "settings.section.shortcuts" = "键盘快捷键";

@@ -7,6 +7,21 @@
 
 import SwiftUI
 
+// MARK: - Prompt Settings Content (for sidebar tab)
+
+struct PromptSettingsContent: View {
+    @Bindable var viewModel: SettingsViewModel
+
+    var body: some View {
+        ScrollView {
+            PromptSettingsView(viewModel: viewModel)
+                .padding()
+        }
+    }
+}
+
+// MARK: - Prompt Settings View
+
 struct PromptSettingsView: View {
     @Bindable var viewModel: SettingsViewModel
     @State private var editingTarget: PromptEditTarget?
@@ -25,7 +40,6 @@ struct PromptSettingsView: View {
             // Default Prompt Preview
             defaultPromptSection
         }
-        .padding()
         .sheet(item: $editingTarget) { target in
             PromptEditorSheet(
                 target: target,

@@ -39,6 +39,8 @@ struct SettingsView: View {
                             GeneralSettingsContent(viewModel: viewModel)
                         case .engines:
                             EngineSettingsContent(viewModel: viewModel)
+                        case .prompts:
+                            PromptSettingsContent(viewModel: viewModel)
                         case .languages:
                             LanguageSettingsContent(viewModel: viewModel)
                         case .shortcuts:

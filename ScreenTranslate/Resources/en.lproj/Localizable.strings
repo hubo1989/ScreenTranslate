@@ -214,6 +214,7 @@
 "settings.section.permissions" = "Permissions";
 "settings.section.general" = "General";
 "settings.section.engines" = "Engines";
+"settings.section.prompts" = "Prompt Configuration";
 "settings.section.languages" = "Languages";
 "settings.section.export" = "Export";
 "settings.section.shortcuts" = "Keyboard Shortcuts";
