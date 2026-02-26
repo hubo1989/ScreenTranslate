@@ -19,6 +19,9 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable, Identifiabl
     /// Anthropic Claude translation
     case claude = "claude"
 
+    /// Google Gemini translation
+    case gemini = "gemini"
+
     /// Ollama local LLM translation
     case ollama = "ollama"
 
@@ -51,6 +54,8 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable, Identifiabl
             return NSLocalizedString("translation.engine.openai", comment: "OpenAI")
         case .claude:
             return NSLocalizedString("translation.engine.claude", comment: "Claude")
+        case .gemini:
+            return NSLocalizedString("translation.engine.gemini", comment: "Gemini")
         case .ollama:
             return NSLocalizedString("translation.engine.ollama", comment: "Ollama")
         case .google:
@@ -86,6 +91,11 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable, Identifiabl
             return NSLocalizedString(
                 "translation.engine.claude.description",
                 comment: "Claude translation via Anthropic API"
+            )
+        case .gemini:
+            return NSLocalizedString(
+                "translation.engine.gemini.description",
+                comment: "Gemini translation via Google AI API"
             )
         case .ollama:
             return NSLocalizedString(
@@ -134,7 +144,7 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable, Identifiabl
         switch self {
         case .apple, .mtranServer, .ollama:
             return false
-        case .openai, .claude, .google, .deepl, .custom:
+        case .openai, .claude, .gemini, .google, .deepl, .custom:
             return true
         case .baidu:
             return true // Baidu requires both appID and secretKey
@@ -156,7 +166,7 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable, Identifiabl
         switch self {
         case .apple, .mtranServer:
             return .builtIn
-        case .openai, .claude, .ollama:
+        case .openai, .claude, .gemini, .ollama:
             return .llm
         case .google, .deepl, .baidu:
             return .cloudService
@@ -172,6 +182,8 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable, Identifiabl
             return "https://api.openai.com/v1"
         case .claude:
             return "https://api.anthropic.com/v1"
+        case .gemini:
+            return "https://generativelanguage.googleapis.com/v1beta"
         case .ollama:
             return "http://localhost:11434"
         case .google:
@@ -192,6 +204,8 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable, Identifiabl
             return "gpt-4o-mini"
         case .claude:
             return "claude-sonnet-4-20250514"
+        case .gemini:
+            return "gemini-2.0-flash"
         case .ollama:
             return "llama3"
         default:

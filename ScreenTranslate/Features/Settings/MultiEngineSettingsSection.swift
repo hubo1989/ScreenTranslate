@@ -15,53 +15,177 @@ struct MultiEngineSettingsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // Selection Mode
+            // Selection Mode (horizontal layout)
             selectionModeSection
+
+            // Mode-specific configuration
+            modeSpecificSection
 
             Divider()
 
             // Available Engines
             enginesSection
-
-            // Dynamic configuration based on mode
-            if viewModel.settings.engineSelectionMode == .parallel {
-                parallelEnginesSection
-            } else if viewModel.settings.engineSelectionMode == .sceneBinding {
-                sceneBindingSection
-            }
         }
         .padding()
         .background(Color(.controlBackgroundColor))
         .cornerRadius(8)
     }
 
-    // MARK: - Selection Mode Section
+    // MARK: - Selection Mode Section (Horizontal)
 
     @ViewBuilder
     private var selectionModeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(localized("engine.selection.mode.title"))
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localized("engine.config.title"))
                 .font(.headline)
 
-            Picker("", selection: Binding(
-                get: { viewModel.settings.engineSelectionMode },
-                set: { viewModel.settings.engineSelectionMode = $0 }
-            )) {
+            // Horizontal button group
+            HStack(spacing: 4) {
                 ForEach(EngineSelectionMode.allCases) { mode in
-                    HStack {
-                        Image(systemName: mode.iconName)
-                        VStack(alignment: .leading) {
-                            Text(mode.localizedName)
-                            Text(mode.modeDescription)
+                    Button {
+                        viewModel.settings.engineSelectionMode = mode
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: mode.iconName)
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Text(mode.localizedName)
+                                .font(.subheadline)
                         }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(viewModel.settings.engineSelectionMode == mode ? Color.accentColor : Color.clear)
+                        .foregroundStyle(viewModel.settings.engineSelectionMode == mode ? .white : .primary)
+                        .cornerRadius(6)
                     }
-                    .tag(mode)
+                    .buttonStyle(.plain)
+                    .help(mode.modeDescription)
                 }
             }
-            .pickerStyle(.radioGroup)
-            .frame(maxWidth: 500)
+            .padding(4)
+            .background(Color(.controlBackgroundColor).opacity(0.5))
+            .cornerRadius(8)
+        }
+    }
+
+    // MARK: - Mode Specific Section
+
+    @ViewBuilder
+    private var modeSpecificSection: some View {
+        switch viewModel.settings.engineSelectionMode {
+        case .primaryWithFallback:
+            primaryFallbackSection
+        case .parallel:
+            parallelEnginesSection
+        case .quickSwitch:
+            quickSwitchSection
+        case .sceneBinding:
+            sceneBindingSection
+        }
+    }
+
+    // MARK: - Primary/Fallback Section
+
+    @ViewBuilder
+    private var primaryFallbackSection: some View {
+        let enabledEngines = viewModel.settings.engineConfigs.values.filter { $0.isEnabled }
+
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 24) {
+                // Primary Engine
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(localized("engine.config.primary"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Picker("", selection: Binding(
+                        get: { viewModel.settings.parallelEngines.first ?? .apple },
+                        set: { newValue in
+                            if viewModel.settings.parallelEngines.isEmpty {
+                                viewModel.settings.parallelEngines = [newValue]
+                            } else {
+                                viewModel.settings.parallelEngines[0] = newValue
+                            }
+                        }
+                    )) {
+                        ForEach(enabledEngines, id: \.id) { config in
+                            Text(config.id.localizedName).tag(config.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 140)
+                }
+
+                // Fallback Engine
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(localized("engine.config.fallback"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Picker("", selection: Binding(
+                        get: { viewModel.settings.parallelEngines.count > 1 ? viewModel.settings.parallelEngines[1] : (enabledEngines.first?.id ?? .apple) },
+                        set: { newValue in
+                            if viewModel.settings.parallelEngines.count > 1 {
+                                viewModel.settings.parallelEngines[1] = newValue
+                            } else {
+                                viewModel.settings.parallelEngines.append(newValue)
+                            }
+                        }
+                    )) {
+                        ForEach(enabledEngines, id: \.id) { config in
+                            Text(config.id.localizedName).tag(config.id)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(width: 140)
+                }
+            }
+        }
+    }
+
+    // MARK: - Quick Switch Section
+
+    @ViewBuilder
+    private var quickSwitchSection: some View {
+        let enabledEngines = viewModel.settings.engineConfigs.values.filter { $0.isEnabled }
+
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localized("engine.config.switch.order"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 8) {
+                ForEach(Array(viewModel.settings.parallelEngines.enumerated()), id: \.element) { index, engine in
+                    HStack(spacing: 4) {
+                        Text("\(index + 1)")
+                            .font(.caption2)
+                            .foregroundStyle(.white)
+                            .frame(width: 16, height: 16)
+                            .background(Color.accentColor)
+                            .cornerRadius(8)
+                        Text(engine.localizedName)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(.controlBackgroundColor))
+                    .cornerRadius(4)
+                }
+
+                // Add engine button if less than enabled engines
+                if viewModel.settings.parallelEngines.count < enabledEngines.count {
+                    Menu {
+                        ForEach(enabledEngines, id: \.id) { config in
+                            if !viewModel.settings.parallelEngines.contains(config.id) {
+                                Button(config.id.localizedName) {
+                                    viewModel.settings.parallelEngines.append(config.id)
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "plus.circle")
+                            .font(.caption)
+                    }
+                    .menuStyle(.borderlessButton)
+                }
+            }
         }
     }
 
@@ -158,42 +282,40 @@ struct MultiEngineSettingsSection: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Parallel Engines Section
+    // MARK: - Parallel Engines Section (Select which engines to run)
 
     @ViewBuilder
     private var parallelEnginesSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(localized("engine.parallel.title"))
-                .font(.headline)
-
-            Text(localized("engine.parallel.description"))
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localized("engine.config.parallel.select"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            // List of enabled engines to select for parallel mode
             let enabledEngines = viewModel.settings.engineConfigs.values.filter { $0.isEnabled }
 
-            ForEach(enabledEngines, id: \.id) { config in
-                HStack {
-                    Image(systemName: engineIcon(config.id))
-                    Text(config.id.localizedName)
-
-                    Spacer()
-
-                    Toggle("", isOn: Binding(
-                        get: { viewModel.settings.parallelEngines.contains(config.id) },
-                        set: { isOn in
-                            if isOn {
-                                if !viewModel.settings.parallelEngines.contains(config.id) {
-                                    viewModel.settings.parallelEngines.append(config.id)
-                                }
-                            } else {
-                                viewModel.settings.parallelEngines.removeAll { $0 == config.id }
-                            }
+            FlowLayout(spacing: 8) {
+                ForEach(enabledEngines, id: \.id) { config in
+                    HStack(spacing: 4) {
+                        Image(systemName: engineIcon(config.id))
+                            .font(.caption)
+                        Text(config.id.localizedName)
+                            .font(.caption)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(viewModel.settings.parallelEngines.contains(config.id) ? Color.accentColor.opacity(0.2) : Color.clear)
+                    .cornerRadius(4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(viewModel.settings.parallelEngines.contains(config.id) ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+                    .onTapGesture {
+                        if viewModel.settings.parallelEngines.contains(config.id) {
+                            viewModel.settings.parallelEngines.removeAll { $0 == config.id }
+                        } else {
+                            viewModel.settings.parallelEngines.append(config.id)
                         }
-                    ))
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
+                    }
                 }
             }
         }
@@ -203,22 +325,15 @@ struct MultiEngineSettingsSection: View {
 
     @ViewBuilder
     private var sceneBindingSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(localized("engine.scene.binding.title"))
-                .font(.headline)
-
-            Text(localized("engine.scene.binding.description"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
+        VStack(alignment: .leading, spacing: 8) {
             let enabledEngines = viewModel.settings.engineConfigs.values.filter { $0.isEnabled }
 
             ForEach(TranslationScene.allCases) { scene in
                 HStack {
                     Image(systemName: scene.iconName)
-                        .frame(width: 24)
+                        .frame(width: 20)
                     Text(scene.localizedName)
-                        .frame(width: 120, alignment: .leading)
+                        .frame(width: 100, alignment: .leading)
 
                     Spacer()
 
@@ -236,20 +351,7 @@ struct MultiEngineSettingsSection: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .frame(width: 150)
-
-                    // Fallback toggle
-                    Toggle("", isOn: Binding(
-                        get: { viewModel.settings.sceneBindings[scene]?.fallbackEnabled ?? true },
-                        set: { newValue in
-                            var binding = viewModel.settings.sceneBindings[scene] ?? .default(for: scene)
-                            binding.fallbackEnabled = newValue
-                            viewModel.settings.sceneBindings[scene] = binding
-                        }
-                    ))
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
-                    .help(localized("engine.scene.fallback.tooltip"))
+                    .frame(width: 130)
                 }
             }
         }
@@ -263,11 +365,74 @@ struct MultiEngineSettingsSection: View {
         case .mtranServer: return "server.rack"
         case .openai: return "brain.head.profile"
         case .claude: return "bubble.left.and.bubble.right"
+        case .gemini: return "sparkles"
         case .ollama: return "cpu"
         case .google: return "globe"
         case .deepl: return "character.bubble"
         case .baidu: return "network"
         case .custom: return "gearshape.2"
         }
+    }
+}
+
+// MARK: - Flow Layout
+
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = computeRows(proposal: proposal, subviews: subviews)
+        let height = rows.reduce(0) { $0 + $1.height + spacing } - spacing
+        return CGSize(width: proposal.width ?? 0, height: height > 0 ? height : 0)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let rows = computeRows(proposal: proposal, subviews: subviews)
+        var y = bounds.minY
+        for row in rows {
+            var x = bounds.minX
+            for item in row.items {
+                subviews[item.index].place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+                x += item.size.width + spacing
+            }
+            y += row.height + spacing
+        }
+    }
+
+    private func computeRows(proposal: ProposedViewSize, subviews: Subviews) -> [Row] {
+        var rows: [Row] = []
+        var currentRow = Row()
+        var currentX: CGFloat = 0
+        let maxWidth = proposal.width ?? .infinity
+
+        for (index, subview) in subviews.enumerated() {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if currentX + size.width > maxWidth, !currentRow.items.isEmpty {
+                rows.append(currentRow)
+                currentRow = Row()
+                currentX = 0
+            }
+
+            currentRow.items.append(RowItem(index: index, size: size))
+            currentRow.height = max(currentRow.height, size.height)
+            currentX += size.width + spacing
+        }
+
+        if !currentRow.items.isEmpty {
+            rows.append(currentRow)
+        }
+
+        return rows
+    }
+
+    struct Row {
+        var items: [RowItem] = []
+        var height: CGFloat = 0
+    }
+
+    struct RowItem {
+        let index: Int
+        let size: CGSize
     }
 }

@@ -113,7 +113,7 @@ extension TranslationEngineRegistry {
             // These are registered in init
             throw RegistryError.alreadyRegistered
 
-        case .openai, .claude, .ollama:
+        case .openai, .claude, .gemini, .ollama:
             provider = try await LLMTranslationProvider(
                 type: type,
                 config: config,

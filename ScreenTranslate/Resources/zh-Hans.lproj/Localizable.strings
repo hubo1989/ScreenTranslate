@@ -306,6 +306,8 @@
 "translation.engine.openai.description" = "通过 OpenAI API 使用 GPT-4 翻译";
 "translation.engine.claude" = "Claude";
 "translation.engine.claude.description" = "通过 Anthropic API 使用 Claude 翻译";
+"translation.engine.gemini" = "Gemini";
+"translation.engine.gemini.description" = "通过 Google AI API 使用 Gemini 翻译";
 "translation.engine.ollama" = "Ollama";
 "translation.engine.ollama.description" = "通过 Ollama 使用本地大模型翻译";
 "translation.engine.google" = "Google 翻译";
@@ -323,16 +325,25 @@
 "engine.category.cloud" = "云服务";
 "engine.category.compatible" = "兼容接口";
 
+/* 引擎配置标题 */
+"engine.config.title" = "翻译引擎配置";
+
 /* 引擎选择模式 */
 "engine.selection.mode.title" = "引擎选择模式";
-"engine.selection.mode.primary_fallback" = "主备模式";
+"engine.selection.mode.primary_fallback" = "主备";
 "engine.selection.mode.primary_fallback.description" = "使用主引擎，失败时切换到备用引擎";
-"engine.selection.mode.parallel" = "并行模式";
+"engine.selection.mode.parallel" = "并行";
 "engine.selection.mode.parallel.description" = "同时运行多个引擎并比较结果";
-"engine.selection.mode.quick_switch" = "快速切换";
+"engine.selection.mode.quick_switch" = "快切";
 "engine.selection.mode.quick_switch.description" = "从主引擎开始，可快速切换到其他引擎";
-"engine.selection.mode.scene_binding" = "场景绑定";
+"engine.selection.mode.scene_binding" = "场景";
 "engine.selection.mode.scene_binding.description" = "为不同翻译场景使用不同引擎";
+
+/* 模式特定标签 */
+"engine.config.primary" = "主引擎";
+"engine.config.fallback" = "备用引擎";
+"engine.config.switch.order" = "切换顺序";
+"engine.config.parallel.select" = "选择并行运行的引擎";
 
 /* 翻译场景 */
 "translation.scene.screenshot" = "截图翻译";

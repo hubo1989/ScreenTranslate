@@ -306,6 +306,8 @@
 "translation.engine.openai.description" = "GPT-4 translation via OpenAI API";
 "translation.engine.claude" = "Claude";
 "translation.engine.claude.description" = "Claude translation via Anthropic API";
+"translation.engine.gemini" = "Gemini";
+"translation.engine.gemini.description" = "Gemini translation via Google AI API";
 "translation.engine.ollama" = "Ollama";
 "translation.engine.ollama.description" = "Local LLM translation via Ollama";
 "translation.engine.google" = "Google Translate";
@@ -323,9 +325,12 @@
 "engine.category.cloud" = "Cloud Services";
 "engine.category.compatible" = "Compatible";
 
+/* Engine Configuration Title */
+"engine.config.title" = "Translation Engine Configuration";
+
 /* Engine Selection Modes */
 "engine.selection.mode.title" = "Engine Selection Mode";
-"engine.selection.mode.primary_fallback" = "Primary with Fallback";
+"engine.selection.mode.primary_fallback" = "Primary/Fallback";
 "engine.selection.mode.primary_fallback.description" = "Use primary engine, fall back to secondary on failure";
 "engine.selection.mode.parallel" = "Parallel";
 "engine.selection.mode.parallel.description" = "Run multiple engines simultaneously and compare results";
@@ -333,6 +338,12 @@
 "engine.selection.mode.quick_switch.description" = "Start with primary, quickly switch to other engines on demand";
 "engine.selection.mode.scene_binding" = "Scene Binding";
 "engine.selection.mode.scene_binding.description" = "Use different engines for different translation scenarios";
+
+/* Mode-specific labels */
+"engine.config.primary" = "Primary";
+"engine.config.fallback" = "Fallback";
+"engine.config.switch.order" = "Switch Order";
+"engine.config.parallel.select" = "Select engines to run in parallel";
 
 /* Translation Scenes */
 "translation.scene.screenshot" = "Screenshot Translation";

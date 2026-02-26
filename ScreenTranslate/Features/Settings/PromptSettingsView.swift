@@ -182,6 +182,7 @@ struct PromptSettingsView: View {
         case .mtranServer: return "server.rack"
         case .openai: return "brain.head.profile"
         case .claude: return "bubble.left.and.bubble.right"
+        case .gemini: return "sparkles"
         case .ollama: return "cpu"
         case .google: return "globe"
         case .deepl: return "character.bubble"
