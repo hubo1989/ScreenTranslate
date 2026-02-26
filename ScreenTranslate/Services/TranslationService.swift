@@ -186,6 +186,15 @@ actor TranslationService {
                                 latency: 0
                             )
                         }
+
+                        await self.applyPromptConfig(
+                            to: provider,
+                            engine: engine,
+                            scene: scene,
+                            sourceLanguage: sourceLanguage,
+                            targetLanguage: targetLanguage
+                        )
+
                         let providerResults = try await provider.translate(
                             texts: segments,
                             from: sourceLanguage,

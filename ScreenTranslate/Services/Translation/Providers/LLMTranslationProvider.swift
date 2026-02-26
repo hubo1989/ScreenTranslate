@@ -308,19 +308,18 @@ actor LLMTranslationProvider: TranslationProvider {
     }
 
     private func getBaseURL() throws -> URL {
-        // First try custom URL from config
-        if let customURL = config.options?.baseURL,
-           let url = URL(string: customURL) {
+        if let customURL = config.options?.baseURL {
+            guard let url = URL(string: customURL) else {
+                throw TranslationProviderError.invalidConfiguration("Invalid custom baseURL: \(customURL)")
+            }
             return url
         }
 
-        // Fall back to engine default
         if let defaultURL = engineType.defaultBaseURL,
            let url = URL(string: defaultURL) {
             return url
         }
 
-        // Final fallback
         guard let url = URL(string: "https://api.openai.com/v1") else {
             throw TranslationProviderError.invalidConfiguration("Failed to create API URL")
         }

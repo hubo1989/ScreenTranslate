@@ -128,7 +128,15 @@ actor CompatibleTranslationProvider: TranslationProvider {
         }
 
         let keychainId = compatibleConfig.keychainId
-        let credentials = compatibleConfig.hasAPIKey ? try await keychain.getCredentials(forCompatibleId: keychainId) : nil
+        let credentials: StoredCredentials?
+        if compatibleConfig.hasAPIKey {
+            guard let creds = try await keychain.getCredentials(forCompatibleId: keychainId) else {
+                throw TranslationProviderError.invalidConfiguration("API key required but not found for \(compatibleConfig.displayName)")
+            }
+            credentials = creds
+        } else {
+            credentials = nil
+        }
 
         let prompt = buildPrompt(
             text: text,
