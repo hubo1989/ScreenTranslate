@@ -153,6 +153,7 @@ struct PromptSettingsView: View {
             ScrollView {
                 Text(TranslationPromptConfig.defaultPrompt)
                     .font(.system(.body, design: .monospaced))
+                    .textSelection(.enabled)
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(.textBackgroundColor))
@@ -270,10 +271,14 @@ struct PromptEditorSheet: View {
                 HStack(spacing: 8) {
                     ForEach(TranslationPromptConfig.templateVariables) { variable in
                         Button {
-                            insertVariable(variable.name)
+                            copyVariable(variable.name)
                         } label: {
-                            Text(variable.name)
-                                .font(.system(.caption, design: .monospaced))
+                            HStack(spacing: 2) {
+                                Text(variable.name)
+                                    .font(.system(.caption, design: .monospaced))
+                                Image(systemName: "doc.on.doc")
+                                    .font(.system(size: 8))
+                            }
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -313,7 +318,9 @@ struct PromptEditorSheet: View {
         }
     }
 
-    private func insertVariable(_ variable: String) {
-        localPrompt += variable
+    private func copyVariable(_ variable: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(variable, forType: .string)
     }
 }

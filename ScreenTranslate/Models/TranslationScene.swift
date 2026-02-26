@@ -68,7 +68,7 @@ enum TranslationScene: String, Codable, CaseIterable, Identifiable, Sendable {
         case .screenshot:
             return "camera.viewfinder"
         case .textSelection:
-            return "textformat"
+            return "translate"
         case .translateAndInsert:
             return "doc.on.clipboard"
         }
