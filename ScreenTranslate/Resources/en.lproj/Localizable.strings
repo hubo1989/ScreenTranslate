@@ -729,3 +729,21 @@
 "settings.translateAndInsert.language.section" = "Translate and Insert Languages";
 "settings.translateAndInsert.language.source" = "Source Language";
 "settings.translateAndInsert.language.target" = "Target Language";
+
+
+/* ========================================
+   Multi OpenAI Compatible Engines
+   ======================================== */
+
+/* Compatible Engine Configuration */
+"engine.compatible.new" = "New Compatible Engine";
+"engine.compatible.description" = "OpenAI-compatible API endpoint";
+"engine.compatible.displayName" = "Display Name";
+"engine.compatible.displayName.placeholder" = "e.g., My LLM Server";
+"engine.compatible.requireApiKey" = "Requires API Key";
+"engine.compatible.add" = "Add Compatible Engine";
+"engine.compatible.delete" = "Delete this engine";
+"engine.compatible.max.reached" = "Maximum 5 compatible engines reached";
+
+/* Prompt Configuration */
+"prompt.compatible.title" = "Compatible Engines";

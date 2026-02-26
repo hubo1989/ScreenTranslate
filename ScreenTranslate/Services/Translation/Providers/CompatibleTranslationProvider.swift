@@ -12,11 +12,12 @@ import os.log
 actor CompatibleTranslationProvider: TranslationProvider {
     // MARK: - Properties
 
-    nonisolated let id: String = "custom"
+    nonisolated let id: String
     nonisolated let name: String
 
     private let config: TranslationEngineConfig
     private let compatibleConfig: CompatibleConfig
+    private let instanceIndex: Int
     private let keychain: KeychainService
     private let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "ScreenTranslate",
@@ -25,25 +26,40 @@ actor CompatibleTranslationProvider: TranslationProvider {
 
     // MARK: - Configuration
 
-    struct CompatibleConfig: Codable, Equatable, Sendable {
+    struct CompatibleConfig: Codable, Equatable, Sendable, Identifiable {
+        var id: UUID
         var displayName: String
         var baseURL: String
         var modelName: String
         var hasAPIKey: Bool
 
-        init(displayName: String, baseURL: String, modelName: String, hasAPIKey: Bool = true) {
+        init(
+            id: UUID = UUID(),
+            displayName: String,
+            baseURL: String,
+            modelName: String,
+            hasAPIKey: Bool = true
+        ) {
+            self.id = id
             self.displayName = displayName
             self.baseURL = baseURL
             self.modelName = modelName
             self.hasAPIKey = hasAPIKey
         }
 
-        static let `default` = CompatibleConfig(
-            displayName: "Custom",
-            baseURL: "http://localhost:8000/v1",
-            modelName: "default",
-            hasAPIKey: false
-        )
+        static var `default`: CompatibleConfig {
+            CompatibleConfig(
+                displayName: "Custom",
+                baseURL: "http://localhost:8000/v1",
+                modelName: "default",
+                hasAPIKey: false
+            )
+        }
+
+        /// Generate a composite identifier for keychain storage
+        func compositeId(at index: Int) -> String {
+            return "custom:\(index)"
+        }
     }
 
     // MARK: - Initialization
@@ -51,6 +67,7 @@ actor CompatibleTranslationProvider: TranslationProvider {
     init(config: TranslationEngineConfig, keychain: KeychainService) async throws {
         self.config = config
         self.keychain = keychain
+        self.instanceIndex = 0
 
         // Parse compatible config from customName or create default
         if let customName = config.customName,
@@ -61,18 +78,22 @@ actor CompatibleTranslationProvider: TranslationProvider {
             self.compatibleConfig = .default
         }
 
+        self.id = "custom"
         self.name = compatibleConfig.displayName
     }
 
-    /// Initialize with explicit compatible config
+    /// Initialize with explicit compatible config and instance index
     init(
         config: TranslationEngineConfig,
         compatibleConfig: CompatibleConfig,
+        instanceIndex: Int,
         keychain: KeychainService
     ) async throws {
         self.config = config
         self.compatibleConfig = compatibleConfig
+        self.instanceIndex = instanceIndex
         self.keychain = keychain
+        self.id = compatibleConfig.compositeId(at: instanceIndex)
         self.name = compatibleConfig.displayName
     }
 
@@ -81,7 +102,8 @@ actor CompatibleTranslationProvider: TranslationProvider {
     var isAvailable: Bool {
         get async {
             if compatibleConfig.hasAPIKey {
-                return await keychain.hasCredentials(for: .custom)
+                let compositeId = compatibleConfig.compositeId(at: instanceIndex)
+                return await keychain.hasCredentials(forCompatibleId: compositeId)
             }
             return true
         }
@@ -96,7 +118,8 @@ actor CompatibleTranslationProvider: TranslationProvider {
             throw TranslationProviderError.emptyInput
         }
 
-        let credentials = compatibleConfig.hasAPIKey ? try await keychain.getCredentials(for: .custom) : nil
+        let compositeId = compatibleConfig.compositeId(at: instanceIndex)
+        let credentials = compatibleConfig.hasAPIKey ? try await keychain.getCredentials(forCompatibleId: compositeId) : nil
 
         let prompt = buildPrompt(
             text: text,

@@ -729,3 +729,21 @@
 "settings.translateAndInsert.language.section" = "翻译并插入语言";
 "settings.translateAndInsert.language.source" = "源语言";
 "settings.translateAndInsert.language.target" = "目标语言";
+
+
+/* ========================================
+   多 OpenAI 兼容引擎配置
+   ======================================== */
+
+/* 兼容引擎配置 */
+"engine.compatible.new" = "新建兼容引擎";
+"engine.compatible.description" = "OpenAI 兼容的 API 端点";
+"engine.compatible.displayName" = "显示名称";
+"engine.compatible.displayName.placeholder" = "例如：我的大模型服务";
+"engine.compatible.requireApiKey" = "需要 API 密钥";
+"engine.compatible.add" = "添加兼容引擎";
+"engine.compatible.delete" = "删除此引擎";
+"engine.compatible.max.reached" = "已达到最多 5 个兼容引擎上限";
+
+/* 提示词配置 */
+"prompt.compatible.title" = "兼容引擎";

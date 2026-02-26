@@ -16,6 +16,9 @@ actor TranslationEngineRegistry {
     /// Registered providers keyed by engine type
     private var providers: [TranslationEngineType: any TranslationProvider] = [:]
 
+    /// Compatible engine providers keyed by composite ID (e.g., "custom:0", "custom:1")
+    private var compatibleProviders: [String: CompatibleTranslationProvider] = [:]
+
     /// Keychain service for credential access
     private let keychain = KeychainService.shared
 
@@ -147,6 +150,55 @@ extension TranslationEngineRegistry {
 
         register(provider, for: type)
         return provider
+    }
+
+    /// Create and cache a compatible engine provider for a specific instance
+    /// - Parameters:
+    ///   - compatibleConfig: The compatible engine configuration
+    ///   - index: The instance index
+    /// - Returns: The created provider
+    func createCompatibleProvider(
+        compatibleConfig: CompatibleTranslationProvider.CompatibleConfig,
+        index: Int
+    ) async throws -> CompatibleTranslationProvider {
+        let compositeId = compatibleConfig.compositeId(at: index)
+
+        // Check if already cached
+        if let existing = compatibleProviders[compositeId] {
+            return existing
+        }
+
+        let engineConfig = TranslationEngineConfig.default(for: .custom)
+        let provider = try await CompatibleTranslationProvider(
+            config: engineConfig,
+            compatibleConfig: compatibleConfig,
+            instanceIndex: index,
+            keychain: keychain
+        )
+
+        compatibleProviders[compositeId] = provider
+        logger.info("Created compatible provider for \(compositeId)")
+        return provider
+    }
+
+    /// Get a cached compatible engine provider
+    /// - Parameter compositeId: The composite identifier (e.g., "custom:0")
+    /// - Returns: The cached provider, or nil
+    func getCompatibleProvider(for compositeId: String) -> CompatibleTranslationProvider? {
+        return compatibleProviders[compositeId]
+    }
+
+    /// Remove a cached compatible engine provider
+    /// - Parameter compositeId: The composite identifier
+    func removeCompatibleProvider(for compositeId: String) {
+        compatibleProviders.removeValue(forKey: compositeId)
+        logger.info("Removed compatible provider for \(compositeId)")
+    }
+
+    /// Clear all cached compatible providers
+    func clearCompatibleProviders() {
+        compatibleProviders.removeAll()
+        logger.info("Cleared all compatible providers")
     }
 }
 

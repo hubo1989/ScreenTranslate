@@ -151,6 +151,112 @@ actor KeychainService {
         }
     }
 
+    // MARK: - Compatible Engine Methods (String-based identifiers)
+
+    /// Save credentials for a compatible engine instance
+    /// - Parameters:
+    ///   - apiKey: The API key to store
+    ///   - compatibleId: The compatible engine identifier (e.g., "custom:0", "custom:1")
+    func saveCredentials(apiKey: String, forCompatibleId compatibleId: String) throws {
+        let credentials = StoredCredentials(apiKey: apiKey)
+
+        guard let encodedData = try? JSONEncoder().encode(credentials) else {
+            throw KeychainError.invalidData
+        }
+
+        // Try to update existing item first
+        if hasCredentials(forCompatibleId: compatibleId) {
+            try deleteCredentials(forCompatibleId: compatibleId)
+        }
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: compatibleId,
+            kSecValueData as String: encodedData,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+        ]
+
+        let status = SecItemAdd(query as CFDictionary, nil)
+
+        guard status == errSecSuccess else {
+            logger.error("Failed to save credentials for \(compatibleId): \(status)")
+            throw KeychainError.unexpectedStatus(status)
+        }
+
+        logger.info("Saved credentials for compatible engine \(compatibleId)")
+    }
+
+    /// Retrieve stored credentials for a compatible engine instance
+    /// - Parameter compatibleId: The compatible engine identifier
+    /// - Returns: The stored credentials, or nil if not found
+    func getCredentials(forCompatibleId compatibleId: String) throws -> StoredCredentials? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: compatibleId,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        guard status == errSecSuccess else {
+            if status == errSecItemNotFound {
+                logger.debug("No credentials found for \(compatibleId)")
+                return nil
+            }
+            logger.error("Failed to retrieve credentials for \(compatibleId): \(status)")
+            throw KeychainError.unexpectedStatus(status)
+        }
+
+        guard let data = result as? Data else {
+            throw KeychainError.invalidData
+        }
+
+        let credentials = try JSONDecoder().decode(StoredCredentials.self, from: data)
+        logger.debug("Retrieved credentials for \(compatibleId)")
+        return credentials
+    }
+
+    /// Check if credentials exist for a compatible engine instance
+    /// - Parameter compatibleId: The compatible engine identifier
+    /// - Returns: True if credentials exist
+    func hasCredentials(forCompatibleId compatibleId: String) -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: compatibleId,
+            kSecReturnData as String: false,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        return status == errSecSuccess
+    }
+
+    /// Delete stored credentials for a compatible engine instance
+    /// - Parameter compatibleId: The compatible engine identifier
+    func deleteCredentials(forCompatibleId compatibleId: String) throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: compatibleId
+        ]
+
+        let status = SecItemDelete(query as CFDictionary)
+
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            logger.error("Failed to delete credentials for \(compatibleId): \(status)")
+            throw KeychainError.unexpectedStatus(status)
+        }
+
+        logger.info("Deleted credentials for compatible engine \(compatibleId)")
+    }
+
     /// Delete all stored credentials
     func deleteAllCredentials() throws {
         let query: [String: Any] = [

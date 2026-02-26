@@ -12,6 +12,14 @@ struct MultiEngineSettingsSection: View {
     @State private var selectedEngine: TranslationEngineType?
     @State private var showingConfigSheet = false
     @State private var editingConfig: TranslationEngineConfig?
+    @State private var compatibleSheetState: CompatibleSheetState?
+
+    // Sheet state for compatible engine configuration
+    struct CompatibleSheetState: Identifiable {
+        let id = UUID()
+        let config: CompatibleTranslationProvider.CompatibleConfig
+        let index: Int
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -243,20 +251,25 @@ struct MultiEngineSettingsSection: View {
 
             // Group engines by category
             ForEach(EngineCategory.allCases, id: \.self) { category in
-                let enginesInCategory = TranslationEngineType.allCases.filter { $0.category == category }
-                if !enginesInCategory.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(category.localizedName)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                if category == .compatible {
+                    // Special handling for compatible engines - dynamic cards
+                    compatibleEnginesSection
+                } else {
+                    let enginesInCategory = TranslationEngineType.allCases.filter { $0.category == category }
+                    if !enginesInCategory.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(category.localizedName)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
 
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: 8) {
-                            ForEach(enginesInCategory, id: \.self) { engine in
-                                engineCard(engine)
+                            LazyVGrid(columns: [
+                                GridItem(.flexible()),
+                                GridItem(.flexible()),
+                                GridItem(.flexible())
+                            ], spacing: 8) {
+                                ForEach(enginesInCategory, id: \.self) { engine in
+                                    engineCard(engine)
+                                }
                             }
                         }
                     }
@@ -272,6 +285,143 @@ struct MultiEngineSettingsSection: View {
                     set: { viewModel.settings.engineConfigs[engine] = $0 }
                 )
             )
+        }
+        .sheet(item: $compatibleSheetState) { state in
+            CompatibleEngineConfigSheet(
+                config: state.config,
+                index: state.index,
+                isNew: state.index >= viewModel.settings.compatibleProviderConfigs.count,
+                onSave: { savedConfig in
+                    if state.index >= viewModel.settings.compatibleProviderConfigs.count {
+                        viewModel.settings.compatibleProviderConfigs.append(savedConfig)
+                    } else {
+                        viewModel.settings.compatibleProviderConfigs[state.index] = savedConfig
+                    }
+                }
+            )
+        }
+    }
+
+    // MARK: - Compatible Engines Section
+
+    @ViewBuilder
+    private var compatibleEnginesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(EngineCategory.compatible.localizedName)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            // Dynamic compatible engine cards
+            ForEach(Array(viewModel.settings.compatibleProviderConfigs.enumerated()), id: \.element.id) { index, config in
+                compatibleEngineCard(config: config, index: index)
+            }
+
+            // Add button (max 5 engines)
+            if viewModel.settings.compatibleProviderConfigs.count < 5 {
+                addCompatibleEngineButton
+            } else {
+                Text(localized("engine.compatible.max.reached"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func compatibleEngineCard(config: CompatibleTranslationProvider.CompatibleConfig, index: Int) -> some View {
+        Button {
+            compatibleSheetState = CompatibleSheetState(config: config, index: index)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "gearshape.2")
+                    .font(.body)
+                    .foregroundStyle(Color.accentColor)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(config.displayName)
+                        .font(.subheadline)
+                        .lineLimit(1)
+
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(config.hasAPIKey ? Color.green : Color.orange)
+                            .frame(width: 6, height: 6)
+                        Text(config.hasAPIKey ? localized("engine.status.configured") : localized("engine.status.unconfigured"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                // Delete button
+                Button {
+                    deleteCompatibleEngine(at: index)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                        .foregroundStyle(.red)
+                }
+                .buttonStyle(.plain)
+                .help(localized("engine.compatible.delete"))
+            }
+            .padding(8)
+            .background(Color.accentColor.opacity(0.1))
+            .cornerRadius(6)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(Color.accentColor, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private var addCompatibleEngineButton: some View {
+        Button {
+            compatibleSheetState = CompatibleSheetState(
+                config: CompatibleTranslationProvider.CompatibleConfig.default,
+                index: viewModel.settings.compatibleProviderConfigs.count
+            )
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "plus.circle")
+                    .font(.body)
+                Text(localized("engine.compatible.add"))
+                    .font(.subheadline)
+            }
+            .foregroundStyle(Color.accentColor)
+            .padding(8)
+            .frame(maxWidth: .infinity)
+            .background(Color(.controlBackgroundColor))
+            .cornerRadius(6)
+            .overlay(
+                RoundedRectangle(cornerRadius: 6)
+                    .stroke(style: SwiftUI.StrokeStyle(lineWidth: 1, dash: [4]))
+                    .foregroundStyle(Color.gray.opacity(0.3))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func deleteCompatibleEngine(at index: Int) {
+        // Delete credentials from keychain
+        Task {
+            let compositeId = "custom:\(index)"
+            try? await KeychainService.shared.deleteCredentials(forCompatibleId: compositeId)
+
+            // Shift credentials for remaining engines
+            for i in (index + 1)..<viewModel.settings.compatibleProviderConfigs.count {
+                let oldId = "custom:\(i)"
+                let newId = "custom:\(i - 1)"
+                if let creds = try? await KeychainService.shared.getCredentials(forCompatibleId: oldId) {
+                    try? await KeychainService.shared.saveCredentials(apiKey: creds.apiKey, forCompatibleId: newId)
+                    try? await KeychainService.shared.deleteCredentials(forCompatibleId: oldId)
+                }
+            }
+
+            await MainActor.run {
+                viewModel.settings.compatibleProviderConfigs.remove(at: index)
+            }
         }
     }
 

@@ -63,8 +63,8 @@ struct PromptSettingsView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            // LLM Engines that support custom prompts
-            let llmEngines: [TranslationEngineType] = [.openai, .claude, .gemini, .ollama, .custom]
+            // Built-in LLM Engines that support custom prompts
+            let llmEngines: [TranslationEngineType] = [.openai, .claude, .gemini, .ollama]
 
             ForEach(llmEngines, id: \.self) { engine in
                 HStack {
@@ -89,6 +89,40 @@ struct PromptSettingsView: View {
                     .controlSize(.small)
                 }
                 .padding(.vertical, 4)
+            }
+
+            // Compatible Engines (only show configured ones)
+            if !viewModel.settings.compatibleProviderConfigs.isEmpty {
+                Divider()
+
+                Text(localized("prompt.compatible.title"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                ForEach(Array(viewModel.settings.compatibleProviderConfigs.enumerated()), id: \.element.id) { index, config in
+                    HStack {
+                        Image(systemName: "gearshape.2")
+                            .frame(width: 24)
+
+                        Text(config.displayName)
+
+                        Spacer()
+
+                        // Show if custom prompt is set
+                        if let prompt = viewModel.settings.promptConfig.compatibleEnginePrompts[index], !prompt.isEmpty {
+                            Image(systemName: "pencil.circle.fill")
+                                .foregroundStyle(.tint)
+                        }
+
+                        Button(localized("prompt.button.edit")) {
+                            editingTarget = .compatibleEngine(index)
+                            editingPrompt = viewModel.settings.promptConfig.compatibleEnginePrompts[index] ?? ""
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                    .padding(.vertical, 4)
+                }
             }
         }
         .padding()
@@ -178,6 +212,12 @@ struct PromptSettingsView: View {
             } else {
                 config.enginePrompts[engine] = prompt
             }
+        case .compatibleEngine(let index):
+            if prompt.isEmpty {
+                config.compatibleEnginePrompts.removeValue(forKey: index)
+            } else {
+                config.compatibleEnginePrompts[index] = prompt
+            }
         case .scene(let scene):
             if prompt.isEmpty {
                 config.scenePrompts.removeValue(forKey: scene)
@@ -211,12 +251,15 @@ struct PromptSettingsView: View {
 
 enum PromptEditTarget: Identifiable {
     case engine(TranslationEngineType)
+    case compatibleEngine(Int)
     case scene(TranslationScene)
 
     var id: String {
         switch self {
         case .engine(let engine):
             return "engine-\(engine.rawValue)"
+        case .compatibleEngine(let index):
+            return "compatible-\(index)"
         case .scene(let scene):
             return "scene-\(scene.rawValue)"
         }
@@ -226,6 +269,8 @@ enum PromptEditTarget: Identifiable {
         switch self {
         case .engine(let engine):
             return engine.localizedName
+        case .compatibleEngine(let index):
+            return "Compatible Engine \(index + 1)"
         case .scene(let scene):
             return scene.localizedName
         }

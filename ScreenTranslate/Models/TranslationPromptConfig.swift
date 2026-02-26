@@ -12,14 +12,19 @@ struct TranslationPromptConfig: Codable, Equatable, Sendable {
     /// Per-engine custom prompts
     var enginePrompts: [TranslationEngineType: String]
 
+    /// Per-compatible-engine custom prompts (keyed by index: 0-4)
+    var compatibleEnginePrompts: [Int: String]
+
     /// Per-scene custom prompts
     var scenePrompts: [TranslationScene: String]
 
     init(
         enginePrompts: [TranslationEngineType: String] = [:],
+        compatibleEnginePrompts: [Int: String] = [:],
         scenePrompts: [TranslationScene: String] = [:]
     ) {
         self.enginePrompts = enginePrompts
+        self.compatibleEnginePrompts = compatibleEnginePrompts
         self.scenePrompts = scenePrompts
     }
 
@@ -89,12 +94,13 @@ struct TranslationPromptConfig: Codable, Equatable, Sendable {
 
     /// Check if there are any custom prompts configured
     var hasCustomPrompts: Bool {
-        !enginePrompts.isEmpty || !scenePrompts.isEmpty
+        !enginePrompts.isEmpty || !compatibleEnginePrompts.isEmpty || !scenePrompts.isEmpty
     }
 
     /// Reset to default prompts
     mutating func reset() {
         enginePrompts.removeAll()
+        compatibleEnginePrompts.removeAll()
         scenePrompts.removeAll()
     }
 }
