@@ -361,6 +361,7 @@
 "engine.config.enabled" = "启用此引擎";
 "engine.config.apiKey" = "API 密钥";
 "engine.config.apiKey.placeholder" = "输入您的 API 密钥";
+"engine.config.getApiKey" = "获取 API 密钥";
 "engine.config.baseURL" = "基础 URL";
 "engine.config.model" = "模型名称";
 "engine.config.test" = "测试连接";

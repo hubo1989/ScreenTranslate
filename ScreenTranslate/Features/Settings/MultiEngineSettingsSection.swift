@@ -151,7 +151,7 @@ struct MultiEngineSettingsSection: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            // Engine order list with drag-to-reorder
+            // Engine order list
             ForEach(Array(viewModel.settings.parallelEngines.enumerated()), id: \.element) { index, engine in
                 HStack(spacing: 8) {
                     // Order number
@@ -195,21 +195,11 @@ struct MultiEngineSettingsSection: View {
                         .buttonStyle(.plain)
                         .help(localized("engine.config.remove"))
                     }
-
-                    // Drag handle
-                    Image(systemName: "line.3.horizontal")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .contentShape(Rectangle())
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
                 .background(Color(.controlBackgroundColor))
                 .cornerRadius(6)
-                .moveDisabled(false)
-            }
-            .onMove { source, destination in
-                viewModel.settings.parallelEngines.move(fromOffsets: source, toOffset: destination)
             }
 
             // Add engine button if less than enabled engines

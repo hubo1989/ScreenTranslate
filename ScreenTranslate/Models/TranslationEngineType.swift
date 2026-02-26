@@ -212,6 +212,26 @@ enum TranslationEngineType: String, CaseIterable, Sendable, Codable, Identifiabl
             return nil
         }
     }
+
+    /// URL to get API key for this engine
+    var apiKeyURL: URL? {
+        switch self {
+        case .openai:
+            return URL(string: "https://platform.openai.com/api-keys")
+        case .claude:
+            return URL(string: "https://console.anthropic.com/settings/keys")
+        case .gemini:
+            return URL(string: "https://aistudio.google.com/apikey")
+        case .google:
+            return URL(string: "https://console.cloud.google.com/apis/credentials")
+        case .deepl:
+            return URL(string: "https://www.deepl.com/pro-api?cta=header-pro-api")
+        case .baidu:
+            return URL(string: "https://fanyi-api.baidu.com/api/trans/product/desktop?req=developer")
+        default:
+            return nil
+        }
+    }
 }
 
 /// Engine category for grouping in UI

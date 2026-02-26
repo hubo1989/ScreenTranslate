@@ -361,6 +361,7 @@
 "engine.config.enabled" = "Enable this engine";
 "engine.config.apiKey" = "API Key";
 "engine.config.apiKey.placeholder" = "Enter your API key";
+"engine.config.getApiKey" = "Get API Key";
 "engine.config.baseURL" = "Base URL";
 "engine.config.model" = "Model Name";
 "engine.config.test" = "Test Connection";

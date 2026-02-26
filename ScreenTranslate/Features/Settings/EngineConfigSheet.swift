@@ -137,9 +137,28 @@ struct EngineConfigSheet: View {
     @ViewBuilder
     private var apiKeySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(localized("engine.config.apiKey"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            HStack {
+                Text(localized("engine.config.apiKey"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                // Get API Key button
+                if let url = engine.apiKeyURL {
+                    Button {
+                        NSWorkspace.shared.open(url)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "link")
+                            Text(localized("engine.config.getApiKey"))
+                        }
+                        .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.tint)
+                }
+            }
 
             HStack {
                 if showAPIKey {
@@ -162,9 +181,28 @@ struct EngineConfigSheet: View {
     @ViewBuilder
     private var baiduCredentialsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(localized("engine.config.baidu.credentials"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            HStack {
+                Text(localized("engine.config.baidu.credentials"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                // Get API Key button
+                if let url = engine.apiKeyURL {
+                    Button {
+                        NSWorkspace.shared.open(url)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "link")
+                            Text(localized("engine.config.getApiKey"))
+                        }
+                        .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.tint)
+                }
+            }
 
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 8) {
                 GridRow {

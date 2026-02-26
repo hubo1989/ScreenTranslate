@@ -64,7 +64,7 @@ struct PromptSettingsView: View {
                 .foregroundStyle(.secondary)
 
             // LLM Engines that support custom prompts
-            let llmEngines: [TranslationEngineType] = [.openai, .claude, .ollama, .custom]
+            let llmEngines: [TranslationEngineType] = [.openai, .claude, .gemini, .ollama, .custom]
 
             ForEach(llmEngines, id: \.self) { engine in
                 HStack {
