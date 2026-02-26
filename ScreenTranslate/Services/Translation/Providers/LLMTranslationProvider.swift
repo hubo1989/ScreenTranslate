@@ -43,6 +43,8 @@ actor LLMTranslationProvider: TranslationProvider {
             self.name = "OpenAI Translation"
         case .claude:
             self.name = "Claude Translation"
+        case .gemini:
+            self.name = "Gemini Translation"
         case .ollama:
             self.name = "Ollama Translation"
         default:
@@ -168,7 +170,10 @@ actor LLMTranslationProvider: TranslationProvider {
 
     private func getCredentials() async throws -> StoredCredentials? {
         guard engineType.requiresAPIKey else { return nil }
-        return try await keychain.getCredentials(for: engineType)
+        guard let credentials = try await keychain.getCredentials(for: engineType) else {
+            throw TranslationProviderError.invalidConfiguration("API key required for \(engineType.rawValue)")
+        }
+        return credentials
     }
 
     private func buildPrompt(
@@ -203,38 +208,56 @@ actor LLMTranslationProvider: TranslationProvider {
         let baseURL = try getBaseURL()
         let modelName = getModelName()
 
-        var request = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = config.options?.timeout ?? 30
+        // Build endpoint and headers based on engine type
+        let endpoint: URL
+        var headers: [String: String] = ["Content-Type": "application/json"]
 
-        // Set up authentication
         switch engineType {
         case .claude:
+            // Claude uses /v1/messages endpoint
+            endpoint = baseURL.appendingPathComponent("v1/messages")
             if let apiKey = credentials?.apiKey {
-                request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
-                request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+                headers["x-api-key"] = apiKey
+                headers["anthropic-version"] = "2023-06-01"
             }
-        case .openai:
-            if let apiKey = credentials?.apiKey {
-                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            }
-        case .ollama:
-            // Ollama doesn't require auth
-            break
         default:
-            break
+            // OpenAI, Gemini, Ollama use /chat/completions endpoint
+            endpoint = baseURL.appendingPathComponent("chat/completions")
+            if let apiKey = credentials?.apiKey {
+                headers["Authorization"] = "Bearer \(apiKey)"
+            }
         }
 
-        // Build request body
-        let body: [String: Any] = [
-            "model": modelName,
-            "messages": [
-                ["role": "user", "content": prompt]
-            ],
-            "temperature": config.options?.temperature ?? 0.3,
-            "max_tokens": config.options?.maxTokens ?? 2048
-        ]
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = config.options?.timeout ?? 30
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+
+        // Build request body based on engine type
+        let body: [String: Any]
+        switch engineType {
+        case .claude:
+            // Claude API format
+            body = [
+                "model": modelName,
+                "max_tokens": config.options?.maxTokens ?? 2048,
+                "messages": [
+                    ["role": "user", "content": prompt]
+                ]
+            ]
+        default:
+            // OpenAI/Gemini/Ollama format
+            body = [
+                "model": modelName,
+                "messages": [
+                    ["role": "user", "content": prompt]
+                ],
+                "temperature": config.options?.temperature ?? 0.3,
+                "max_tokens": config.options?.maxTokens ?? 2048
+            ]
+        }
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
@@ -258,20 +281,31 @@ actor LLMTranslationProvider: TranslationProvider {
             throw TranslationProviderError.translationFailed("API error: \(httpResponse.statusCode)")
         }
 
-        // Parse response
-        return try parseResponse(data)
+        // Parse response based on engine type
+        return try parseResponse(data, for: engineType)
     }
 
-    private func parseResponse(_ data: Data) throws -> String {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
-              let firstChoice = choices.first,
-              let message = firstChoice["message"] as? [String: Any],
-              let content = message["content"] as? String else {
+    private func parseResponse(_ data: Data, for engineType: TranslationEngineType) throws -> String {
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw TranslationProviderError.translationFailed("Failed to parse response")
         }
 
-        return content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let content: String?
+
+        switch engineType {
+        case .claude:
+            content = (json["content"] as? [[String: Any]])?
+                .first?["text"] as? String
+        default:
+            content = ((json["choices"] as? [[String: Any]])?
+                .first?["message"] as? [String: Any])?["content"] as? String
+        }
+
+        guard let text = content else {
+            throw TranslationProviderError.translationFailed("Failed to parse response")
+        }
+
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func getBaseURL() throws -> URL {

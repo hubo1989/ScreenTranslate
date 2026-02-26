@@ -135,8 +135,15 @@ actor TranslationService {
 
         // Try fallback if enabled
         if fallbackEnabled {
-            // Use provided fallback engine, or default to alternating between apple and mtranServer
-            let actualFallback = fallbackEngine ?? (primaryEngine == .apple ? TranslationEngineType.mtranServer : TranslationEngineType.apple)
+            let actualFallback: TranslationEngineType
+            if let engine = fallbackEngine {
+                actualFallback = engine
+            } else if let scene = scene {
+                actualFallback = SceneEngineBinding.default(for: scene).fallbackEngine ?? .mtranServer
+            } else {
+                actualFallback = primaryEngine == .apple ? .mtranServer : .apple
+            }
+
             do {
                 let result = try await translateWithEngine(
                     actualFallback,
@@ -275,7 +282,7 @@ actor TranslationService {
         }
 
         // Apply custom prompt configuration if available
-        applyPromptConfig(
+        await applyPromptConfig(
             to: provider,
             engine: engine,
             scene: scene,
@@ -318,25 +325,20 @@ actor TranslationService {
         scene: TranslationScene?,
         sourceLanguage: String?,
         targetLanguage: String
-    ) {
-        // Only LLM providers support custom prompts
+    ) async {
         guard let llmProvider = provider as? LLMTranslationProvider else { return }
 
         let sceneToUse = scene ?? .screenshot
         let sourceLang = sourceLanguage ?? "auto"
 
-        // Get custom prompt for this engine and scene
         let customPrompt = promptConfig.promptPreview(
             for: engine,
             scene: sceneToUse,
             compatibleIndex: nil
         )
 
-        // Only apply if it's different from default
         if customPrompt != TranslationPromptConfig.defaultPrompt {
-            Task {
-                await llmProvider.setCustomPromptTemplate(customPrompt)
-            }
+            await llmProvider.setCustomPromptTemplate(customPrompt)
         }
     }
 

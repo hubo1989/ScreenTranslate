@@ -180,7 +180,7 @@ struct CompatibleEngineConfigSheet: View {
 
         // Load credentials from keychain
         Task {
-            let compositeId = config.compositeId(at: index)
+            let compositeId = config.keychainId
             if let credentials = try? await KeychainService.shared.getCredentials(forCompatibleId: compositeId) {
                 await MainActor.run {
                     apiKey = credentials.apiKey
@@ -205,7 +205,7 @@ struct CompatibleEngineConfigSheet: View {
 
         // Save credentials to keychain
         Task {
-            let compositeId = savedConfig.compositeId(at: index)
+            let compositeId = savedConfig.keychainId
             if hasAPIKey && !apiKey.isEmpty {
                 try? await KeychainService.shared.saveCredentials(apiKey: apiKey, forCompatibleId: compositeId)
             } else {
@@ -221,7 +221,7 @@ struct CompatibleEngineConfigSheet: View {
         do {
             // Save credentials temporarily for testing
             if hasAPIKey {
-                let compositeId = config.compositeId(at: index)
+                let compositeId = config.keychainId
                 try await KeychainService.shared.saveCredentials(apiKey: apiKey, forCompatibleId: compositeId)
             }
 

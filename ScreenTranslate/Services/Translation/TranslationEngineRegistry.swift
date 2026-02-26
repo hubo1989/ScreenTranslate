@@ -169,12 +169,13 @@ extension TranslationEngineRegistry {
         index: Int,
         forceRefresh: Bool = false
     ) async throws -> CompatibleTranslationProvider {
-        let compositeId = compatibleConfig.compositeId(at: index)
+        let compositeId = compatibleConfig.keychainId
 
-        // Check if already cached and not forcing refresh
-        // Note: We always recreate to pick up config changes (baseURL, modelName, etc.)
         if !forceRefresh, let existing = compatibleProviders[compositeId] {
-            return existing
+            if existing.configHash == compatibleConfig.configHash {
+                return existing
+            }
+            compatibleProviders.removeValue(forKey: compositeId)
         }
 
         let engineConfig = TranslationEngineConfig.default(for: .custom)
