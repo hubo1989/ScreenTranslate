@@ -274,6 +274,15 @@ actor TranslationService {
             throw TranslationProviderError.notAvailable
         }
 
+        // Apply custom prompt configuration if available
+        applyPromptConfig(
+            to: provider,
+            engine: engine,
+            scene: scene,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage
+        )
+
         let results = try await provider.translate(
             texts: segments,
             from: sourceLanguage,
@@ -300,6 +309,35 @@ actor TranslationService {
     /// Get current prompt configuration
     func getPromptConfig() -> TranslationPromptConfig {
         return promptConfig
+    }
+
+    /// Apply prompt configuration to a provider if supported
+    private func applyPromptConfig(
+        to provider: any TranslationProvider,
+        engine: TranslationEngineType,
+        scene: TranslationScene?,
+        sourceLanguage: String?,
+        targetLanguage: String
+    ) {
+        // Only LLM providers support custom prompts
+        guard let llmProvider = provider as? LLMTranslationProvider else { return }
+
+        let sceneToUse = scene ?? .screenshot
+        let sourceLang = sourceLanguage ?? "auto"
+
+        // Get custom prompt for this engine and scene
+        let customPrompt = promptConfig.promptPreview(
+            for: engine,
+            scene: sceneToUse,
+            compatibleIndex: nil
+        )
+
+        // Only apply if it's different from default
+        if customPrompt != TranslationPromptConfig.defaultPrompt {
+            Task {
+                await llmProvider.setCustomPromptTemplate(customPrompt)
+            }
+        }
     }
 
     // MARK: - Legacy API (Backward Compatible)

@@ -169,15 +169,19 @@ actor CompatibleTranslationProvider: TranslationProvider {
             }
         }
 
-        // Fallback
-        return texts.map { source in
-            TranslationResult(
-                sourceText: source,
-                translatedText: combinedResult.translatedText,
-                sourceLanguage: combinedResult.sourceLanguage,
-                targetLanguage: combinedResult.targetLanguage
+        // Split failed - translate individually to ensure correct mapping
+        logger.warning("Batch split failed, falling back to individual translations")
+        var results: [TranslationResult] = []
+        results.reserveCapacity(texts.count)
+        for text in texts {
+            let result = try await translate(
+                text: text,
+                from: sourceLanguage,
+                to: targetLanguage
             )
+            results.append(result)
         }
+        return results
     }
 
     func checkConnection() async -> Bool {

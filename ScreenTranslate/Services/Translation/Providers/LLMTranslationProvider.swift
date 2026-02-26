@@ -23,6 +23,9 @@ actor LLMTranslationProvider: TranslationProvider {
         category: "LLMTranslationProvider"
     )
 
+    // Custom prompt template (nil = use default)
+    private var customPromptTemplate: String?
+
     // MARK: - Initialization
 
     init(
@@ -123,15 +126,19 @@ actor LLMTranslationProvider: TranslationProvider {
             }
         }
 
-        // Fallback: return combined result for all texts
-        return texts.map { source in
-            TranslationResult(
-                sourceText: source,
-                translatedText: combinedResult.translatedText,
-                sourceLanguage: combinedResult.sourceLanguage,
-                targetLanguage: combinedResult.targetLanguage
+        // Split failed - translate individually to ensure correct mapping
+        logger.warning("Batch split failed, falling back to individual translations")
+        var results: [TranslationResult] = []
+        results.reserveCapacity(texts.count)
+        for text in texts {
+            let result = try await translate(
+                text: text,
+                from: sourceLanguage,
+                to: targetLanguage
             )
+            results.append(result)
         }
+        return results
     }
 
     func checkConnection() async -> Bool {
@@ -149,6 +156,14 @@ actor LLMTranslationProvider: TranslationProvider {
         }
     }
 
+    // MARK: - Custom Prompt
+
+    /// Set a custom prompt template for this provider
+    /// - Parameter template: The prompt template with {source_language}, {target_language}, {text} placeholders
+    func setCustomPromptTemplate(_ template: String?) {
+        self.customPromptTemplate = template
+    }
+
     // MARK: - Private Methods
 
     private func getCredentials() async throws -> StoredCredentials? {
@@ -162,6 +177,16 @@ actor LLMTranslationProvider: TranslationProvider {
         targetLanguage: String
     ) -> String {
         let source = sourceLanguage ?? "auto-detect"
+
+        // Use custom template if available
+        if let template = customPromptTemplate {
+            return template
+                .replacingOccurrences(of: "{source_language}", with: source)
+                .replacingOccurrences(of: "{target_language}", with: targetLanguage)
+                .replacingOccurrences(of: "{text}", with: text)
+        }
+
+        // Default prompt
         return """
             Translate the following text from \(source) to \(targetLanguage).
             Provide ONLY the translated text without any explanations, notes, or formatting.
@@ -221,8 +246,8 @@ actor LLMTranslationProvider: TranslationProvider {
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            logger.error("API error (\(httpResponse.statusCode)): \(errorMessage)")
+            // Log status code only to avoid exposing user text in logs
+            logger.error("API error status=\(httpResponse.statusCode)")
 
             if httpResponse.statusCode == 401 {
                 throw TranslationProviderError.invalidConfiguration("Invalid API key")

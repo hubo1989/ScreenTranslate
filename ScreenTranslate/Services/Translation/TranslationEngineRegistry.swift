@@ -100,12 +100,18 @@ actor TranslationEngineRegistry {
 extension TranslationEngineRegistry {
     /// Create and register a provider for an engine type
     /// This is used for engines that require configuration (LLM, cloud services)
+    /// - Parameters:
+    ///   - type: The engine type to create
+    ///   - config: The engine configuration
+    ///   - forceRefresh: Force recreation even if cached
+    /// - Returns: The created provider
     func createProvider(
         for type: TranslationEngineType,
-        config: TranslationEngineConfig
+        config: TranslationEngineConfig,
+        forceRefresh: Bool = false
     ) async throws -> any TranslationProvider {
-        // Check if already registered
-        if let existing = providers[type] {
+        // Check if already registered and not forcing refresh
+        if !forceRefresh, let existing = providers[type] {
             return existing
         }
 

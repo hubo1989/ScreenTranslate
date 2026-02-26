@@ -86,8 +86,8 @@ actor GoogleTranslationProvider: TranslationProvider {
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            logger.error("Google API error (\(httpResponse.statusCode)): \(errorMessage)")
+            // Log status code only to avoid exposing user text in logs
+            logger.error("Google API error status=\(httpResponse.statusCode)")
 
             if httpResponse.statusCode == 401 {
                 throw TranslationProviderError.invalidConfiguration("Invalid API key")
@@ -155,8 +155,15 @@ actor GoogleTranslationProvider: TranslationProvider {
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            logger.error("Google API error (\(httpResponse.statusCode)): \(errorMessage)")
+            // Log status code only to avoid exposing user text in logs
+            logger.error("Google API error status=\(httpResponse.statusCode)")
+
+            if httpResponse.statusCode == 401 {
+                throw TranslationProviderError.invalidConfiguration("Invalid API key")
+            } else if httpResponse.statusCode == 429 {
+                throw TranslationProviderError.rateLimited(retryAfter: nil)
+            }
+
             throw TranslationProviderError.translationFailed("API error: \(httpResponse.statusCode)")
         }
 

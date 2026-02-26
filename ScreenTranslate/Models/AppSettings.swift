@@ -400,9 +400,13 @@ final class AppSettings {
         onboardingCompleted = false
         translateAndInsertSourceLanguage = .auto
         translateAndInsertTargetLanguage = nil
-        // Reset multi-engine configuration
+        // Reset multi-engine configuration - directly create defaults, don't load from persistence
         engineSelectionMode = .primaryWithFallback
-        engineConfigs = Self.loadEngineConfigs()
+        var defaultConfigs: [TranslationEngineType: TranslationEngineConfig] = [:]
+        for type in TranslationEngineType.allCases {
+            defaultConfigs[type] = .default(for: type)
+        }
+        engineConfigs = defaultConfigs
         promptConfig = TranslationPromptConfig()
         sceneBindings = SceneEngineBinding.allDefaults
         parallelEngines = [.apple, .mtranServer]
@@ -527,7 +531,9 @@ final class AppSettings {
         guard let rawValues = UserDefaults.standard.array(forKey: Keys.parallelEngines) as? [String] else {
             return [.apple, .mtranServer]
         }
-        return rawValues.compactMap { TranslationEngineType(rawValue: $0) }
+        let engines = rawValues.compactMap { TranslationEngineType(rawValue: $0) }
+        // Return default if result is empty (dirty data case)
+        return engines.isEmpty ? [.apple, .mtranServer] : engines
     }
 
     private func saveCompatibleConfigs() {

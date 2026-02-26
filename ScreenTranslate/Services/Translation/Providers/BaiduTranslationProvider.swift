@@ -80,8 +80,8 @@ actor BaiduTranslationProvider: TranslationProvider {
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            logger.error("Baidu API error (\(httpResponse.statusCode)): \(errorMessage)")
+            // Log status code only to avoid exposing user text in logs
+            logger.error("Baidu API error status=\(httpResponse.statusCode)")
             throw TranslationProviderError.translationFailed("API error: \(httpResponse.statusCode)")
         }
 
