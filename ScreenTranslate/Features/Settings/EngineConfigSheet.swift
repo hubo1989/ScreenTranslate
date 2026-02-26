@@ -60,6 +60,11 @@ struct EngineConfigSheet: View {
                         }
                     }
 
+                    // MTranServer URL configuration
+                    if engine == .mtranServer {
+                        mtranServerURLSection
+                    }
+
                     // Base URL (if applicable)
                     if engine.defaultBaseURL != nil || engine == .custom {
                         baseURLSection
@@ -176,6 +181,18 @@ struct EngineConfigSheet: View {
                         .textFieldStyle(.roundedBorder)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var mtranServerURLSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(localized("engine.config.mtran.url"))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            TextField("http://localhost:8989", text: $baseURL)
+                .textFieldStyle(.roundedBorder)
         }
     }
 

@@ -113,7 +113,8 @@ struct MultiEngineSettingsSection: View {
     @ViewBuilder
     private func engineCard(_ engine: TranslationEngineType) -> some View {
         let config = viewModel.settings.engineConfigs[engine] ?? .default(for: engine)
-        let isConfigured = engine.requiresAPIKey ? false : true // Would check keychain
+        // Built-in engines and Ollama are always "ready", others need configuration
+        let isConfigured = !engine.requiresAPIKey
 
         Button {
             editingConfig = config
@@ -128,15 +129,14 @@ struct MultiEngineSettingsSection: View {
                         .font(.subheadline)
                         .lineLimit(1)
 
-                    if engine.requiresAPIKey {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(isConfigured ? Color.green : Color.orange)
-                                .frame(width: 6, height: 6)
-                            Text(isConfigured ? localized("engine.status.configured") : localized("engine.status.unconfigured"))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
+                    // Show status for all engines
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(isConfigured ? Color.green : Color.orange)
+                            .frame(width: 6, height: 6)
+                        Text(isConfigured ? localized("engine.status.configured") : localized("engine.status.unconfigured"))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
                 }
 

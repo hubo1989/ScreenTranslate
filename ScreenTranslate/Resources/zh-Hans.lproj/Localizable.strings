@@ -314,7 +314,7 @@
 "translation.engine.deepl.description" = "通过 DeepL API 获取高质量翻译";
 "translation.engine.baidu" = "百度翻译";
 "translation.engine.baidu.description" = "百度翻译 API";
-"translation.engine.custom" = "自定义";
+"translation.engine.custom" = "OpenAI 兼容";
 "translation.engine.custom.description" = "自定义 OpenAI 兼容端点";
 
 /* 引擎分类 */
@@ -354,6 +354,7 @@
 "engine.config.baidu.credentials" = "百度翻译凭证";
 "engine.config.baidu.appID" = "应用 ID";
 "engine.config.baidu.secretKey" = "密钥";
+"engine.config.mtran.url" = "服务器地址";
 
 /* 引擎状态 */
 "engine.status.configured" = "已配置";

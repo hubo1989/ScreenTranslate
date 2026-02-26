@@ -314,7 +314,7 @@
 "translation.engine.deepl.description" = "High-quality translation via DeepL API";
 "translation.engine.baidu" = "Baidu Translate";
 "translation.engine.baidu.description" = "Baidu Translation API";
-"translation.engine.custom" = "Custom";
+"translation.engine.custom" = "OpenAI Compatible";
 "translation.engine.custom.description" = "Custom OpenAI-compatible endpoint";
 
 /* Engine Categories */
@@ -354,6 +354,7 @@
 "engine.config.baidu.credentials" = "Baidu Credentials";
 "engine.config.baidu.appID" = "App ID";
 "engine.config.baidu.secretKey" = "Secret Key";
+"engine.config.mtran.url" = "Server URL";
 
 /* Engine Status */
 "engine.status.configured" = "Configured";
