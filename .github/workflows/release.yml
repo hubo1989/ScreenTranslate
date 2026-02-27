@@ -58,8 +58,34 @@ jobs:
           # Get file size
           DMG_SIZE=$(stat -f%z "$DMG_FILE")
           echo "dmg_size=$DMG_SIZE" >> $GITHUB_OUTPUT
+          echo "dmg_file=$DMG_FILE" >> $GITHUB_OUTPUT
 
           rm -rf dmg_temp
+
+      - name: Sign DMG for Sparkle
+        id: sign_dmg
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          DMG_FILE="${{ env.PROJECT_NAME }}-${VERSION}.dmg"
+          
+          # Find sign_update tool in derived data
+          SIGN_TOOL=$(find build/SourcePackages/artifacts -name "sign_update" -type f | head -1)
+          
+          if [ -z "$SIGN_TOOL" ]; then
+            echo "sign_update tool not found, checking alternative locations..."
+            SIGN_TOOL=$(find build -name "sign_update" -type f | head -1)
+          fi
+          
+          if [ -n "$SIGN_TOOL" ]; then
+            echo "Found sign_update at: $SIGN_TOOL"
+            # Sign the DMG and get the signature
+            SIGNATURE=$(echo "${{ secrets.SPARKLE_PRIVATE_KEY }}" | "$SIGN_TOOL" --ed-key-file - -p "$DMG_FILE" 2>&1)
+            echo "Signature: $SIGNATURE"
+            echo "signature=$SIGNATURE" >> $GITHUB_OUTPUT
+          else
+            echo "sign_update tool not found, skipping signing"
+            echo "signature=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Generate pubDate
         id: pubdate
@@ -79,6 +105,14 @@ jobs:
           DMG_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ env.PROJECT_NAME }}-${VERSION}.dmg"
           PUBDATE="${{ steps.pubdate.outputs.date }}"
           DMG_SIZE="${{ steps.create_dmg.outputs.dmg_size }}"
+          SIGNATURE="${{ steps.sign_dmg.outputs.signature }}"
+          
+          # Build enclosure tag with or without signature
+          if [ -n "$SIGNATURE" ]; then
+            ENCLOSURE="<enclosure url=\"${DMG_URL}\" length=\"${DMG_SIZE}\" type=\"application/octet-stream\" sparkle:edSignature=\"${SIGNATURE}\" />"
+          else
+            ENCLOSURE="<enclosure url=\"${DMG_URL}\" length=\"${DMG_SIZE}\" type=\"application/octet-stream\" />"
+          fi
 
           cat > appcast.xml << EOF
           <?xml version="1.0" encoding="utf-8"?>
@@ -94,12 +128,15 @@ jobs:
                 <sparkle:version>${BUILD_NUM}</sparkle:version>
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                 <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-                <enclosure url="${DMG_URL}" length="${DMG_SIZE}" type="application/octet-stream" />
+                ${ENCLOSURE}
                 <description><![CDATA[<p>Latest release of ScreenTranslate</p>]]></description>
               </item>
             </channel>
           </rss>
           EOF
+          
+          echo "Generated appcast.xml:"
+          cat appcast.xml
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

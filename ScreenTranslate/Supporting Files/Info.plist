@@ -34,5 +34,7 @@
 	<string>ScreenTranslate needs access to record your screen to capture and translate text.</string>
 	<key>SUFeedURL</key>
 	<string>https://github.com/hubo1989/ScreenTranslate/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>9QcgQ1StP4EbmhcOASM65vPQ64/QHGGFFLC39ww95DI=</string>
 </dict>
 </plist>
