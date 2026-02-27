@@ -85,6 +85,7 @@
 "menu.translation.mode" = "截图翻译";
 "menu.translation.history" = "翻译历史";
 "menu.settings" = "设置...";
+"menu.about" = "关于 ScreenTranslate";
 "menu.quit" = "退出 ScreenTranslate";
 
 
@@ -747,3 +748,22 @@
 
 /* 提示词配置 */
 "prompt.compatible.title" = "兼容引擎";
+
+
+/* ========================================
+   关于窗口
+   ======================================== */
+
+"about.title" = "关于 ScreenTranslate";
+"about.app.name" = "ScreenTranslate";
+"about.version.format" = "版本 %@ (%@)";
+"about.copyright" = "版权";
+"about.copyright.value" = "© 2026 保留所有权利";
+"about.license" = "许可证";
+"about.license.value" = "MIT 许可证";
+"about.github.link" = "GitHub: hubo1989/ScreenTranslate";
+"about.check.for.updates" = "检查更新";
+"about.acknowledgements" = "致谢";
+"about.acknowledgements.title" = "致谢";
+"about.acknowledgements.intro" = "本软件使用了以下开源库：";
+"about.close" = "关闭";

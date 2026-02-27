@@ -85,6 +85,7 @@
 "menu.translation.mode" = "Translation Mode";
 "menu.translation.history" = "Translation History";
 "menu.settings" = "Settings...";
+"menu.about" = "About ScreenTranslate";
 "menu.quit" = "Quit ScreenTranslate";
 
 
@@ -747,3 +748,23 @@
 
 /* Prompt Configuration */
 "prompt.compatible.title" = "Compatible Engines";
+
+
+/* ========================================
+   About Window
+   ======================================== */
+
+"about.title" = "About ScreenTranslate";
+"about.app.name" = "ScreenTranslate";
+"about.version.format" = "Version %@ (%@)";
+"about.copyright" = "Copyright";
+"about.copyright.value" = "© 2026 All rights reserved";
+"about.license" = "License";
+"about.license.value" = "MIT License";
+"about.github.link" = "GitHub: hubo1989/ScreenTranslate";
+"about.check.for.updates" = "Check for Updates";
+"about.acknowledgements" = "Acknowledgements";
+"about.acknowledgements.title" = "Acknowledgements";
+"about.acknowledgements.intro" = "This software uses the following open source libraries:";
+"about.close" = "Close";
+

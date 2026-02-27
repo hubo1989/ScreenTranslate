@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		868655F32F513DB5001A63FD /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 868655F22F513DB5001A63FD /* Sparkle */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		SC000001 /* ScreenTranslate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenTranslate.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				868655F32F513DB5001A63FD /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 			);
 			name = ScreenTranslate;
 			packageProductDependencies = (
+				868655F22F513DB5001A63FD /* Sparkle */,
 			);
 			productName = ScreenTranslate;
 			productReference = SC000001 /* ScreenTranslate.app */;
@@ -108,6 +114,9 @@
 			);
 			mainGroup = SC000004;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				868655F12F513DB5001A63FD /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = SC000005 /* Products */;
 			projectDirPath = "";
@@ -351,6 +360,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		868655F12F513DB5001A63FD /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		868655F22F513DB5001A63FD /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 868655F12F513DB5001A63FD /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = SC000010 /* Project object */;
 }
