@@ -46,7 +46,7 @@ actor CaptureManager {
     /// - Returns: True if permission is granted
     var hasPermission: Bool {
         get async {
-            await screenDetector.hasPermission()
+            screenDetector.hasPermission()
         }
     }
 

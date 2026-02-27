@@ -144,9 +144,9 @@ final class OnboardingViewModel {
     func checkPermissions() {
         hasAccessibilityPermission = AccessibilityPermissionChecker.hasPermission
 
-        // Check screen recording (uses SCShareableContent for reliable check)
+        // Check screen recording (CGPreflightScreenCaptureAccess does NOT trigger dialog)
         Task {
-            let granted = await ScreenDetector.shared.hasPermission()
+            let granted = ScreenDetector.shared.hasPermission()
             hasScreenRecordingPermission = granted
         }
     }
@@ -155,7 +155,7 @@ final class OnboardingViewModel {
     func requestScreenRecordingPermission() {
         Task {
             // Check current status first
-            let currentStatus = await ScreenDetector.shared.hasPermission()
+            let currentStatus = ScreenDetector.shared.hasPermission()
 
             if currentStatus {
                 hasScreenRecordingPermission = true
@@ -211,7 +211,7 @@ final class OnboardingViewModel {
 
                 switch type {
                 case .screenRecording:
-                    let granted = await ScreenDetector.shared.hasPermission()
+                    let granted = ScreenDetector.shared.hasPermission()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil
