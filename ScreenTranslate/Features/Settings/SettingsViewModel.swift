@@ -375,11 +375,34 @@ final class SettingsViewModel {
         // Check folder access permission by testing if we can write to the save location
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
 
-        // Check screen recording permission using CGPreflightScreenCaptureAccess
-        // This API is deprecated in macOS 15 but still works and does NOT trigger dialog
-        hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
+        // Check screen recording permission
+        // Try CGPreflightScreenCaptureAccess first, then fallback to window count check
+        hasScreenRecordingPermission = checkScreenRecordingPermission()
 
         isCheckingPermissions = false
+    }
+
+    /// Checks screen recording permission using multiple methods for reliability
+    private func checkScreenRecordingPermission() -> Bool {
+        // Method 1: CGPreflightScreenCaptureAccess (may not work in all cases)
+        if CGPreflightScreenCaptureAccess() {
+            return true
+        }
+
+        // Method 2: Check if we can see windows from other apps
+        // If we have permission, we should see windows from other apps
+        let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+
+        // Count windows from other processes
+        let otherAppWindows = windowList.filter { window in
+            guard let ownerPID = window[kCGWindowOwnerPID as String] as? Int32 else { return false }
+            return ownerPID != ownPID
+        }
+
+        // If we can see windows from other apps, we likely have permission
+        // (There should be at least a few windows from Finder, Dock, etc.)
+        return otherAppWindows.count > 3
     }
 
     /// Checks if we have write access to the specified folder

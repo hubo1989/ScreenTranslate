@@ -144,9 +144,30 @@ final class OnboardingViewModel {
     func checkPermissions() {
         hasAccessibilityPermission = AccessibilityPermissionChecker.hasPermission
 
-        // Check screen recording using CGPreflightScreenCaptureAccess
-        // This API is deprecated in macOS 15 but still works and does NOT trigger dialog
-        hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
+        // Check screen recording permission using multiple methods for reliability
+        hasScreenRecordingPermission = checkScreenRecordingPermission()
+    }
+
+    /// Checks screen recording permission using multiple methods for reliability
+    private func checkScreenRecordingPermission() -> Bool {
+        // Method 1: CGPreflightScreenCaptureAccess (may not work in all cases)
+        if CGPreflightScreenCaptureAccess() {
+            return true
+        }
+
+        // Method 2: Check if we can see windows from other apps
+        // If we have permission, we should see windows from other apps
+        let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+
+        // Count windows from other processes
+        let otherAppWindows = windowList.filter { window in
+            guard let ownerPID = window[kCGWindowOwnerPID as String] as? Int32 else { return false }
+            return ownerPID != ownPID
+        }
+
+        // If we can see windows from other apps, we likely have permission
+        return otherAppWindows.count > 3
     }
 
     /// Requests screen recording permission
@@ -213,8 +234,8 @@ final class OnboardingViewModel {
 
                 switch type {
                 case .screenRecording:
-                    // Use CGPreflightScreenCaptureAccess to check without triggering dialog
-                    let granted = CGPreflightScreenCaptureAccess()
+                    // Use multiple methods to check permission without triggering dialog
+                    let granted = checkScreenRecordingPermission()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil
