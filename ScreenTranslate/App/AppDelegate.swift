@@ -67,6 +67,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Check PaddleOCR availability in background (non-blocking)
         PaddleOCRChecker.checkAvailabilityAsync()
 
+        // Initialize updater controller to register notification observer
+        _ = updaterController
+
         Logger.general.info("ScreenTranslate launched - settings loaded from: \(self.settings.saveLocation.path)")
     }
 
@@ -162,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Checks for app updates via Sparkle
     @objc func checkForUpdates(_ sender: Any?) {
-        Logger.ui.debug("Checking for updates")
+        Logger.ui.info("Check for updates triggered")
         // Activate the app to ensure Sparkle's window is visible
         NSApp.activate(ignoringOtherApps: true)
         updaterController.checkForUpdates(sender)
@@ -248,23 +251,6 @@ extension AppDelegate: SPUUpdaterDelegate {
 
     nonisolated func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
         Logger.ui.info("Sparkle: didNotFindUpdate")
-        // Show alert on main thread
-        Task { @MainActor in
-            let alert = NSAlert()
-            alert.messageText = NSLocalizedString(
-                "update.up.to.date.title",
-                value: "You're up to date!",
-                comment: "Alert title when no update found"
-            )
-            alert.informativeText = NSLocalizedString(
-                "update.up.to.date.message",
-                value: "ScreenTranslate is already the latest version.",
-                comment: "Alert message when no update found"
-            )
-            alert.alertStyle = .informational
-            alert.addButton(withTitle: NSLocalizedString("error.ok", comment: "OK"))
-            alert.runModal()
-        }
     }
 
     nonisolated func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
