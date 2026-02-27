@@ -375,12 +375,11 @@ final class SettingsViewModel {
         // Check folder access permission by testing if we can write to the save location
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
 
-        // Check screen recording permission (cached to avoid repeated dialogs)
-        Task {
-            let screenRecordingGranted = await ScreenDetector.shared.hasPermission()
-            hasScreenRecordingPermission = screenRecordingGranted
-            isCheckingPermissions = false
-        }
+        // Check screen recording permission using CGPreflightScreenCaptureAccess
+        // This API is deprecated in macOS 15 but still works and does NOT trigger dialog
+        hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
+
+        isCheckingPermissions = false
     }
 
     /// Checks if we have write access to the specified folder
@@ -397,22 +396,26 @@ final class SettingsViewModel {
         return fileManager.isWritableFile(atPath: url.path)
     }
 
-    /// Requests screen recording permission - opens System Settings
+    /// Requests screen recording permission
     func requestScreenRecordingPermission() {
-        Task {
-            // Check current permission status first
-            let currentStatus = await ScreenDetector.shared.hasPermission()
-
-            if currentStatus {
-                hasScreenRecordingPermission = true
-                return
-            }
-
-            // Open System Settings for screen recording
-            openScreenRecordingSettings()
-            // Note: We don't auto-poll anymore to avoid repeated dialogs
-            // User can click the permission button again after granting in System Settings
+        // First check if already granted
+        if CGPreflightScreenCaptureAccess() {
+            hasScreenRecordingPermission = true
+            return
         }
+
+        // Request permission - CGRequestScreenCaptureAccess() returns true if granted
+        let granted = CGRequestScreenCaptureAccess()
+        if granted {
+            hasScreenRecordingPermission = true
+            return
+        }
+
+        // If not granted, open System Settings
+        openScreenRecordingSettings()
+
+        // Start polling for permission status
+        startPermissionCheck(for: .screenRecording)
     }
 
     /// Opens System Settings for screen recording permission
@@ -460,9 +463,8 @@ final class SettingsViewModel {
 
                 switch type {
                 case .screenRecording:
-                    // Use cached check to avoid repeated dialogs
-                    // User needs to click "Check Again" button after granting in System Settings
-                    let granted = await ScreenDetector.shared.hasPermission()
+                    // Use CGPreflightScreenCaptureAccess to check without triggering dialog
+                    let granted = CGPreflightScreenCaptureAccess()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil
