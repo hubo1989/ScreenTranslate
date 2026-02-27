@@ -375,9 +375,9 @@ final class SettingsViewModel {
         // Check folder access permission by testing if we can write to the save location
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
 
-        // Check screen recording permission (CGPreflightScreenCaptureAccess does NOT trigger dialog)
+        // Check screen recording permission (cached to avoid repeated dialogs)
         Task {
-            let screenRecordingGranted = ScreenDetector.shared.hasPermission()
+            let screenRecordingGranted = await ScreenDetector.shared.hasPermission()
             hasScreenRecordingPermission = screenRecordingGranted
             isCheckingPermissions = false
         }
@@ -400,8 +400,8 @@ final class SettingsViewModel {
     /// Requests screen recording permission - opens System Settings
     func requestScreenRecordingPermission() {
         Task {
-            // Check current permission status first
-            let currentStatus = ScreenDetector.shared.hasPermission()
+            // Check current permission status first (force refresh)
+            let currentStatus = await ScreenDetector.shared.refreshPermissionStatus()
 
             if currentStatus {
                 hasScreenRecordingPermission = true
@@ -460,7 +460,8 @@ final class SettingsViewModel {
 
                 switch type {
                 case .screenRecording:
-                    let granted = ScreenDetector.shared.hasPermission()
+                    // Force refresh to get latest status from system
+                    let granted = await ScreenDetector.shared.refreshPermissionStatus()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil

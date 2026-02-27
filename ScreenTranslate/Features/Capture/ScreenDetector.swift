@@ -36,6 +36,9 @@ actor ScreenDetector {
     /// Cache validity duration (5 seconds)
     private let cacheValidityDuration: TimeInterval = 5.0
 
+    /// Cached permission status - only check once to avoid repeated dialogs
+    private var cachedPermissionStatus: Bool?
+
     // MARK: - Initialization
 
     private init() {}
@@ -119,14 +122,36 @@ actor ScreenDetector {
     }
 
     /// Checks if the app has screen recording permission.
-    /// Uses CGPreflightScreenCaptureAccess which does NOT trigger system dialog.
+    /// Uses cached result to avoid repeated system dialogs.
+    /// On first call, uses SCShareableContent to check (may trigger dialog if no permission).
     /// - Parameter silent: If true, suppresses logging (default: true)
     /// - Returns: True if permission is granted
-    nonisolated func hasPermission(silent: Bool = true) -> Bool {
-        // CGPreflightScreenCaptureAccess checks permission without triggering dialog
-        let granted = CGPreflightScreenCaptureAccess()
-        if !silent { print("[ScreenDetector] Permission check: \(granted ? "granted" : "denied")") }
-        return granted
+    func hasPermission(silent: Bool = true) async -> Bool {
+        // Return cached result if available
+        if let cached = cachedPermissionStatus {
+            if !silent { print("[ScreenDetector] Permission check (cached): \(cached ? "granted" : "denied")") }
+            return cached
+        }
+
+        // First check: try SCShareableContent
+        do {
+            let content = try await SCShareableContent.current
+            let granted = !content.displays.isEmpty
+            cachedPermissionStatus = granted
+            if !silent { print("[ScreenDetector] Permission check (fresh): \(granted ? "granted" : "denied")") }
+            return granted
+        } catch {
+            // Permission denied or error
+            cachedPermissionStatus = false
+            if !silent { print("[ScreenDetector] Permission check (error): denied - \(error.localizedDescription)") }
+            return false
+        }
+    }
+
+    /// Forces a fresh permission check (clears cache)
+    func refreshPermissionStatus() async -> Bool {
+        cachedPermissionStatus = nil
+        return await hasPermission()
     }
 
     /// Triggers the system permission dialog for screen recording.
