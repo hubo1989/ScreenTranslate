@@ -1,6 +1,7 @@
 import AppKit
 import os
 import UserNotifications
+import Sparkle
 
 /// Application delegate responsible for menu bar setup, coordinator management, and app lifecycle.
 /// Runs on the main actor to ensure thread-safe UI operations.
@@ -21,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var menuBarController: MenuBarController?
     private let settings = AppSettings.shared
+    private var updaterController: SPUStandardUpdaterController!
 
     // MARK: - NSApplicationDelegate
 
@@ -49,6 +51,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Check PaddleOCR availability in background (non-blocking)
         PaddleOCRChecker.checkAvailabilityAsync()
+
+        // Initialize Sparkle updater
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+
+        // Listen for check for updates notification from About window
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(checkForUpdates(_:)),
+            name: .checkForUpdates,
+            object: nil
+        )
 
         Logger.general.info("ScreenTranslate launched - settings loaded from: \(self.settings.saveLocation.path)")
     }
@@ -174,6 +191,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Logger.ui.debug("Opening about window")
 
         AboutWindowController.shared.showAbout()
+    }
+
+    /// Checks for app updates via Sparkle
+    @objc func checkForUpdates(_ sender: Any?) {
+        Logger.ui.debug("Checking for updates")
+        updaterController.checkForUpdates(sender)
     }
 
     /// Opens the translation history window
