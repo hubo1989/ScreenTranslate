@@ -94,7 +94,7 @@ jobs:
                 <sparkle:version>${BUILD_NUM}</sparkle:version>
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                 <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-                <enclosure url="${DMG_URL}" length="${DMG_SIZE}" type="application/octet-stream" sparkle:edSignature="" />
+                <enclosure url="${DMG_URL}" length="${DMG_SIZE}" type="application/octet-stream" />
                 <description><![CDATA[<p>Latest release of ScreenTranslate</p>]]></description>
               </item>
             </channel>
