@@ -85,6 +85,7 @@
 "menu.translation.mode" = "Translation Mode";
 "menu.translation.history" = "Translation History";
 "menu.settings" = "Settings...";
+"menu.about" = "About ScreenTranslate";
 "menu.quit" = "Quit ScreenTranslate";
 
 
@@ -747,3 +748,18 @@
 
 /* Prompt Configuration */
 "prompt.compatible.title" = "Compatible Engines";
+
+
+/* ========================================
+   About Window
+   ======================================== */
+
+"about.title" = "About ScreenTranslate";
+"about.copyright" = "Copyright";
+"about.license" = "License";
+"about.check.for.updates" = "Check for Updates";
+"about.acknowledgements" = "Acknowledgements";
+"about.acknowledgements.title" = "Acknowledgements";
+"about.acknowledgements.intro" = "This software uses the following open source libraries:";
+"about.close" = "Close";
+

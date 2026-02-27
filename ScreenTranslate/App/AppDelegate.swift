@@ -169,6 +169,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsWindowController.shared.showSettings(appDelegate: self)
     }
 
+    /// Opens the about window
+    @objc func openAbout() {
+        Logger.ui.debug("Opening about window")
+
+        AboutWindowController.shared.showAbout()
+    }
+
     /// Opens the translation history window
     @objc func openHistory() {
         Logger.ui.debug("Opening translation history window")
