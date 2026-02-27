@@ -32,7 +32,6 @@ final class AboutWindowController: NSObject {
         window.center()
         window.isReleasedWhenClosed = false
         window.delegate = self
-        window.level = .floating
 
         self.window = window
         window.makeKeyAndOrderFront(nil)
