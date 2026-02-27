@@ -176,6 +176,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Checks for app updates via Sparkle
     @objc func checkForUpdates(_ sender: Any?) {
         Logger.ui.debug("Checking for updates")
+        // Activate the app to ensure Sparkle's window is visible
+        NSApp.activate(ignoringOtherApps: true)
         updaterController.checkForUpdates(sender)
     }
 
