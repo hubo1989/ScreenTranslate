@@ -42,6 +42,17 @@ struct PermissionRow: View {
             Divider()
 
             PermissionItem(
+                icon: "figure.walk.circle",
+                title: localized("settings.permission.accessibility"),
+                hint: localized("settings.permission.accessibility.hint"),
+                isGranted: viewModel.hasAccessibilityPermission,
+                isChecking: viewModel.isCheckingPermissions,
+                onGrant: { viewModel.requestAccessibilityPermission() }
+            )
+
+            Divider()
+
+            PermissionItem(
                 icon: "folder",
                 title: localized("settings.save.location"),
                 hint: localized("settings.save.location.message"),
@@ -59,6 +70,9 @@ struct PermissionRow: View {
                 }
                 .buttonStyle(.borderless)
             }
+        }
+        .onAppear {
+            viewModel.checkPermissions()
         }
     }
 }

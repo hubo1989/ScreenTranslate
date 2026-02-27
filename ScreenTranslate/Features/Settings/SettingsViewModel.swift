@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import AppKit
 import Carbon.HIToolbox
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 
 // MARK: - Shortcut Recording Type
 
@@ -70,11 +70,20 @@ final class SettingsViewModel {
     /// Screen recording permission status
     var hasScreenRecordingPermission: Bool = false
 
+    /// Accessibility permission status
+    var hasAccessibilityPermission: Bool = false
+
     /// Folder access permission status
     var hasFolderAccessPermission: Bool = false
 
     /// Whether permission check is in progress
     var isCheckingPermissions: Bool = false
+
+    /// Type of permission being requested
+    enum PermissionType {
+        case screenRecording
+        case accessibility
+    }
 
     /// Whether PaddleOCR is installed
     var isPaddleOCRInstalled: Bool = false
@@ -353,11 +362,21 @@ final class SettingsViewModel {
     // MARK: - Permission Checking
 
     /// Checks all required permissions and updates status
+    /// Note: Screen recording permission is NOT auto-checked as it may trigger system dialog
     func checkPermissions() {
         isCheckingPermissions = true
 
-        // Check screen recording permission using CGPreflightScreenCaptureAccess
-        hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
+        // Check accessibility permission using AXIsProcessTrusted() without any prompt
+        let accessibilityGranted = AXIsProcessTrusted()
+        hasAccessibilityPermission = accessibilityGranted
+
+        // Check screen recording permission (CGPreflightScreenCaptureAccess does NOT trigger dialog)
+        Task {
+            let screenRecordingGranted = await ScreenDetector.shared.hasPermission()
+            await MainActor.run {
+                hasScreenRecordingPermission = screenRecordingGranted
+            }
+        }
 
         // Check folder access permission by testing if we can write to the save location
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
@@ -379,20 +398,77 @@ final class SettingsViewModel {
         return fileManager.isWritableFile(atPath: url.path)
     }
 
-    /// Requests screen recording permission or opens System Settings
+    /// Requests screen recording permission - opens System Settings
     func requestScreenRecordingPermission() {
-        // First try to request permission (this triggers the system prompt if not asked before)
-        let hasAccess = CGRequestScreenCaptureAccess()
+        Task {
+            // Check current permission status first
+            let currentStatus = await ScreenDetector.shared.hasPermission()
 
-        if !hasAccess {
-            // If no access, open System Settings to the Screen Recording pane
-            openScreenRecordingSettings()
+            if currentStatus {
+                await MainActor.run { hasScreenRecordingPermission = true }
+                return
+            }
+
+            // Open System Settings for screen recording
+            await MainActor.run { openScreenRecordingSettings() }
+            // Start checking for permission
+            startPermissionCheck(for: .screenRecording)
+        }
+    }
+
+    /// Opens System Settings for screen recording permission
+    func openScreenRecordingSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Requests accessibility permission - triggers system dialog only
+    func requestAccessibilityPermission() {
+        // Check current status first
+        if AXIsProcessTrusted() {
+            hasAccessibilityPermission = true
+            return
         }
 
-        // Recheck permissions after a short delay
+        // Request accessibility - triggers system dialog (will guide user to settings if needed)
+        let options: CFDictionary = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+        // Start checking for permission
+        startPermissionCheck(for: .accessibility)
+    }
+
+    /// Opens System Settings for accessibility permission
+    func openAccessibilitySettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Starts checking for permission status periodically
+    private func startPermissionCheck(for type: PermissionType) {
         Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            checkPermissions()
+            for _ in 0..<60 {  // Check for up to 30 seconds
+                try? await Task.sleep(for: .milliseconds(500))
+
+                switch type {
+                case .screenRecording:
+                    let granted = await ScreenDetector.shared.hasPermission()
+                    await MainActor.run {
+                        if granted {
+                            hasScreenRecordingPermission = true
+                        }
+                    }
+                    if granted { return }
+
+                case .accessibility:
+                    let granted = AXIsProcessTrusted()
+                    await MainActor.run {
+                        hasAccessibilityPermission = granted
+                    }
+                    if granted { return }
+                }
+            }
         }
     }
 
@@ -425,13 +501,6 @@ final class SettingsViewModel {
 
         // Recheck permissions
         checkPermissions()
-    }
-
-    /// Opens System Settings to the Screen Recording privacy pane
-    func openScreenRecordingSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            NSWorkspace.shared.open(url)
-        }
     }
 
     // MARK: - Actions

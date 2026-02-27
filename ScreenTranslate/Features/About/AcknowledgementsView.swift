@@ -7,6 +7,12 @@ struct AcknowledgementsView: View {
         ("Sparkle", "MIT", "https://github.com/sparkle-project/Sparkle"),
     ]
 
+    private let upstreamProject: (name: String, author: String, url: String) = (
+        "ScreenCapture",
+        "sadopc",
+        "https://github.com/sadopc/ScreenCapture"
+    )
+
     var body: some View {
         VStack(spacing: 0) {
             headerView
@@ -15,7 +21,7 @@ struct AcknowledgementsView: View {
             Divider()
             footerView
         }
-        .frame(width: 450, height: 400)
+        .frame(width: 450, height: 450)
         .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
     }
 
@@ -42,6 +48,11 @@ struct AcknowledgementsView: View {
     private var listView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                // Upstream project section
+                upstreamSection
+
+                Divider()
+
                 Text(NSLocalizedString("about.acknowledgements.intro", comment: "This software uses the following open source libraries:"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -51,6 +62,45 @@ struct AcknowledgementsView: View {
                 }
             }
             .padding(20)
+        }
+    }
+
+    private var upstreamSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(NSLocalizedString("about.acknowledgements.upstream", comment: "Based on"))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(upstreamProject.name)
+                        .font(.headline)
+
+                    Spacer()
+
+                    Text("by \(upstreamProject.author)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let url = URL(string: upstreamProject.url) {
+                    Link(destination: url) {
+                        Text(upstreamProject.url)
+                            .font(.caption)
+                            .foregroundStyle(.link)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(12)
+            .background(Color.accentColor.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.accentColor.opacity(0.2), lineWidth: 1)
+            )
         }
     }
 

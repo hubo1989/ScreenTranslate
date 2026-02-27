@@ -235,6 +235,11 @@
 "settings.permission.granted" = "已授权";
 "settings.permission.not.granted" = "未授权";
 "settings.permission.grant" = "授权";
+"settings.permission.authorization.title" = "需要授权";
+"settings.permission.authorization.cancel" = "取消";
+"settings.permission.authorization.go" = "去授权";
+"settings.permission.authorization.screen.message" = "需要屏幕录制权限。点击「去授权」打开系统设置，为本应用启用屏幕录制权限。";
+"settings.permission.authorization.accessibility.message" = "需要辅助功能权限。点击「去授权」打开系统设置，将本应用添加到辅助功能列表中。";
 
 /* 保存位置 */
 "settings.save.location" = "保存位置";
@@ -763,7 +768,12 @@
 "about.license.value" = "MIT 许可证";
 "about.github.link" = "GitHub: hubo1989/ScreenTranslate";
 "about.check.for.updates" = "检查更新";
+"about.update.checking" = "检查中...";
+"about.update.available" = "有新版本";
+"about.update.uptodate" = "已是最新版本";
+"about.update.failed" = "检查失败";
 "about.acknowledgements" = "致谢";
 "about.acknowledgements.title" = "致谢";
 "about.acknowledgements.intro" = "本软件使用了以下开源库：";
+"about.acknowledgements.upstream" = "基于";
 "about.close" = "关闭";

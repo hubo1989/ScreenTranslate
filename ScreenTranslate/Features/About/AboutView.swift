@@ -1,7 +1,12 @@
 import SwiftUI
+import Sparkle
+import Combine
 
 struct AboutView: View {
     @State private var showingAcknowledgements = false
+    @State private var isCheckingUpdates = false
+    @State private var updateStatus: String?
+    @State private var updateAvailable = false
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
@@ -17,12 +22,35 @@ struct AboutView: View {
             Divider()
             infoSection
             Divider()
+            updateStatusSection
+            Divider()
             buttonSection
         }
         .frame(width: 400)
         .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
         .sheet(isPresented: $showingAcknowledgements) {
             AcknowledgementsView()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterDidStartCheckingForUpdates"))) { _ in
+            isCheckingUpdates = true
+            updateStatus = nil
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterDidFinishCheckingForUpdates"))) { _ in
+            isCheckingUpdates = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterDidUpdateStatus"))) { _ in
+            isCheckingUpdates = false
+            updateAvailable = true
+            updateStatus = NSLocalizedString("about.update.available", comment: "Update available")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterNoUpdateAvailable"))) { _ in
+            isCheckingUpdates = false
+            updateAvailable = false
+            updateStatus = NSLocalizedString("about.update.uptodate", comment: "You're up to date")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterDidFailToCheckForUpdates"))) { _ in
+            isCheckingUpdates = false
+            updateStatus = NSLocalizedString("about.update.failed", comment: "Check failed")
         }
     }
 
@@ -99,17 +127,49 @@ struct AboutView: View {
         }
     }
 
+    private var updateStatusSection: some View {
+        HStack(spacing: 8) {
+            if isCheckingUpdates {
+                ProgressView()
+                    .controlSize(.small)
+                Text(LocalizedStringKey("about.update.checking"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else if let status = updateStatus {
+                Image(systemName: updateAvailable ? "arrow.down.circle.fill" : "checkmark.circle.fill")
+                    .foregroundStyle(updateAvailable ? .blue : .green)
+                Text(status)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+    }
+
     private var buttonSection: some View {
         HStack(spacing: 12) {
             Button {
+                isCheckingUpdates = true
+                updateStatus = nil
                 // Check for updates action - will be connected to Sparkle
                 NotificationCenter.default.post(name: .checkForUpdates, object: nil)
             } label: {
-                Label(
-                    NSLocalizedString("about.check.for.updates", comment: "Check for Updates"),
-                    systemImage: "arrow.clockwise"
-                )
+                if isCheckingUpdates {
+                    HStack(spacing: 4) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(LocalizedStringKey("about.update.checking"))
+                    }
+                } else {
+                    Label(
+                        NSLocalizedString("about.check.for.updates", comment: "Check for Updates"),
+                        systemImage: "arrow.clockwise"
+                    )
+                }
             }
+            .disabled(isCheckingUpdates)
 
             Button {
                 showingAcknowledgements = true

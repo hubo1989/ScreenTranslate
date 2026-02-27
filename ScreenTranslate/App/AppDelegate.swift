@@ -86,30 +86,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Check if we already have permission
         let hasPermission = await CaptureManager.shared.hasPermission
 
+        // Don't auto-request permission on launch - let user do it in Settings
+        // This avoids multiple dialogs
         if !hasPermission {
-            // Show an explanatory alert before triggering the system prompt - already @MainActor
-            showPermissionExplanationAlert()
-        }
-    }
-
-    /// Shows an alert explaining why screen recording permission is needed.
-    private func showPermissionExplanationAlert() {
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = NSLocalizedString(
-            "permission.prompt.title",
-            comment: "Screen Recording Permission Required"
-        )
-        alert.informativeText = NSLocalizedString("permission.prompt.message", comment: "")
-        alert.addButton(withTitle: NSLocalizedString("permission.prompt.continue", comment: "Continue"))
-        alert.addButton(withTitle: NSLocalizedString("permission.prompt.later", comment: "Later"))
-
-        let response = alert.runModal()
-        if response == .alertFirstButtonReturn {
-            // Trigger the system permission prompt by attempting a capture
-            Task {
-                _ = await CaptureManager.shared.requestPermission()
-            }
+            Logger.general.info("Screen recording permission not granted. User can enable in Settings.")
         }
     }
 
