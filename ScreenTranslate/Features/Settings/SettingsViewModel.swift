@@ -377,7 +377,7 @@ final class SettingsViewModel {
 
         // Check screen recording permission (CGPreflightScreenCaptureAccess does NOT trigger dialog)
         Task {
-            let screenRecordingGranted = await ScreenDetector.shared.hasPermission()
+            let screenRecordingGranted = ScreenDetector.shared.hasPermission()
             hasScreenRecordingPermission = screenRecordingGranted
             isCheckingPermissions = false
         }
@@ -401,7 +401,7 @@ final class SettingsViewModel {
     func requestScreenRecordingPermission() {
         Task {
             // Check current permission status first
-            let currentStatus = await ScreenDetector.shared.hasPermission()
+            let currentStatus = ScreenDetector.shared.hasPermission()
 
             if currentStatus {
                 hasScreenRecordingPermission = true
@@ -460,7 +460,7 @@ final class SettingsViewModel {
 
                 switch type {
                 case .screenRecording:
-                    let granted = await ScreenDetector.shared.hasPermission()
+                    let granted = ScreenDetector.shared.hasPermission()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil
