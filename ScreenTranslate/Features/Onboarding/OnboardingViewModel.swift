@@ -154,8 +154,8 @@ final class OnboardingViewModel {
     /// Requests screen recording permission - opens System Settings
     func requestScreenRecordingPermission() {
         Task {
-            // Check current status first (force refresh)
-            let currentStatus = await ScreenDetector.shared.refreshPermissionStatus()
+            // Check current status first
+            let currentStatus = await ScreenDetector.shared.hasPermission()
 
             if currentStatus {
                 hasScreenRecordingPermission = true
@@ -164,8 +164,8 @@ final class OnboardingViewModel {
 
             // Open System Settings for screen recording
             openScreenRecordingSettings()
-            // Start checking for permission
-            startPermissionCheck(for: .screenRecording)
+            // Note: We don't auto-poll anymore to avoid repeated dialogs
+            // User can click the permission button again after granting in System Settings
         }
     }
 
@@ -211,8 +211,9 @@ final class OnboardingViewModel {
 
                 switch type {
                 case .screenRecording:
-                    // Force refresh to get latest status from system
-                    let granted = await ScreenDetector.shared.refreshPermissionStatus()
+                    // Use cached check to avoid repeated dialogs
+                    // User needs to click "Check Again" button after granting in System Settings
+                    let granted = await ScreenDetector.shared.hasPermission()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil
