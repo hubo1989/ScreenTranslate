@@ -40,8 +40,8 @@ jobs:
       - name: Create DMG
         id: create_dmg
         run: |
-          # Ensure ad-hoc signing for the app bundle
-          codesign --force --sign - build/Build/Products/Release/${{ env.PROJECT_NAME }}.app
+          # Ensure ad-hoc signing for the entire app bundle (including frameworks)
+          codesign --force --sign - --deep build/Build/Products/Release/${{ env.PROJECT_NAME }}.app
 
           mkdir -p dmg_temp
           cp -R build/Build/Products/Release/${{ env.PROJECT_NAME }}.app dmg_temp/
