@@ -26,7 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var updaterController: SPUStandardUpdaterController = {
         let controller = SPUStandardUpdaterController(
             startingUpdater: true,
-            updaterDelegate: nil,
+            updaterDelegate: self,
             userDriverDelegate: nil
         )
         // Listen for check for updates notification from About window
@@ -245,5 +245,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.addButton(withTitle: NSLocalizedString("error.ok", comment: "OK"))
             alert.runModal()
         }
+    }
+}
+
+// MARK: - SPUUpdaterDelegate
+
+extension AppDelegate: SPUUpdaterDelegate {
+    nonisolated func updater(_ updater: SPUUpdater, didFinishLoading appcast: SUAppcast) {
+        Logger.ui.info("Sparkle: didFinishLoading appcast")
+    }
+
+    nonisolated func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        Logger.ui.info("Sparkle: didFindValidUpdate - \(item.displayVersionString)")
+    }
+
+    nonisolated func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
+        Logger.ui.info("Sparkle: didNotFindUpdate")
+    }
+
+    nonisolated func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
+        Logger.ui.error("Sparkle: didAbortWithError - \(error.localizedDescription)")
     }
 }

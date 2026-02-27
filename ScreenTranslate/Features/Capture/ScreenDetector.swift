@@ -119,14 +119,20 @@ actor ScreenDetector {
     }
 
     /// Checks if the app has screen recording permission.
-    /// Uses CGPreflightScreenCaptureAccess which does NOT trigger system dialog.
+    /// Uses SCShareableContent to check if we can actually access screen content.
     /// - Parameter silent: If true, suppresses logging (default: true)
     /// - Returns: True if permission is granted
-    nonisolated func hasPermission(silent: Bool = true) -> Bool {
-        // CGPreflightScreenCaptureAccess checks permission without triggering dialog
-        let granted = CGPreflightScreenCaptureAccess()
-        if !silent { print("[ScreenDetector] Permission check: \(granted ? "granted" : "denied")") }
-        return granted
+    func hasPermission(silent: Bool = true) async -> Bool {
+        // Try to get shareable content - this is the most reliable way to check permission
+        do {
+            let content = try await SCShareableContent.current
+            let granted = !content.displays.isEmpty
+            if !silent { print("[ScreenDetector] Permission check: \(granted ? "granted" : "denied")") }
+            return granted
+        } catch {
+            if !silent { print("[ScreenDetector] Permission check failed: \(error)") }
+            return false
+        }
     }
 
     /// Triggers the system permission dialog for screen recording.
