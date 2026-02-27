@@ -248,6 +248,23 @@ extension AppDelegate: SPUUpdaterDelegate {
 
     nonisolated func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
         Logger.ui.info("Sparkle: didNotFindUpdate")
+        // Show alert on main thread
+        Task { @MainActor in
+            let alert = NSAlert()
+            alert.messageText = NSLocalizedString(
+                "update.up.to.date.title",
+                value: "You're up to date!",
+                comment: "Alert title when no update found"
+            )
+            alert.informativeText = NSLocalizedString(
+                "update.up.to.date.message",
+                value: "ScreenTranslate is already the latest version.",
+                comment: "Alert message when no update found"
+            )
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: NSLocalizedString("error.ok", comment: "OK"))
+            alert.runModal()
+        }
     }
 
     nonisolated func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
