@@ -65,9 +65,17 @@ jobs:
         id: pubdate
         run: echo "date=$(date -Ru)" >> $GITHUB_OUTPUT
 
+      - name: Get Build Number
+        id: build_number
+        run: |
+          # Extract build number from project
+          BUILD_NUM=$(grep -m1 'CURRENT_PROJECT_VERSION' ScreenTranslate.xcodeproj/project.pbxproj | sed 's/.*= *//;s/;//' | tr -d ' ')
+          echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
+
       - name: Generate Sparkle Appcast
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
+          BUILD_NUM="${{ steps.build_number.outputs.build_num }}"
           DMG_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ env.PROJECT_NAME }}-${VERSION}.dmg"
           PUBDATE="${{ steps.pubdate.outputs.date }}"
           DMG_SIZE="${{ steps.create_dmg.outputs.dmg_size }}"
@@ -83,10 +91,11 @@ jobs:
               <item>
                 <title>Version ${VERSION}</title>
                 <pubDate>${PUBDATE}</pubDate>
-                <sparkle:version>${VERSION}</sparkle:version>
+                <sparkle:version>${BUILD_NUM}</sparkle:version>
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                 <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
-                <enclosure url="${DMG_URL}" length="${DMG_SIZE}" type="application/octet-stream" />
+                <enclosure url="${DMG_URL}" length="${DMG_SIZE}" type="application/octet-stream" sparkle:edSignature="" />
+                <description><![CDATA[<p>Latest release of ScreenTranslate</p>]]></description>
               </item>
             </channel>
           </rss>
