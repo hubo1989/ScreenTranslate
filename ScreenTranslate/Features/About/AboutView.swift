@@ -146,8 +146,7 @@ struct AboutView: View {
         HStack(spacing: 12) {
             Button {
                 isCheckingUpdates = true
-                updateStatus = nil
-                // Check for updates action - will be connected to Sparkle
+                // Trigger Sparkle update check
                 NotificationCenter.default.post(name: .checkForUpdates, object: nil)
             } label: {
                 if isCheckingUpdates {

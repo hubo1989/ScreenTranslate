@@ -776,4 +776,5 @@
 "about.acknowledgements.title" = "致谢";
 "about.acknowledgements.intro" = "本软件使用了以下开源库：";
 "about.acknowledgements.upstream" = "基于";
+"about.acknowledgements.author.format" = "作者：%@";
 "about.close" = "关闭";

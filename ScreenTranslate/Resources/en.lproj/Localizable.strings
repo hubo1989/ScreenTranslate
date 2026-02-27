@@ -776,5 +776,6 @@
 "about.acknowledgements.title" = "Acknowledgements";
 "about.acknowledgements.intro" = "This software uses the following open source libraries:";
 "about.acknowledgements.upstream" = "Based on";
+"about.acknowledgements.author.format" = "by %@";
 "about.close" = "Close";
 

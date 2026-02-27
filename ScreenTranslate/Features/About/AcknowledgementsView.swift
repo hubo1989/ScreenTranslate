@@ -78,7 +78,7 @@ struct AcknowledgementsView: View {
 
                     Spacer()
 
-                    Text("by \(upstreamProject.author)")
+                    Text(String(format: NSLocalizedString("about.acknowledgements.author.format", comment: ""), upstreamProject.author))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
