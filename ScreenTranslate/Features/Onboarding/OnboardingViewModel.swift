@@ -144,7 +144,7 @@ final class OnboardingViewModel {
     func checkPermissions() {
         hasAccessibilityPermission = AccessibilityPermissionChecker.hasPermission
 
-        // Check screen recording (uses SCShareableContent for reliable check)
+        // Check screen recording (cached to avoid repeated dialogs)
         Task {
             let granted = await ScreenDetector.shared.hasPermission()
             hasScreenRecordingPermission = granted
@@ -164,8 +164,8 @@ final class OnboardingViewModel {
 
             // Open System Settings for screen recording
             openScreenRecordingSettings()
-            // Start checking for permission
-            startPermissionCheck(for: .screenRecording)
+            // Note: We don't auto-poll anymore to avoid repeated dialogs
+            // User can click the permission button again after granting in System Settings
         }
     }
 
@@ -211,6 +211,8 @@ final class OnboardingViewModel {
 
                 switch type {
                 case .screenRecording:
+                    // Use cached check to avoid repeated dialogs
+                    // User needs to click "Check Again" button after granting in System Settings
                     let granted = await ScreenDetector.shared.hasPermission()
                     if granted {
                         hasScreenRecordingPermission = true

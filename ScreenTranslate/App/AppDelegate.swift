@@ -75,22 +75,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !settings.onboardingCompleted {
             // Show onboarding for first-time users - already @MainActor
             OnboardingWindowController.shared.showOnboarding(settings: settings)
-        } else {
-            // Existing users: just check screen recording permission
-            await checkAndRequestScreenRecordingPermission()
         }
-    }
-
-    /// Checks for screen recording permission and shows an explanatory prompt if needed.
-    private func checkAndRequestScreenRecordingPermission() async {
-        // Check if we already have permission
-        let hasPermission = await CaptureManager.shared.hasPermission
-
-        // Don't auto-request permission on launch - let user do it in Settings
-        // This avoids multiple dialogs
-        if !hasPermission {
-            Logger.general.info("Screen recording permission not granted. User can enable in Settings.")
-        }
+        // Note: Don't auto-check screen recording permission on launch
+        // to avoid triggering system dialog. Users can check in Settings.
     }
 
     func applicationWillTerminate(_ notification: Notification) {

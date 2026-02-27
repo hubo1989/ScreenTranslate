@@ -375,7 +375,7 @@ final class SettingsViewModel {
         // Check folder access permission by testing if we can write to the save location
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
 
-        // Check screen recording permission (uses SCShareableContent for reliable check)
+        // Check screen recording permission (cached to avoid repeated dialogs)
         Task {
             let screenRecordingGranted = await ScreenDetector.shared.hasPermission()
             hasScreenRecordingPermission = screenRecordingGranted
@@ -410,8 +410,8 @@ final class SettingsViewModel {
 
             // Open System Settings for screen recording
             openScreenRecordingSettings()
-            // Start checking for permission
-            startPermissionCheck(for: .screenRecording)
+            // Note: We don't auto-poll anymore to avoid repeated dialogs
+            // User can click the permission button again after granting in System Settings
         }
     }
 
@@ -460,6 +460,8 @@ final class SettingsViewModel {
 
                 switch type {
                 case .screenRecording:
+                    // Use cached check to avoid repeated dialogs
+                    // User needs to click "Check Again" button after granting in System Settings
                     let granted = await ScreenDetector.shared.hasPermission()
                     if granted {
                         hasScreenRecordingPermission = true
