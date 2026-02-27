@@ -235,6 +235,11 @@
 "settings.permission.granted" = "Granted";
 "settings.permission.not.granted" = "Not Granted";
 "settings.permission.grant" = "Grant Access";
+"settings.permission.authorization.title" = "Authorization Required";
+"settings.permission.authorization.cancel" = "Cancel";
+"settings.permission.authorization.go" = "Go Authorize";
+"settings.permission.authorization.screen.message" = "Screen recording permission is required. Click 'Go Authorize' to open System Settings and enable ScreenCapture for this app.";
+"settings.permission.authorization.accessibility.message" = "Accessibility permission is required. Click 'Go Authorize' to open System Settings and add this app to the accessibility list.";
 
 /* Save Location */
 "settings.save.location" = "Save Location";
@@ -763,8 +768,14 @@
 "about.license.value" = "MIT License";
 "about.github.link" = "GitHub: hubo1989/ScreenTranslate";
 "about.check.for.updates" = "Check for Updates";
+"about.update.checking" = "Checking...";
+"about.update.available" = "Update available";
+"about.update.uptodate" = "You're up to date";
+"about.update.failed" = "Check failed";
 "about.acknowledgements" = "Acknowledgements";
 "about.acknowledgements.title" = "Acknowledgements";
 "about.acknowledgements.intro" = "This software uses the following open source libraries:";
+"about.acknowledgements.upstream" = "Based on";
+"about.acknowledgements.author.format" = "by %@";
 "about.close" = "Close";
 

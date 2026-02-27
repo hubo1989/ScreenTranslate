@@ -1,7 +1,12 @@
 import SwiftUI
+import Sparkle
+import Combine
 
 struct AboutView: View {
     @State private var showingAcknowledgements = false
+    @State private var isCheckingUpdates = false
+    @State private var updateStatus: String?
+    @State private var updateAvailable = false
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0.0"
@@ -17,12 +22,29 @@ struct AboutView: View {
             Divider()
             infoSection
             Divider()
+            updateStatusSection
+            Divider()
             buttonSection
         }
         .frame(width: 400)
         .background(VisualEffectView(material: .windowBackground, blendingMode: .behindWindow))
         .sheet(isPresented: $showingAcknowledgements) {
             AcknowledgementsView()
+        }
+        // Sparkle 2.x uses delegate methods, not notifications
+        // We reset checking state after a delay since Sparkle handles the UI
+        .onChange(of: isCheckingUpdates) { _, newValue in
+            if newValue {
+                // Reset after delay - Sparkle shows its own update UI
+                Task {
+                    try? await Task.sleep(for: .seconds(3))
+                    await MainActor.run {
+                        if isCheckingUpdates {
+                            isCheckingUpdates = false
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -99,17 +121,48 @@ struct AboutView: View {
         }
     }
 
+    private var updateStatusSection: some View {
+        HStack(spacing: 8) {
+            if isCheckingUpdates {
+                ProgressView()
+                    .controlSize(.small)
+                Text(LocalizedStringKey("about.update.checking"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else if let status = updateStatus {
+                Image(systemName: updateAvailable ? "arrow.down.circle.fill" : "checkmark.circle.fill")
+                    .foregroundStyle(updateAvailable ? .blue : .green)
+                Text(status)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+    }
+
     private var buttonSection: some View {
         HStack(spacing: 12) {
             Button {
-                // Check for updates action - will be connected to Sparkle
+                isCheckingUpdates = true
+                // Trigger Sparkle update check
                 NotificationCenter.default.post(name: .checkForUpdates, object: nil)
             } label: {
-                Label(
-                    NSLocalizedString("about.check.for.updates", comment: "Check for Updates"),
-                    systemImage: "arrow.clockwise"
-                )
+                if isCheckingUpdates {
+                    HStack(spacing: 4) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text(LocalizedStringKey("about.update.checking"))
+                    }
+                } else {
+                    Label(
+                        NSLocalizedString("about.check.for.updates", comment: "Check for Updates"),
+                        systemImage: "arrow.clockwise"
+                    )
+                }
             }
+            .disabled(isCheckingUpdates)
 
             Button {
                 showingAcknowledgements = true
