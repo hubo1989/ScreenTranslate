@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B-brightgreen.svg" alt="macOS"></a>
   <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift"></a>
@@ -119,7 +119,7 @@
 
 ## 📁 项目结构
 
-```
+```text
 ScreenTranslate/
 ├── App/                    # 应用入口与协调器
 │   ├── AppDelegate.swift
@@ -160,6 +160,12 @@ xcodebuild -project ScreenTranslate.xcodeproj -scheme ScreenTranslate
 ```
 
 ## 📝 更新日志
+
+### v1.3.0
+- ✨ 新增关于菜单（版本、许可证、致谢）
+- ✨ 集成 Sparkle 自动更新框架
+- ✨ 添加 GitHub Actions CI/CD 自动发布
+- 📚 README 翻译为英文
 
 ### v1.1.0
 - ✨ 新增文本选择翻译功能（选中任意文本一键翻译）

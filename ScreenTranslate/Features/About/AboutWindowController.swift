@@ -42,8 +42,10 @@ final class AboutWindowController: NSObject {
 
 extension AboutWindowController: NSWindowDelegate {
     nonisolated func windowWillClose(_ notification: Notification) {
-        Task { @MainActor in
-            window = nil
+        let closedWindow = notification.object as? NSWindow
+        Task { @MainActor [weak self] in
+            guard let self, let closedWindow, closedWindow === self.window else { return }
+            self.window = nil
         }
     }
 }

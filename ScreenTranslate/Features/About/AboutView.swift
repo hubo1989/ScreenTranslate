@@ -33,11 +33,14 @@ struct AboutView: View {
                 .frame(width: 80, height: 80)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("ScreenTranslate")
+                Text(LocalizedStringKey("about.app.name"))
                     .font(.title)
                     .fontWeight(.semibold)
 
-                Text("Version \(appVersion) (\(buildNumber))")
+                Text(String(
+                    format: NSLocalizedString("about.version.format", comment: ""),
+                    appVersion, buildNumber
+                ))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -52,13 +55,13 @@ struct AboutView: View {
             infoRow(
                 icon: "character.book.closed",
                 label: NSLocalizedString("about.copyright", comment: "Copyright"),
-                value: "© 2026 All rights reserved"
+                value: NSLocalizedString("about.copyright.value", comment: "")
             )
 
             infoRow(
                 icon: "doc.text",
                 label: NSLocalizedString("about.license", comment: "License"),
-                value: "MIT License"
+                value: NSLocalizedString("about.license.value", comment: "")
             )
 
             Link(destination: URL(string: "https://github.com/hubo1989/ScreenTranslate")!) {
@@ -67,7 +70,7 @@ struct AboutView: View {
                         .frame(width: 20)
                         .foregroundStyle(.secondary)
 
-                    Text("GitHub: hubo1989/ScreenTranslate")
+                    Text(LocalizedStringKey("about.github.link"))
                         .font(.subheadline)
                         .foregroundStyle(.link)
 

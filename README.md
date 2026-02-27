@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.2.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B-brightgreen.svg" alt="macOS"></a>
   <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift"></a>
@@ -123,7 +123,7 @@ Download the latest version from the [Releases](../../releases) page.
 
 ## 📁 Project Structure
 
-```
+```text
 ScreenTranslate/
 ├── App/                    # App entry point and coordinators
 │   ├── AppDelegate.swift
@@ -164,6 +164,12 @@ xcodebuild -project ScreenTranslate.xcodeproj -scheme ScreenTranslate
 ```
 
 ## 📝 Changelog
+
+### v1.3.0
+- ✨ Added About menu with version, license, and acknowledgements
+- ✨ Integrated Sparkle auto-update framework
+- ✨ Added GitHub Actions CI/CD for automated releases
+- 📚 Translated README to English
 
 ### v1.2.0
 - ✨ Added unified EngineIdentifier for standard and compatible engines

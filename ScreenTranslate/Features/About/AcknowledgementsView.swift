@@ -70,14 +70,22 @@ struct AcknowledgementsView: View {
                     .clipShape(Capsule())
             }
 
-            Link(destination: URL(string: item.url)!) {
+            if let url = URL(string: item.url) {
+                Link(destination: url) {
+                    Text(item.url)
+                        .font(.caption)
+                        .foregroundStyle(.link)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                .buttonStyle(.plain)
+            } else {
                 Text(item.url)
                     .font(.caption)
-                    .foregroundStyle(.link)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            .buttonStyle(.plain)
         }
         .padding(12)
         .background(Color(.controlBackgroundColor))

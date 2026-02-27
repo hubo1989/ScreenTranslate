@@ -22,7 +22,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var menuBarController: MenuBarController?
     private let settings = AppSettings.shared
-    private var updaterController: SPUStandardUpdaterController!
+
+    private lazy var updaterController: SPUStandardUpdaterController = {
+        let controller = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+        // Listen for check for updates notification from About window
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(checkForUpdates(_:)),
+            name: .checkForUpdates,
+            object: nil
+        )
+        return controller
+    }()
 
     // MARK: - NSApplicationDelegate
 
@@ -51,21 +66,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Check PaddleOCR availability in background (non-blocking)
         PaddleOCRChecker.checkAvailabilityAsync()
-
-        // Initialize Sparkle updater
-        updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: nil,
-            userDriverDelegate: nil
-        )
-
-        // Listen for check for updates notification from About window
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(checkForUpdates(_:)),
-            name: .checkForUpdates,
-            object: nil
-        )
 
         Logger.general.info("ScreenTranslate launched - settings loaded from: \(self.settings.saveLocation.path)")
     }

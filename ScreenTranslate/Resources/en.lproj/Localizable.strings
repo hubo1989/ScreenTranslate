@@ -755,8 +755,13 @@
    ======================================== */
 
 "about.title" = "About ScreenTranslate";
+"about.app.name" = "ScreenTranslate";
+"about.version.format" = "Version %@ (%@)";
 "about.copyright" = "Copyright";
+"about.copyright.value" = "© 2026 All rights reserved";
 "about.license" = "License";
+"about.license.value" = "MIT License";
+"about.github.link" = "GitHub: hubo1989/ScreenTranslate";
 "about.check.for.updates" = "Check for Updates";
 "about.acknowledgements" = "Acknowledgements";
 "about.acknowledgements.title" = "Acknowledgements";

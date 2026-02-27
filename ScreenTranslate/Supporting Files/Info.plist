@@ -33,6 +33,6 @@
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>ScreenTranslate needs access to record your screen to capture and translate text.</string>
 	<key>SUFeedURL</key>
-	<string>https://github.com/hubo1989/ScreenTranslate/releases/download/latest/appcast.xml</string>
+	<string>https://github.com/hubo1989/ScreenTranslate/releases/latest/download/appcast.xml</string>
 </dict>
 </plist>

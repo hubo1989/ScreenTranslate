@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 env:
   PROJECT_NAME: ScreenTranslate
 
@@ -31,27 +34,36 @@ jobs:
             clean build
 
       - name: Create DMG
+        id: create_dmg
         run: |
           mkdir -p dmg_temp
           cp -R build/Build/Products/Release/${{ env.PROJECT_NAME }}.app dmg_temp/
           ln -sf /Applications dmg_temp/Applications
 
           VERSION=${GITHUB_REF#refs/tags/v}
+          DMG_FILE="${{ env.PROJECT_NAME }}-${VERSION}.dmg"
+
           hdiutil create -volname "${{ env.PROJECT_NAME }}" \
             -srcfolder dmg_temp \
             -ov -format UDZO \
-            ${{ env.PROJECT_NAME }}-${VERSION}.dmg
+            "$DMG_FILE"
+
+          # Get file size
+          DMG_SIZE=$(stat -f%z "$DMG_FILE")
+          echo "dmg_size=$DMG_SIZE" >> $GITHUB_OUTPUT
 
           rm -rf dmg_temp
 
+      - name: Generate pubDate
+        id: pubdate
+        run: echo "date=$(date -Ru)" >> $GITHUB_OUTPUT
+
       - name: Generate Sparkle Appcast
         run: |
-          # Install generate_appcast if needed
-          # brew install --cask sparkle
-
-          # For now, create a basic appcast.xml
           VERSION=${GITHUB_REF#refs/tags/v}
           DMG_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ env.PROJECT_NAME }}-${VERSION}.dmg"
+          PUBDATE="${{ steps.pubdate.outputs.date }}"
+          DMG_SIZE="${{ steps.create_dmg.outputs.dmg_size }}"
 
           cat > appcast.xml << EOF
           <?xml version="1.0" encoding="utf-8"?>
@@ -63,11 +75,11 @@ jobs:
               <language>en</language>
               <item>
                 <title>Version ${VERSION}</title>
-                <pubDate>${{ github.event.head_commit.timestamp }}</pubDate>
+                <pubDate>${PUBDATE}</pubDate>
                 <sparkle:version>${VERSION}</sparkle:version>
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                 <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-                <enclosure url="${DMG_URL}" sparkle:edSignature="" length="0" type="application/octet-stream" />
+                <enclosure url="${DMG_URL}" length="${DMG_SIZE}" type="application/octet-stream" />
               </item>
             </channel>
           </rss>

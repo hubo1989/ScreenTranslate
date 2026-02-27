@@ -755,8 +755,13 @@
    ======================================== */
 
 "about.title" = "关于 ScreenTranslate";
+"about.app.name" = "ScreenTranslate";
+"about.version.format" = "版本 %@ (%@)";
 "about.copyright" = "版权";
+"about.copyright.value" = "© 2026 保留所有权利";
 "about.license" = "许可证";
+"about.license.value" = "MIT 许可证";
+"about.github.link" = "GitHub: hubo1989/ScreenTranslate";
 "about.check.for.updates" = "检查更新";
 "about.acknowledgements" = "致谢";
 "about.acknowledgements.title" = "致谢";
