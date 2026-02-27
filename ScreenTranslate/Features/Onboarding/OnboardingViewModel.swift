@@ -144,29 +144,31 @@ final class OnboardingViewModel {
     func checkPermissions() {
         hasAccessibilityPermission = AccessibilityPermissionChecker.hasPermission
 
-        // Check screen recording (cached to avoid repeated dialogs)
-        Task {
-            let granted = await ScreenDetector.shared.hasPermission()
-            hasScreenRecordingPermission = granted
-        }
+        // Check screen recording using CGPreflightScreenCaptureAccess
+        // This API is deprecated in macOS 15 but still works and does NOT trigger dialog
+        hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
     }
 
-    /// Requests screen recording permission - opens System Settings
+    /// Requests screen recording permission
     func requestScreenRecordingPermission() {
-        Task {
-            // Check current status first
-            let currentStatus = await ScreenDetector.shared.hasPermission()
-
-            if currentStatus {
-                hasScreenRecordingPermission = true
-                return
-            }
-
-            // Open System Settings for screen recording
-            openScreenRecordingSettings()
-            // Note: We don't auto-poll anymore to avoid repeated dialogs
-            // User can click the permission button again after granting in System Settings
+        // First check if already granted
+        if CGPreflightScreenCaptureAccess() {
+            hasScreenRecordingPermission = true
+            return
         }
+
+        // Request permission - CGRequestScreenCaptureAccess() returns true if granted
+        let granted = CGRequestScreenCaptureAccess()
+        if granted {
+            hasScreenRecordingPermission = true
+            return
+        }
+
+        // If not granted, open System Settings
+        openScreenRecordingSettings()
+
+        // Start polling for permission status
+        startPermissionCheck(for: .screenRecording)
     }
 
     /// Opens System Settings for screen recording permission
@@ -211,9 +213,8 @@ final class OnboardingViewModel {
 
                 switch type {
                 case .screenRecording:
-                    // Use cached check to avoid repeated dialogs
-                    // User needs to click "Check Again" button after granting in System Settings
-                    let granted = await ScreenDetector.shared.hasPermission()
+                    // Use CGPreflightScreenCaptureAccess to check without triggering dialog
+                    let granted = CGPreflightScreenCaptureAccess()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil

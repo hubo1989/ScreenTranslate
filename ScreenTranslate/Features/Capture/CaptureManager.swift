@@ -43,43 +43,17 @@ actor CaptureManager {
     // MARK: - Permission Handling
 
     /// Checks if the app has screen recording permission.
+    /// Uses CGPreflightScreenCaptureAccess() which does NOT trigger dialog.
     /// - Returns: True if permission is granted
     var hasPermission: Bool {
-        get async {
-            await screenDetector.hasPermission()
-        }
+        CGPreflightScreenCaptureAccess()
     }
 
-    /// Requests screen recording permission by triggering the system prompt.
-    /// Note: ScreenCaptureKit automatically prompts for permission on first capture attempt.
+    /// Requests screen recording permission.
+    /// Uses CGRequestScreenCaptureAccess() which may open System Settings.
     /// - Returns: True if permission is now granted
-    func requestPermission() async -> Bool {
-        // Attempt a capture to trigger the permission prompt
-        do {
-            let displays = try await screenDetector.availableDisplays()
-            guard let display = displays.first else { return false }
-
-            // Create a minimal capture configuration just to trigger the prompt
-            guard let scContent = try? await SCShareableContent.current,
-                  let scDisplay = scContent.displays.first(where: { $0.displayID == display.id }) else {
-                return false
-            }
-
-            let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
-            let config = SCStreamConfiguration()
-            config.width = 1
-            config.height = 1
-
-            // This will trigger the permission prompt if not already granted
-            _ = try? await SCScreenshotManager.captureImage(
-                contentFilter: filter,
-                configuration: config
-            )
-
-            return await hasPermission
-        } catch {
-            return false
-        }
+    func requestPermission() -> Bool {
+        CGRequestScreenCaptureAccess()
     }
 
     // MARK: - Full Screen Capture
@@ -97,7 +71,7 @@ actor CaptureManager {
         defer { isCapturing = false }
 
         // Check permission
-        guard await hasPermission else {
+        guard hasPermission else {
             throw ScreenTranslateError.permissionDenied
         }
 
@@ -166,7 +140,7 @@ actor CaptureManager {
         defer { isCapturing = false }
 
         // Check permission
-        guard await hasPermission else {
+        guard hasPermission else {
             throw ScreenTranslateError.permissionDenied
         }
 
