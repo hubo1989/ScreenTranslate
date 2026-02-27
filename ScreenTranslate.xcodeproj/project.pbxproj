@@ -150,7 +150,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Sign embedded frameworks with ad-hoc signature to match main app\n# Always re-sign frameworks to ensure consistent signatures\nFRAMEWORKS_DIR=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks\"\nif [ -d \"$FRAMEWORKS_DIR\" ]; then\n    for FRAMEWORK in \"$FRAMEWORKS_DIR\"/*.framework; do\n        if [ -d \"$FRAMEWORK\" ]; then\n            echo \"Re-signing framework with ad-hoc: $(basename \"$FRAMEWORK\")\"\n            codesign --force --sign - --deep \"$FRAMEWORK\"\n        fi\n    done\nfi\n";
+			shellScript = "# Sign embedded frameworks with ad-hoc signature to match main app\nFRAMEWORKS_DIR=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks\"\nif [ -d \"$FRAMEWORKS_DIR\" ]; then\n    for FRAMEWORK in \"$FRAMEWORKS_DIR\"/*.framework; do\n        if [ -d \"$FRAMEWORK\" ]; then\n            echo \"Re-signing framework with ad-hoc: $(basename \"$FRAMEWORK\")\"\n            codesign --force --sign - --deep \"$FRAMEWORK\"\n        fi\n    done\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -203,7 +203,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -268,7 +268,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -294,12 +294,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "ScreenTranslate/Supporting Files/ScreenTranslate.entitlements";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = "**/CLAUDE.md";
 				GENERATE_INFOPLIST_FILE = NO;
@@ -329,12 +330,13 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "ScreenTranslate/Supporting Files/ScreenTranslate.entitlements";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_PREVIEWS = YES;
 				EXCLUDED_SOURCE_FILE_NAMES = "**/CLAUDE.md";
 				GENERATE_INFOPLIST_FILE = NO;
