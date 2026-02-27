@@ -150,7 +150,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Sign embedded frameworks with ad-hoc signature to match main app\n# This is needed when using ad-hoc signing for the main app\nif [ \"$CODE_SIGN_IDENTITY\" = \"-\" ] || [ -z \"$CODE_SIGN_IDENTITY\" ]; then\n    FRAMEWORKS_DIR=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks\"\n    if [ -d \"$FRAMEWORKS_DIR\" ]; then\n        for FRAMEWORK in \"$FRAMEWORKS_DIR\"/*.framework; do\n            if [ -d \"$FRAMEWORK\" ]; then\n                echo \"Signing framework with ad-hoc: $(basename \"$FRAMEWORK\")\"\n                codesign --force --sign - --deep \"$FRAMEWORK\"\n            fi\n        done\n    fi\nfi\n";
+			shellScript = "# Sign embedded frameworks with ad-hoc signature to match main app\n# Always re-sign frameworks to ensure consistent signatures\nFRAMEWORKS_DIR=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks\"\nif [ -d \"$FRAMEWORKS_DIR\" ]; then\n    for FRAMEWORK in \"$FRAMEWORKS_DIR\"/*.framework; do\n        if [ -d \"$FRAMEWORK\" ]; then\n            echo \"Re-signing framework with ad-hoc: $(basename \"$FRAMEWORK\")\"\n            codesign --force --sign - --deep \"$FRAMEWORK\"\n        fi\n    done\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
