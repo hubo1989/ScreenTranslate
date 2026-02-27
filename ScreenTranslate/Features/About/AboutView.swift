@@ -31,26 +31,20 @@ struct AboutView: View {
         .sheet(isPresented: $showingAcknowledgements) {
             AcknowledgementsView()
         }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterDidStartCheckingForUpdates"))) { _ in
-            isCheckingUpdates = true
-            updateStatus = nil
-        }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterDidFinishCheckingForUpdates"))) { _ in
-            isCheckingUpdates = false
-        }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterDidUpdateStatus"))) { _ in
-            isCheckingUpdates = false
-            updateAvailable = true
-            updateStatus = NSLocalizedString("about.update.available", comment: "Update available")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterNoUpdateAvailable"))) { _ in
-            isCheckingUpdates = false
-            updateAvailable = false
-            updateStatus = NSLocalizedString("about.update.uptodate", comment: "You're up to date")
-        }
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SUUpdaterDidFailToCheckForUpdates"))) { _ in
-            isCheckingUpdates = false
-            updateStatus = NSLocalizedString("about.update.failed", comment: "Check failed")
+        // Sparkle 2.x uses delegate methods, not notifications
+        // We reset checking state after a delay since Sparkle handles the UI
+        .onChange(of: isCheckingUpdates) { _, newValue in
+            if newValue {
+                // Reset after delay - Sparkle shows its own update UI
+                Task {
+                    try? await Task.sleep(for: .seconds(3))
+                    await MainActor.run {
+                        if isCheckingUpdates {
+                            isCheckingUpdates = false
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -64,6 +64,9 @@ final class OnboardingViewModel {
     /// PaddleOCR version if installed
     var paddleOCRVersion: String?
 
+    /// Task for permission checking (stored for cancellation)
+    private var permissionCheckTask: Task<Void, Never>?
+
     // MARK: - Computed Properties
 
     /// Whether we can move to the next step
@@ -144,9 +147,7 @@ final class OnboardingViewModel {
         // Check screen recording (CGPreflightScreenCaptureAccess does NOT trigger dialog)
         Task {
             let granted = await ScreenDetector.shared.hasPermission()
-            await MainActor.run {
-                hasScreenRecordingPermission = granted
-            }
+            hasScreenRecordingPermission = granted
         }
     }
 
@@ -157,12 +158,12 @@ final class OnboardingViewModel {
             let currentStatus = await ScreenDetector.shared.hasPermission()
 
             if currentStatus {
-                await MainActor.run { hasScreenRecordingPermission = true }
+                hasScreenRecordingPermission = true
                 return
             }
 
             // Open System Settings for screen recording
-            await MainActor.run { openScreenRecordingSettings() }
+            openScreenRecordingSettings()
             // Start checking for permission
             startPermissionCheck(for: .screenRecording)
         }
@@ -196,26 +197,34 @@ final class OnboardingViewModel {
 
     /// Starts checking for permission status periodically
     private func startPermissionCheck(for type: PermissionType) {
-        Task {
+        // Cancel any existing permission check task
+        permissionCheckTask?.cancel()
+
+        permissionCheckTask = Task {
             for _ in 0..<60 {
-                try? await Task.sleep(for: .milliseconds(500))
+                do {
+                    try await Task.sleep(for: .milliseconds(500))
+                } catch {
+                    // Task was cancelled
+                    return
+                }
 
                 switch type {
                 case .screenRecording:
                     let granted = await ScreenDetector.shared.hasPermission()
-                    await MainActor.run {
-                        if granted {
-                            hasScreenRecordingPermission = true
-                        }
+                    if granted {
+                        hasScreenRecordingPermission = true
+                        permissionCheckTask = nil
+                        return
                     }
-                    if granted { return }
 
                 case .accessibility:
                     let granted = AccessibilityPermissionChecker.hasPermission
-                    await MainActor.run {
+                    if granted {
                         hasAccessibilityPermission = granted
+                        permissionCheckTask = nil
+                        return
                     }
-                    if granted { return }
                 }
             }
         }

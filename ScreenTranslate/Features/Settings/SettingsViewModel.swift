@@ -79,6 +79,9 @@ final class SettingsViewModel {
     /// Whether permission check is in progress
     var isCheckingPermissions: Bool = false
 
+    /// Task for permission checking (stored for cancellation)
+    private var permissionCheckTask: Task<Void, Never>?
+
     /// Type of permission being requested
     enum PermissionType {
         case screenRecording
@@ -362,7 +365,6 @@ final class SettingsViewModel {
     // MARK: - Permission Checking
 
     /// Checks all required permissions and updates status
-    /// Note: Screen recording permission is NOT auto-checked as it may trigger system dialog
     func checkPermissions() {
         isCheckingPermissions = true
 
@@ -370,18 +372,15 @@ final class SettingsViewModel {
         let accessibilityGranted = AXIsProcessTrusted()
         hasAccessibilityPermission = accessibilityGranted
 
-        // Check screen recording permission (CGPreflightScreenCaptureAccess does NOT trigger dialog)
-        Task {
-            let screenRecordingGranted = await ScreenDetector.shared.hasPermission()
-            await MainActor.run {
-                hasScreenRecordingPermission = screenRecordingGranted
-            }
-        }
-
         // Check folder access permission by testing if we can write to the save location
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
 
-        isCheckingPermissions = false
+        // Check screen recording permission (CGPreflightScreenCaptureAccess does NOT trigger dialog)
+        Task {
+            let screenRecordingGranted = await ScreenDetector.shared.hasPermission()
+            hasScreenRecordingPermission = screenRecordingGranted
+            isCheckingPermissions = false
+        }
     }
 
     /// Checks if we have write access to the specified folder
@@ -405,12 +404,12 @@ final class SettingsViewModel {
             let currentStatus = await ScreenDetector.shared.hasPermission()
 
             if currentStatus {
-                await MainActor.run { hasScreenRecordingPermission = true }
+                hasScreenRecordingPermission = true
                 return
             }
 
             // Open System Settings for screen recording
-            await MainActor.run { openScreenRecordingSettings() }
+            openScreenRecordingSettings()
             // Start checking for permission
             startPermissionCheck(for: .screenRecording)
         }
@@ -447,26 +446,34 @@ final class SettingsViewModel {
 
     /// Starts checking for permission status periodically
     private func startPermissionCheck(for type: PermissionType) {
-        Task {
+        // Cancel any existing permission check task
+        permissionCheckTask?.cancel()
+
+        permissionCheckTask = Task {
             for _ in 0..<60 {  // Check for up to 30 seconds
-                try? await Task.sleep(for: .milliseconds(500))
+                do {
+                    try await Task.sleep(for: .milliseconds(500))
+                } catch {
+                    // Task was cancelled
+                    return
+                }
 
                 switch type {
                 case .screenRecording:
                     let granted = await ScreenDetector.shared.hasPermission()
-                    await MainActor.run {
-                        if granted {
-                            hasScreenRecordingPermission = true
-                        }
+                    if granted {
+                        hasScreenRecordingPermission = true
+                        permissionCheckTask = nil
+                        return
                     }
-                    if granted { return }
 
                 case .accessibility:
                     let granted = AXIsProcessTrusted()
-                    await MainActor.run {
+                    if granted {
                         hasAccessibilityPermission = granted
+                        permissionCheckTask = nil
+                        return
                     }
-                    if granted { return }
                 }
             }
         }
