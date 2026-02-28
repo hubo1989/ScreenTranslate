@@ -36,6 +36,9 @@ actor ScreenDetector {
     /// Cache validity duration (5 seconds)
     private let cacheValidityDuration: TimeInterval = 5.0
 
+    /// Cached permission status - only check once to avoid repeated dialogs
+    private var cachedPermissionStatus: Bool?
+
     // MARK: - Initialization
 
     private init() {}
@@ -119,16 +122,33 @@ actor ScreenDetector {
     }
 
     /// Checks if the app has screen recording permission.
+    /// Uses CGPreflightScreenCaptureAccess() which does NOT trigger system dialog.
+    /// This API is deprecated in macOS 15 but still works correctly.
+    /// - Parameter silent: If true, suppresses logging (default: true)
     /// - Returns: True if permission is granted
-    var hasPermission: Bool {
-        get async {
-            do {
-                // Attempt to get shareable content - this will fail if no permission
-                _ = try await SCShareableContent.current
-                return true
-            } catch {
-                return false
-            }
+    func hasPermission(silent: Bool = true) async -> Bool {
+        // Use CGPreflightScreenCaptureAccess - does NOT trigger dialog
+        let granted = CGPreflightScreenCaptureAccess()
+        cachedPermissionStatus = granted
+        if !silent { print("[ScreenDetector] Permission check: \(granted ? "granted" : "denied")") }
+        return granted
+    }
+
+    /// Forces a fresh permission check (clears cache)
+    func refreshPermissionStatus() async -> Bool {
+        cachedPermissionStatus = nil
+        return await hasPermission()
+    }
+
+    /// Triggers the system permission dialog for screen recording.
+    /// Returns true if screen content is currently accessible (does not guarantee user granted permission).
+    func requestPermission() async -> Bool {
+        do {
+            // This triggers the system permission dialog
+            _ = try await SCShareableContent.current
+            return true
+        } catch {
+            return false
         }
     }
 

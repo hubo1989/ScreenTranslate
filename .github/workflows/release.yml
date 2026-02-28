@@ -1,0 +1,152 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  PROJECT_NAME: ScreenTranslate
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.2'
+
+      - name: Build Release
+        run: |
+          xcodebuild -project ${{ env.PROJECT_NAME }}.xcodeproj \
+            -scheme ${{ env.PROJECT_NAME }} \
+            -configuration Release \
+            -derivedDataPath build \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_STYLE=Automatic \
+            MACOSX_DEPLOYMENT_TARGET=26.0 \
+            ONLY_ACTIVE_ARCH=NO \
+            clean build
+
+      - name: Create DMG
+        id: create_dmg
+        run: |
+          # Ensure ad-hoc signing for the entire app bundle (including frameworks)
+          codesign --force --sign - --deep build/Build/Products/Release/${{ env.PROJECT_NAME }}.app
+
+          mkdir -p dmg_temp
+          cp -R build/Build/Products/Release/${{ env.PROJECT_NAME }}.app dmg_temp/
+          ln -sf /Applications dmg_temp/Applications
+
+          VERSION=${GITHUB_REF#refs/tags/v}
+          DMG_FILE="${{ env.PROJECT_NAME }}-${VERSION}.dmg"
+
+          hdiutil create -volname "${{ env.PROJECT_NAME }}" \
+            -srcfolder dmg_temp \
+            -ov -format UDZO \
+            "$DMG_FILE"
+
+          # Get file size
+          DMG_SIZE=$(stat -f%z "$DMG_FILE")
+          echo "dmg_size=$DMG_SIZE" >> $GITHUB_OUTPUT
+          echo "dmg_file=$DMG_FILE" >> $GITHUB_OUTPUT
+
+          rm -rf dmg_temp
+
+      - name: Sign DMG for Sparkle
+        id: sign_dmg
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          DMG_FILE="${{ env.PROJECT_NAME }}-${VERSION}.dmg"
+          
+          # Find sign_update tool in derived data
+          SIGN_TOOL=$(find build/SourcePackages/artifacts -name "sign_update" -type f | head -1)
+          
+          if [ -z "$SIGN_TOOL" ]; then
+            echo "sign_update tool not found, checking alternative locations..."
+            SIGN_TOOL=$(find build -name "sign_update" -type f | head -1)
+          fi
+          
+          if [ -n "$SIGN_TOOL" ]; then
+            echo "Found sign_update at: $SIGN_TOOL"
+            # Sign the DMG and get the signature
+            SIGNATURE=$(echo "${{ secrets.SPARKLE_PRIVATE_KEY }}" | "$SIGN_TOOL" --ed-key-file - -p "$DMG_FILE" 2>&1)
+            echo "Signature: $SIGNATURE"
+            echo "signature=$SIGNATURE" >> $GITHUB_OUTPUT
+          else
+            echo "sign_update tool not found, skipping signing"
+            echo "signature=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate pubDate
+        id: pubdate
+        run: echo "date=$(date -Ru)" >> $GITHUB_OUTPUT
+
+      - name: Get Build Number
+        id: build_number
+        run: |
+          # Extract build number from project
+          BUILD_NUM=$(grep -m1 'CURRENT_PROJECT_VERSION' ScreenTranslate.xcodeproj/project.pbxproj | sed 's/.*= *//;s/;//' | tr -d ' ')
+          echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
+
+      - name: Generate Sparkle Appcast
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          BUILD_NUM="${{ steps.build_number.outputs.build_num }}"
+          DMG_URL="https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/${{ env.PROJECT_NAME }}-${VERSION}.dmg"
+          PUBDATE="${{ steps.pubdate.outputs.date }}"
+          DMG_SIZE="${{ steps.create_dmg.outputs.dmg_size }}"
+          SIGNATURE="${{ steps.sign_dmg.outputs.signature }}"
+          
+          # Build enclosure tag with or without signature
+          if [ -n "$SIGNATURE" ]; then
+            ENCLOSURE="<enclosure url=\"${DMG_URL}\" length=\"${DMG_SIZE}\" type=\"application/octet-stream\" sparkle:edSignature=\"${SIGNATURE}\" />"
+          else
+            ENCLOSURE="<enclosure url=\"${DMG_URL}\" length=\"${DMG_SIZE}\" type=\"application/octet-stream\" />"
+          fi
+
+          cat > appcast.xml << EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>${{ env.PROJECT_NAME }} Updates</title>
+              <link>https://github.com/${{ github.repository }}/releases</link>
+              <description>Most recent changes with links to updates.</description>
+              <language>en</language>
+              <item>
+                <title>Version ${VERSION}</title>
+                <pubDate>${PUBDATE}</pubDate>
+                <sparkle:version>${BUILD_NUM}</sparkle:version>
+                <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+                ${ENCLOSURE}
+                <description><![CDATA[<p>Latest release of ScreenTranslate</p>]]></description>
+              </item>
+            </channel>
+          </rss>
+          EOF
+          
+          echo "Generated appcast.xml:"
+          cat appcast.xml
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ env.PROJECT_NAME }}-*.dmg
+            appcast.xml
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        run: rm -rf build

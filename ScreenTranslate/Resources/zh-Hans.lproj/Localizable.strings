@@ -85,6 +85,7 @@
 "menu.translation.mode" = "截图翻译";
 "menu.translation.history" = "翻译历史";
 "menu.settings" = "设置...";
+"menu.about" = "关于 ScreenTranslate";
 "menu.quit" = "退出 ScreenTranslate";
 
 
@@ -214,6 +215,7 @@
 "settings.section.permissions" = "权限";
 "settings.section.general" = "通用";
 "settings.section.engines" = "引擎";
+"settings.section.prompts" = "提示词配置";
 "settings.section.languages" = "语言";
 "settings.section.export" = "导出";
 "settings.section.shortcuts" = "键盘快捷键";
@@ -233,6 +235,11 @@
 "settings.permission.granted" = "已授权";
 "settings.permission.not.granted" = "未授权";
 "settings.permission.grant" = "授权";
+"settings.permission.authorization.title" = "需要授权";
+"settings.permission.authorization.cancel" = "取消";
+"settings.permission.authorization.go" = "去授权";
+"settings.permission.authorization.screen.message" = "需要屏幕录制权限。点击「去授权」打开系统设置，为本应用启用屏幕录制权限。";
+"settings.permission.authorization.accessibility.message" = "需要辅助功能权限。点击「去授权」打开系统设置，将本应用添加到辅助功能列表中。";
 
 /* 保存位置 */
 "settings.save.location" = "保存位置";
@@ -300,6 +307,123 @@
 "translation.engine.apple.description" = "内置 macOS 翻译，无需配置";
 "translation.engine.mtran" = "MTranServer";
 "translation.engine.mtran.description" = "自托管翻译服务器";
+
+/* 新增翻译引擎 */
+"translation.engine.openai" = "OpenAI";
+"translation.engine.openai.description" = "通过 OpenAI API 使用 GPT-4 翻译";
+"translation.engine.claude" = "Claude";
+"translation.engine.claude.description" = "通过 Anthropic API 使用 Claude 翻译";
+"translation.engine.gemini" = "Gemini";
+"translation.engine.gemini.description" = "通过 Google AI API 使用 Gemini 翻译";
+"translation.engine.ollama" = "Ollama";
+"translation.engine.ollama.description" = "通过 Ollama 使用本地大模型翻译";
+"translation.engine.google" = "Google 翻译";
+"translation.engine.google.description" = "Google 云翻译 API";
+"translation.engine.deepl" = "DeepL";
+"translation.engine.deepl.description" = "通过 DeepL API 获取高质量翻译";
+"translation.engine.baidu" = "百度翻译";
+"translation.engine.baidu.description" = "百度翻译 API";
+"translation.engine.custom" = "OpenAI 兼容";
+"translation.engine.custom.description" = "自定义 OpenAI 兼容端点";
+
+/* 引擎分类 */
+"engine.category.builtin" = "内置";
+"engine.category.llm" = "大模型翻译";
+"engine.category.cloud" = "云服务";
+"engine.category.compatible" = "兼容接口";
+
+/* 引擎配置标题 */
+"engine.config.title" = "翻译引擎配置";
+
+/* 引擎选择模式 */
+"engine.selection.mode.title" = "引擎选择模式";
+"engine.selection.mode.primary_fallback" = "主备";
+"engine.selection.mode.primary_fallback.description" = "使用主引擎，失败时切换到备用引擎";
+"engine.selection.mode.parallel" = "并行";
+"engine.selection.mode.parallel.description" = "同时运行多个引擎并比较结果";
+"engine.selection.mode.quick_switch" = "快切";
+"engine.selection.mode.quick_switch.description" = "从主引擎开始，可快速切换到其他引擎";
+"engine.selection.mode.scene_binding" = "场景";
+"engine.selection.mode.scene_binding.description" = "为不同翻译场景使用不同引擎";
+
+/* 模式特定标签 */
+"engine.config.primary" = "主引擎";
+"engine.config.fallback" = "备用引擎";
+"engine.config.switch.order" = "切换顺序";
+"engine.config.parallel.select" = "选择并行运行的引擎";
+"engine.config.replace" = "替换引擎";
+"engine.config.remove" = "移除";
+"engine.config.add" = "添加引擎";
+
+/* 翻译场景 */
+"translation.scene.screenshot" = "截图翻译";
+"translation.scene.screenshot.description" = "OCR识别并翻译截图区域";
+"translation.scene.text_selection" = "文本选择翻译";
+"translation.scene.text_selection.description" = "翻译从任意应用选中的文本";
+"translation.scene.translate_and_insert" = "翻译并插入";
+"translation.scene.translate_and_insert.description" = "翻译剪贴板文本并插入到光标位置";
+
+/* 引擎配置 */
+"engine.config.enabled" = "启用此引擎";
+"engine.config.apiKey" = "API 密钥";
+"engine.config.apiKey.placeholder" = "输入您的 API 密钥";
+"engine.config.getApiKey" = "获取 API 密钥";
+"engine.config.baseURL" = "基础 URL";
+"engine.config.model" = "模型名称";
+"engine.config.test" = "测试连接";
+"engine.config.test.success" = "连接成功";
+"engine.config.test.failed" = "连接失败";
+"engine.config.baidu.credentials" = "百度翻译凭证";
+"engine.config.baidu.appID" = "应用 ID";
+"engine.config.baidu.secretKey" = "密钥";
+"engine.config.mtran.url" = "服务器地址";
+
+/* 引擎状态 */
+"engine.status.configured" = "已配置";
+"engine.status.unconfigured" = "未配置";
+"engine.available.title" = "可用引擎";
+"engine.parallel.title" = "并行引擎";
+"engine.parallel.description" = "选择在并行模式下同时运行的引擎";
+"engine.scene.binding.title" = "场景引擎绑定";
+"engine.scene.binding.description" = "配置每个翻译场景使用的引擎";
+"engine.scene.fallback.tooltip" = "启用备用引擎";
+
+/* Keychain 错误 */
+"keychain.error.item_not_found" = "钥匙串中未找到凭证";
+"keychain.error.item_not_found.recovery" = "请在设置中配置您的 API 凭证";
+"keychain.error.duplicate_item" = "钥匙串中已存在凭证";
+"keychain.error.duplicate_item.recovery" = "请先删除现有凭证";
+"keychain.error.invalid_data" = "无效的凭证数据格式";
+"keychain.error.invalid_data.recovery" = "请重新输入您的凭证";
+"keychain.error.unexpected_status" = "钥匙串操作失败";
+"keychain.error.unexpected_status.recovery" = "请检查您的钥匙串访问权限";
+
+/* 多引擎错误 */
+"multiengine.error.all_failed" = "所有翻译引擎均失败";
+"multiengine.error.no_engines" = "未配置翻译引擎";
+"multiengine.error.primary_unavailable" = "主引擎 %@ 不可用";
+"multiengine.error.no_results" = "无翻译结果";
+
+/* 注册表错误 */
+"registry.error.already_registered" = "提供者已注册";
+"registry.error.not_registered" = "%@ 未注册提供者";
+"registry.error.config_missing" = "%@ 配置缺失";
+"registry.error.credentials_not_found" = "%@ 凭证未找到";
+
+/* 提示词配置 */
+"prompt.engine.title" = "引擎提示词";
+"prompt.engine.description" = "为每个大模型引擎自定义翻译提示词";
+"prompt.scene.title" = "场景提示词";
+"prompt.scene.description" = "为每个翻译场景自定义翻译提示词";
+"prompt.default.title" = "默认提示词模板";
+"prompt.default.description" = "当未配置自定义提示词时使用此模板";
+"prompt.button.edit" = "编辑";
+"prompt.button.reset" = "重置";
+"prompt.editor.title" = "编辑提示词";
+"prompt.editor.variables" = "可用变量：";
+"prompt.variable.source_language" = "源语言名称";
+"prompt.variable.target_language" = "目标语言名称";
+"prompt.variable.text" = "要翻译的文本";
 
 
 /* ========================================
@@ -611,3 +735,46 @@
 "settings.translateAndInsert.language.section" = "翻译并插入语言";
 "settings.translateAndInsert.language.source" = "源语言";
 "settings.translateAndInsert.language.target" = "目标语言";
+
+
+/* ========================================
+   多 OpenAI 兼容引擎配置
+   ======================================== */
+
+/* 兼容引擎配置 */
+"engine.compatible.new" = "新建兼容引擎";
+"engine.compatible.description" = "OpenAI 兼容的 API 端点";
+"engine.compatible.displayName" = "显示名称";
+"engine.compatible.displayName.placeholder" = "例如：我的大模型服务";
+"engine.compatible.requireApiKey" = "需要 API 密钥";
+"engine.compatible.add" = "添加兼容引擎";
+"engine.compatible.delete" = "删除此引擎";
+"engine.compatible.max.reached" = "已达到最多 5 个兼容引擎上限";
+
+/* 提示词配置 */
+"prompt.compatible.title" = "兼容引擎";
+
+
+/* ========================================
+   关于窗口
+   ======================================== */
+
+"about.title" = "关于 ScreenTranslate";
+"about.app.name" = "ScreenTranslate";
+"about.version.format" = "版本 %@ (%@)";
+"about.copyright" = "版权";
+"about.copyright.value" = "© 2026 保留所有权利";
+"about.license" = "许可证";
+"about.license.value" = "MIT 许可证";
+"about.github.link" = "GitHub: hubo1989/ScreenTranslate";
+"about.check.for.updates" = "检查更新";
+"about.update.checking" = "检查中...";
+"about.update.available" = "有新版本";
+"about.update.uptodate" = "已是最新版本";
+"about.update.failed" = "检查失败";
+"about.acknowledgements" = "致谢";
+"about.acknowledgements.title" = "致谢";
+"about.acknowledgements.intro" = "本软件使用了以下开源库：";
+"about.acknowledgements.upstream" = "基于";
+"about.acknowledgements.author.format" = "作者：%@";
+"about.close" = "关闭";

@@ -1,6 +1,7 @@
 import AppKit
 import os
 import UserNotifications
+import Sparkle
 
 /// Application delegate responsible for menu bar setup, coordinator management, and app lifecycle.
 /// Runs on the main actor to ensure thread-safe UI operations.
@@ -21,6 +22,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var menuBarController: MenuBarController?
     private let settings = AppSettings.shared
+
+    private lazy var updaterController: SPUStandardUpdaterController = {
+        let controller = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: self,
+            userDriverDelegate: nil
+        )
+        // Listen for check for updates notification from About window
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(checkForUpdates(_:)),
+            name: .checkForUpdates,
+            object: nil
+        )
+        return controller
+    }()
 
     // MARK: - NSApplicationDelegate
 
@@ -50,6 +67,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Check PaddleOCR availability in background (non-blocking)
         PaddleOCRChecker.checkAvailabilityAsync()
 
+        // Initialize updater controller to register notification observer
+        _ = updaterController
+
         Logger.general.info("ScreenTranslate launched - settings loaded from: \(self.settings.saveLocation.path)")
     }
 
@@ -58,42 +78,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !settings.onboardingCompleted {
             // Show onboarding for first-time users - already @MainActor
             OnboardingWindowController.shared.showOnboarding(settings: settings)
-        } else {
-            // Existing users: just check screen recording permission
-            await checkAndRequestScreenRecordingPermission()
         }
-    }
-
-    /// Checks for screen recording permission and shows an explanatory prompt if needed.
-    private func checkAndRequestScreenRecordingPermission() async {
-        // Check if we already have permission
-        let hasPermission = await CaptureManager.shared.hasPermission
-
-        if !hasPermission {
-            // Show an explanatory alert before triggering the system prompt - already @MainActor
-            showPermissionExplanationAlert()
-        }
-    }
-
-    /// Shows an alert explaining why screen recording permission is needed.
-    private func showPermissionExplanationAlert() {
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = NSLocalizedString(
-            "permission.prompt.title",
-            comment: "Screen Recording Permission Required"
-        )
-        alert.informativeText = NSLocalizedString("permission.prompt.message", comment: "")
-        alert.addButton(withTitle: NSLocalizedString("permission.prompt.continue", comment: "Continue"))
-        alert.addButton(withTitle: NSLocalizedString("permission.prompt.later", comment: "Later"))
-
-        let response = alert.runModal()
-        if response == .alertFirstButtonReturn {
-            // Trigger the system permission prompt by attempting a capture
-            Task {
-                _ = await CaptureManager.shared.requestPermission()
-            }
-        }
+        // Note: Don't auto-check screen recording permission on launch
+        // to avoid triggering system dialog. Users can check in Settings.
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -169,6 +156,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SettingsWindowController.shared.showSettings(appDelegate: self)
     }
 
+    /// Opens the about window
+    @objc func openAbout() {
+        Logger.ui.debug("Opening about window")
+
+        AboutWindowController.shared.showAbout()
+    }
+
+    /// Checks for app updates via Sparkle
+    @objc func checkForUpdates(_ sender: Any?) {
+        Logger.ui.info("Check for updates triggered")
+        // Activate the app to ensure Sparkle's window is visible
+        NSApp.activate(ignoringOtherApps: true)
+        updaterController.checkForUpdates(sender)
+    }
+
     /// Opens the translation history window
     @objc func openHistory() {
         Logger.ui.debug("Opening translation history window")
@@ -233,5 +235,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alert.addButton(withTitle: NSLocalizedString("error.ok", comment: "OK"))
             alert.runModal()
         }
+    }
+}
+
+// MARK: - SPUUpdaterDelegate
+
+extension AppDelegate: SPUUpdaterDelegate {
+    nonisolated func updater(_ updater: SPUUpdater, didFinishLoading appcast: SUAppcast) {
+        Logger.ui.info("Sparkle: didFinishLoading appcast")
+    }
+
+    nonisolated func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
+        Logger.ui.info("Sparkle: didFindValidUpdate - \(item.displayVersionString)")
+    }
+
+    nonisolated func updaterDidNotFindUpdate(_ updater: SPUUpdater) {
+        Logger.ui.info("Sparkle: didNotFindUpdate")
+    }
+
+    nonisolated func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
+        Logger.ui.error("Sparkle: didAbortWithError - \(error.localizedDescription)")
     }
 }
