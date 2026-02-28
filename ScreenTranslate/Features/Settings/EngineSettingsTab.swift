@@ -332,5 +332,11 @@ struct PaddleOCRStatusSection: View {
             }
         }
         .padding(.top, 8)
+        .onAppear {
+            // Auto-check MLX-VLM server status when section appears
+            if viewModel.paddleOCRUseMLXVLM {
+                viewModel.checkMLXVLMServerStatus()
+            }
+        }
     }
 }

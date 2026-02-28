@@ -785,7 +785,7 @@ final class SettingsViewModel {
     func refreshPaddleOCRStatus() {
         PaddleOCRChecker.resetCache()
         PaddleOCRChecker.checkAvailabilityAsync()
-        
+
         Task {
             for _ in 0..<20 {
                 try? await Task.sleep(for: .milliseconds(250))
@@ -797,6 +797,11 @@ final class SettingsViewModel {
                 isPaddleOCRInstalled = PaddleOCRChecker.isAvailable
                 paddleOCRVersion = PaddleOCRChecker.version
                 paddleOCRInstallError = nil
+
+                // Auto-check MLX-VLM server status if enabled
+                if paddleOCRUseMLXVLM {
+                    checkMLXVLMServerStatus()
+                }
             }
         }
     }
