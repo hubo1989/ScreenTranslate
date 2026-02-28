@@ -43,9 +43,27 @@ actor CaptureManager {
     // MARK: - Permission Handling
 
     /// Checks if the app has screen recording permission.
-    /// Uses CGPreflightScreenCaptureAccess() which does NOT trigger dialog.
-    /// - Returns: True if permission is granted
+    /// Uses SCShareableContent to actually verify permission works (not just cached status).
+    /// - Returns: True if permission is granted and functional
     var hasPermission: Bool {
+        get async {
+            // Quick check first
+            guard CGPreflightScreenCaptureAccess() else {
+                return false
+            }
+            // Actually verify by trying to get shareable content
+            do {
+                _ = try await SCShareableContent.current
+                return true
+            } catch {
+                return false
+            }
+        }
+    }
+
+    /// Synchronous permission check using only CGPreflightScreenCaptureAccess.
+    /// Use only when async check is not possible.
+    var hasPermissionSync: Bool {
         CGPreflightScreenCaptureAccess()
     }
 
@@ -70,8 +88,8 @@ actor CaptureManager {
         isCapturing = true
         defer { isCapturing = false }
 
-        // Check permission
-        guard hasPermission else {
+        // Check permission using async method
+        guard await hasPermission else {
             throw ScreenTranslateError.permissionDenied
         }
 
@@ -139,8 +157,8 @@ actor CaptureManager {
         isCapturing = true
         defer { isCapturing = false }
 
-        // Check permission
-        guard hasPermission else {
+        // Check permission using async method
+        guard await hasPermission else {
             throw ScreenTranslateError.permissionDenied
         }
 

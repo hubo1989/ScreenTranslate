@@ -2,6 +2,30 @@ import Foundation
 import SwiftUI
 import os
 
+/// PaddleOCR mode selection
+enum PaddleOCRMode: String, Codable, CaseIterable, Sendable {
+    case fast = "fast"
+    case precise = "precise"
+
+    var localizedName: String {
+        switch self {
+        case .fast:
+            return NSLocalizedString("settings.paddleocr.mode.fast", comment: "Fast mode")
+        case .precise:
+            return NSLocalizedString("settings.paddleocr.mode.precise", comment: "Precise mode")
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .fast:
+            return NSLocalizedString("settings.paddleocr.mode.fast.description", comment: "~1s, uses groupIntoLines")
+        case .precise:
+            return NSLocalizedString("settings.paddleocr.mode.precise.description", comment: "~12s, VL-1.5 model")
+        }
+    }
+}
+
 /// User preferences persisted across sessions via UserDefaults.
 /// All properties automatically sync to UserDefaults with the `ScreenTranslate.` prefix.
 @MainActor
@@ -58,6 +82,11 @@ final class AppSettings {
         static let sceneBindings = prefix + "sceneBindings"
         static let parallelEngines = prefix + "parallelEngines"
         static let compatibleProviderConfigs = prefix + "compatibleProviderConfigs"
+        // PaddleOCR Configuration
+        static let paddleOCRMode = prefix + "paddleOCRMode"
+        static let paddleOCRUseCloud = prefix + "paddleOCRUseCloud"
+        static let paddleOCRCloudBaseURL = prefix + "paddleOCRCloudBaseURL"
+        static let paddleOCRCloudAPIKey = prefix + "paddleOCRCloudAPIKey"
     }
 
     // MARK: - Properties
@@ -262,6 +291,28 @@ final class AppSettings {
         didSet { saveCompatibleConfigs() }
     }
 
+    // MARK: - PaddleOCR Configuration
+
+    /// PaddleOCR mode: fast (ocr command) or precise (doc_parser VL-1.5)
+    var paddleOCRMode: PaddleOCRMode {
+        didSet { save(paddleOCRMode.rawValue, forKey: Keys.paddleOCRMode) }
+    }
+
+    /// Whether to use cloud API instead of local CLI
+    var paddleOCRUseCloud: Bool {
+        didSet { save(paddleOCRUseCloud, forKey: Keys.paddleOCRUseCloud) }
+    }
+
+    /// Cloud API base URL (for third-party PaddleOCR cloud services)
+    var paddleOCRCloudBaseURL: String {
+        didSet { save(paddleOCRCloudBaseURL, forKey: Keys.paddleOCRCloudBaseURL) }
+    }
+
+    /// Cloud API key
+    var paddleOCRCloudAPIKey: String {
+        didSet { save(paddleOCRCloudAPIKey, forKey: Keys.paddleOCRCloudAPIKey) }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -357,6 +408,13 @@ final class AppSettings {
         sceneBindings = Self.loadSceneBindings()
         parallelEngines = Self.loadParallelEngines()
         compatibleProviderConfigs = Self.loadCompatibleConfigs()
+
+        // Load PaddleOCR configuration
+        paddleOCRMode = defaults.string(forKey: Keys.paddleOCRMode)
+            .flatMap { PaddleOCRMode(rawValue: $0) } ?? .fast
+        paddleOCRUseCloud = defaults.object(forKey: Keys.paddleOCRUseCloud) as? Bool ?? false
+        paddleOCRCloudBaseURL = defaults.string(forKey: Keys.paddleOCRCloudBaseURL) ?? ""
+        paddleOCRCloudAPIKey = defaults.string(forKey: Keys.paddleOCRCloudAPIKey) ?? ""
 
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }

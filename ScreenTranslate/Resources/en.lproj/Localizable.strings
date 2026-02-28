@@ -581,6 +581,19 @@
 "settings.paddleocr.install.hint" = "Requires Python 3 and pip installed on your system.";
 "settings.paddleocr.copy.command" = "Copy Command";
 "settings.paddleocr.refresh" = "Refresh Status";
+"settings.paddleocr.ready" = "PaddleOCR is ready";
+"settings.paddleocr.not.installed.message" = "PaddleOCR is not installed";
+"settings.paddleocr.description" = "PaddleOCR is a local OCR engine. It's free, works offline, and doesn't require an API key.";
+"settings.paddleocr.install.button" = "Install PaddleOCR";
+"settings.paddleocr.copy.command.button" = "Copy Install Command";
+"settings.paddleocr.mode" = "Mode";
+"settings.paddleocr.mode.fast" = "Fast";
+"settings.paddleocr.mode.precise" = "Precise";
+"settings.paddleocr.mode.fast.description" = "~1s, fast OCR with line grouping";
+"settings.paddleocr.mode.precise.description" = "~12s, VL-1.5 model with higher accuracy";
+"settings.paddleocr.useCloud" = "Use Cloud API";
+"settings.paddleocr.cloudBaseURL" = "Cloud API URL";
+"settings.paddleocr.cloudAPIKey" = "API Key";
 
 
 /* ========================================
@@ -601,9 +614,11 @@
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";
 "vlm.provider.ollama" = "Ollama";
+"vlm.provider.paddleocr" = "PaddleOCR";
 "vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
 "vlm.provider.claude.description" = "Anthropic Claude Vision API";
 "vlm.provider.ollama.description" = "Local Ollama server";
+"vlm.provider.paddleocr.description" = "Local OCR engine (free, offline)";
 
 
 /* ========================================

@@ -100,6 +100,32 @@ final class SettingsViewModel {
     /// PaddleOCR version if installed
     var paddleOCRVersion: String?
 
+    // MARK: - PaddleOCR Settings
+
+    /// PaddleOCR mode: fast or precise
+    var paddleOCRMode: PaddleOCRMode {
+        get { settings.paddleOCRMode }
+        set { settings.paddleOCRMode = newValue }
+    }
+
+    /// Whether to use cloud API
+    var paddleOCRUseCloud: Bool {
+        get { settings.paddleOCRUseCloud }
+        set { settings.paddleOCRUseCloud = newValue }
+    }
+
+    /// Cloud API base URL
+    var paddleOCRCloudBaseURL: String {
+        get { settings.paddleOCRCloudBaseURL }
+        set { settings.paddleOCRCloudBaseURL = newValue }
+    }
+
+    /// Cloud API key
+    var paddleOCRCloudAPIKey: String {
+        get { settings.paddleOCRCloudAPIKey }
+        set { settings.paddleOCRCloudAPIKey = newValue }
+    }
+
     // MARK: - VLM Test State
 
     /// Whether VLM API test is in progress
@@ -375,34 +401,31 @@ final class SettingsViewModel {
         // Check folder access permission by testing if we can write to the save location
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
 
-        // Check screen recording permission
-        // Try CGPreflightScreenCaptureAccess first, then fallback to window count check
-        hasScreenRecordingPermission = checkScreenRecordingPermission()
-
-        isCheckingPermissions = false
+        // Check screen recording permission using ScreenCaptureKit
+        Task {
+            let granted = await checkScreenRecordingPermission()
+            await MainActor.run {
+                self.hasScreenRecordingPermission = granted
+                self.isCheckingPermissions = false
+            }
+        }
     }
 
-    /// Checks screen recording permission using multiple methods for reliability
-    private func checkScreenRecordingPermission() -> Bool {
-        // Method 1: CGPreflightScreenCaptureAccess (may not work in all cases)
-        if CGPreflightScreenCaptureAccess() {
+    /// Checks screen recording permission using ScreenCaptureKit for reliable detection
+    private func checkScreenRecordingPermission() async -> Bool {
+        // First do a quick check with CGPreflightScreenCaptureAccess
+        if !CGPreflightScreenCaptureAccess() {
+            return false
+        }
+        
+        // Verify by actually trying to get shareable content
+        // This ensures permission is truly granted (not just cached)
+        do {
+            _ = try await SCShareableContent.current
             return true
+        } catch {
+            return false
         }
-
-        // Method 2: Check if we can see windows from other apps
-        // If we have permission, we should see windows from other apps
-        let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-        let ownPID = ProcessInfo.processInfo.processIdentifier
-
-        // Count windows from other processes
-        let otherAppWindows = windowList.filter { window in
-            guard let ownerPID = window[kCGWindowOwnerPID as String] as? Int32 else { return false }
-            return ownerPID != ownPID
-        }
-
-        // If we can see windows from other apps, we likely have permission
-        // (There should be at least a few windows from Finder, Dock, etc.)
-        return otherAppWindows.count > 3
     }
 
     /// Checks if we have write access to the specified folder
@@ -486,8 +509,8 @@ final class SettingsViewModel {
 
                 switch type {
                 case .screenRecording:
-                    // Use CGPreflightScreenCaptureAccess to check without triggering dialog
-                    let granted = CGPreflightScreenCaptureAccess()
+                    // Use the same reliable check method
+                    let granted = await checkScreenRecordingPermission()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil
@@ -871,6 +894,18 @@ final class SettingsViewModel {
             return try await testClaudeConnection(baseURL: baseURL, apiKey: apiKey, modelName: modelName)
         case .ollama:
             return try await testOllamaConnection(baseURL: baseURL, modelName: modelName)
+        case .paddleocr:
+            return try await testPaddleOCRConnection()
+        }
+    }
+
+    /// Tests PaddleOCR availability
+    private func testPaddleOCRConnection() async throws -> (success: Bool, message: String) {
+        let isAvailable = await PaddleOCREngine.shared.isAvailable
+        if isAvailable {
+            return (true, "PaddleOCR is ready")
+        } else {
+            throw VLMProviderError.invalidConfiguration("PaddleOCR is not installed")
         }
     }
 
