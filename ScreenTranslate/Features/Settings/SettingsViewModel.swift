@@ -100,6 +100,32 @@ final class SettingsViewModel {
     /// PaddleOCR version if installed
     var paddleOCRVersion: String?
 
+    // MARK: - PaddleOCR Settings
+
+    /// PaddleOCR mode: fast or precise
+    var paddleOCRMode: PaddleOCRMode {
+        get { settings.paddleOCRMode }
+        set { settings.paddleOCRMode = newValue }
+    }
+
+    /// Whether to use cloud API
+    var paddleOCRUseCloud: Bool {
+        get { settings.paddleOCRUseCloud }
+        set { settings.paddleOCRUseCloud = newValue }
+    }
+
+    /// Cloud API base URL
+    var paddleOCRCloudBaseURL: String {
+        get { settings.paddleOCRCloudBaseURL }
+        set { settings.paddleOCRCloudBaseURL = newValue }
+    }
+
+    /// Cloud API key
+    var paddleOCRCloudAPIKey: String {
+        get { settings.paddleOCRCloudAPIKey }
+        set { settings.paddleOCRCloudAPIKey = newValue }
+    }
+
     // MARK: - VLM Test State
 
     /// Whether VLM API test is in progress
@@ -375,34 +401,33 @@ final class SettingsViewModel {
         // Check folder access permission by testing if we can write to the save location
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
 
-        // Check screen recording permission
-        // Try CGPreflightScreenCaptureAccess first, then fallback to window count check
-        hasScreenRecordingPermission = checkScreenRecordingPermission()
+        // Check screen recording permission using ScreenCaptureKit
+        // Cancel any existing task to avoid race conditions
+        permissionCheckTask?.cancel()
 
-        isCheckingPermissions = false
+        permissionCheckTask = Task {
+            let granted = await checkScreenRecordingPermission()
+            self.hasScreenRecordingPermission = granted
+            self.isCheckingPermissions = false
+            permissionCheckTask = nil
+        }
     }
 
-    /// Checks screen recording permission using multiple methods for reliability
-    private func checkScreenRecordingPermission() -> Bool {
-        // Method 1: CGPreflightScreenCaptureAccess (may not work in all cases)
-        if CGPreflightScreenCaptureAccess() {
+    /// Checks screen recording permission using ScreenCaptureKit for reliable detection
+    private func checkScreenRecordingPermission() async -> Bool {
+        // First do a quick check with CGPreflightScreenCaptureAccess
+        if !CGPreflightScreenCaptureAccess() {
+            return false
+        }
+        
+        // Verify by actually trying to get shareable content
+        // This ensures permission is truly granted (not just cached)
+        do {
+            _ = try await SCShareableContent.current
             return true
+        } catch {
+            return false
         }
-
-        // Method 2: Check if we can see windows from other apps
-        // If we have permission, we should see windows from other apps
-        let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-        let ownPID = ProcessInfo.processInfo.processIdentifier
-
-        // Count windows from other processes
-        let otherAppWindows = windowList.filter { window in
-            guard let ownerPID = window[kCGWindowOwnerPID as String] as? Int32 else { return false }
-            return ownerPID != ownPID
-        }
-
-        // If we can see windows from other apps, we likely have permission
-        // (There should be at least a few windows from Finder, Dock, etc.)
-        return otherAppWindows.count > 3
     }
 
     /// Checks if we have write access to the specified folder
@@ -486,8 +511,8 @@ final class SettingsViewModel {
 
                 switch type {
                 case .screenRecording:
-                    // Use CGPreflightScreenCaptureAccess to check without triggering dialog
-                    let granted = CGPreflightScreenCaptureAccess()
+                    // Use the same reliable check method
+                    let granted = await checkScreenRecordingPermission()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil
@@ -871,6 +896,59 @@ final class SettingsViewModel {
             return try await testClaudeConnection(baseURL: baseURL, apiKey: apiKey, modelName: modelName)
         case .ollama:
             return try await testOllamaConnection(baseURL: baseURL, modelName: modelName)
+        case .paddleocr:
+            return try await testPaddleOCRConnection()
+        }
+    }
+
+    /// Tests PaddleOCR availability - checks cloud mode first, then local
+    private func testPaddleOCRConnection() async throws -> (success: Bool, message: String) {
+        let settings = AppSettings.shared
+
+        // If cloud mode is enabled, test cloud connectivity first
+        if settings.paddleOCRUseCloud {
+            let cloudBaseURL = settings.paddleOCRCloudBaseURL.trimmingCharacters(in: .whitespaces)
+            guard !cloudBaseURL.isEmpty,
+                  let url = URL(string: cloudBaseURL) else {
+                throw VLMProviderError.invalidConfiguration("PaddleOCR cloud base URL is not configured")
+            }
+
+            // Test cloud API connectivity with a simple request
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+
+            // Add API key if configured
+            let apiKey = settings.paddleOCRCloudAPIKey.trimmingCharacters(in: .whitespaces)
+            if !apiKey.isEmpty {
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            }
+
+            do {
+                let (_, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw VLMProviderError.invalidResponse("Invalid HTTP response from PaddleOCR cloud")
+                }
+                switch httpResponse.statusCode {
+                case 200, 404:  // 404 is acceptable - means server is reachable
+                    return (true, "PaddleOCR cloud is reachable")
+                case 401, 403:
+                    throw VLMProviderError.authenticationFailed
+                default:
+                    throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
+                }
+            } catch let error as VLMProviderError {
+                throw error
+            } catch {
+                throw VLMProviderError.invalidConfiguration("PaddleOCR cloud is not reachable: \(error.localizedDescription)")
+            }
+        }
+
+        // Local mode - check if PaddleOCR is installed
+        let isAvailable = await PaddleOCREngine.shared.isAvailable
+        if isAvailable {
+            return (true, "PaddleOCR is ready")
+        } else {
+            throw VLMProviderError.invalidConfiguration("PaddleOCR is not installed. Install it using: pip3 install paddleocr paddlepaddle")
         }
     }
 

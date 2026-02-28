@@ -161,6 +161,8 @@ actor ScreenCoderEngine {
             return ClaudeVLMProvider(configuration: configuration)
         case .ollama:
             return OllamaVLMProvider(configuration: configuration)
+        case .paddleocr:
+            return PaddleOCRVLMProvider()
         }
     }
     

@@ -144,30 +144,26 @@ final class OnboardingViewModel {
     func checkPermissions() {
         hasAccessibilityPermission = AccessibilityPermissionChecker.hasPermission
 
-        // Check screen recording permission using multiple methods for reliability
-        hasScreenRecordingPermission = checkScreenRecordingPermission()
+        // Check screen recording permission using async method
+        Task {
+            hasScreenRecordingPermission = await checkScreenRecordingPermission()
+        }
     }
 
-    /// Checks screen recording permission using multiple methods for reliability
-    private func checkScreenRecordingPermission() -> Bool {
-        // Method 1: CGPreflightScreenCaptureAccess (may not work in all cases)
-        if CGPreflightScreenCaptureAccess() {
+    /// Checks screen recording permission using ScreenCaptureKit for reliable detection
+    private func checkScreenRecordingPermission() async -> Bool {
+        // First do a quick check with CGPreflightScreenCaptureAccess
+        if !CGPreflightScreenCaptureAccess() {
+            return false
+        }
+
+        // Verify by actually trying to get shareable content
+        do {
+            _ = try await SCShareableContent.current
             return true
+        } catch {
+            return false
         }
-
-        // Method 2: Check if we can see windows from other apps
-        // If we have permission, we should see windows from other apps
-        let windowList = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
-        let ownPID = ProcessInfo.processInfo.processIdentifier
-
-        // Count windows from other processes
-        let otherAppWindows = windowList.filter { window in
-            guard let ownerPID = window[kCGWindowOwnerPID as String] as? Int32 else { return false }
-            return ownerPID != ownPID
-        }
-
-        // If we can see windows from other apps, we likely have permission
-        return otherAppWindows.count > 3
     }
 
     /// Requests screen recording permission
@@ -234,8 +230,8 @@ final class OnboardingViewModel {
 
                 switch type {
                 case .screenRecording:
-                    // Use multiple methods to check permission without triggering dialog
-                    let granted = checkScreenRecordingPermission()
+                    // Use async ScreenCaptureKit check for reliable detection
+                    let granted = await checkScreenRecordingPermission()
                     if granted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil

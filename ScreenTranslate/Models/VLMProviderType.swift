@@ -12,6 +12,7 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
     case openai = "openai"
     case claude = "claude"
     case ollama = "ollama"
+    case paddleocr = "paddleocr"
     
     var id: String { rawValue }
     
@@ -24,6 +25,8 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
             return NSLocalizedString("vlm.provider.claude", comment: "Claude")
         case .ollama:
             return NSLocalizedString("vlm.provider.ollama", comment: "Ollama")
+        case .paddleocr:
+            return NSLocalizedString("vlm.provider.paddleocr", comment: "PaddleOCR")
         }
     }
     
@@ -45,6 +48,11 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
                 "vlm.provider.ollama.description",
                 comment: "Local Ollama server"
             )
+        case .paddleocr:
+            return NSLocalizedString(
+                "vlm.provider.paddleocr.description",
+                comment: "Local OCR engine (free, offline)"
+            )
         }
     }
     
@@ -57,6 +65,8 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
             return "https://api.anthropic.com/v1"
         case .ollama:
             return "http://localhost:11434"
+        case .paddleocr:
+            return ""
         }
     }
     
@@ -69,6 +79,8 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
             return "claude-sonnet-4-20250514"
         case .ollama:
             return "llava"
+        case .paddleocr:
+            return ""
         }
     }
     
@@ -77,7 +89,7 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
         switch self {
         case .openai, .claude:
             return true
-        case .ollama:
+        case .ollama, .paddleocr:
             return false
         }
     }

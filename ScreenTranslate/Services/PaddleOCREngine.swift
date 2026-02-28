@@ -42,12 +42,28 @@ actor PaddleOCREngine {
         /// Detection model type
         var detectionModel: DetectionModel
 
+        /// OCR mode: fast (ocr command) or precise (doc_parser VL-1.5)
+        var mode: PaddleOCRMode
+
+        /// Whether to use cloud API
+        var useCloud: Bool
+
+        /// Cloud API base URL
+        var cloudBaseURL: String
+
+        /// Cloud API key
+        var cloudAPIKey: String
+
         static let `default` = Configuration(
             languages: [.chinese, .english],
             minimumConfidence: 0.0,
             useGPU: false,
             useDirectionClassify: true,
-            detectionModel: .default
+            detectionModel: .default,
+            mode: .fast,
+            useCloud: false,
+            cloudBaseURL: "",
+            cloudAPIKey: ""
         )
     }
 
@@ -140,7 +156,7 @@ actor PaddleOCREngine {
         let result = try await executePaddleOCR(arguments: arguments)
 
         // Parse output
-        let observations = try parsePaddleOCROutput(result, imageSize: CGSize(width: image.width, height: image.height))
+        let observations = try parsePaddleOCROutput(result, imageSize: CGSize(width: image.width, height: image.height), mode: config.mode)
 
         // Filter by confidence
         let filteredTexts = observations.filter { $0.confidence >= config.minimumConfidence }
@@ -203,18 +219,25 @@ actor PaddleOCREngine {
 
     /// Builds command line arguments for PaddleOCR
     private func buildArguments(config: Configuration, imagePath: String) -> [String] {
-        var args = [
-            "ocr",
-            "-i", imagePath,
-            "--lang", "ch"
-        ]
-
-        if config.useGPU {
-            args.append("--device")
-            args.append("gpu")
+        switch config.mode {
+        case .fast:
+            // Fast mode: use ocr command (~1s)
+            let langCode = config.languages.contains(.chinese) ? "ch" : "en"
+            return [
+                "ocr",
+                "-i", imagePath,
+                "--lang", langCode,
+                "--use_angle_cls", config.useDirectionClassify ? "true" : "false"
+            ]
+        case .precise:
+            // Precise mode: use doc_parser with VL-1.5 (~12s)
+            return [
+                "doc_parser",
+                "-i", imagePath,
+                "--pipeline_version", "v1.5",
+                "--device", config.useGPU ? "gpu" : "cpu"
+            ]
         }
-
-        return args
     }
 
     /// Executes PaddleOCR with the given arguments
@@ -298,8 +321,8 @@ actor PaddleOCREngine {
         return nil
     }
 
-    /// Parses PaddleOCR JSON output into OCRText observations
-    private func parsePaddleOCROutput(_ output: String, imageSize: CGSize) throws -> [OCRText] {
+    /// Parses PaddleOCR output into OCRText observations
+    private func parsePaddleOCROutput(_ output: String, imageSize: CGSize, mode: PaddleOCRMode) throws -> [OCRText] {
         var observations: [OCRText] = []
 
         guard let startIndex = output.firstIndex(of: "{"),
@@ -310,36 +333,150 @@ actor PaddleOCREngine {
 
         let jsonLike = String(output[startIndex...endIndex])
         let cleanedJson = convertPythonDictToJson(jsonLike)
-        
+
         Logger.ocr.debug("Cleaned JSON: \(cleanedJson.prefix(500))")
 
-        guard let jsonData = cleanedJson.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
-              let res = json["res"] as? [String: Any] else {
-            Logger.ocr.error("Failed to parse JSON")
+        guard let jsonData = cleanedJson.data(using: .utf8) else {
+            Logger.ocr.error("Failed to convert cleaned JSON to data")
             return observations
         }
 
-        guard let recTexts = res["rec_texts"] as? [String] else {
-            Logger.ocr.error("No rec_texts found")
+        // Try to parse JSON and log detailed error
+        var json: [String: Any]?
+        do {
+            json = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any]
+        } catch {
+            Logger.ocr.error("JSON parse error: \(error.localizedDescription)")
+            // Log the problematic JSON (last 1000 chars to find the issue)
+            if let jsonStr = String(data: jsonData, encoding: .utf8) {
+                Logger.ocr.error("JSON end portion: ...\(jsonStr.suffix(500))")
+            }
             return observations
         }
-        
-        let recScores = res["rec_scores"] as? [Double] ?? []
-        let recBoxes = res["rec_boxes"] as? [[Int]] ?? []
-        
-        Logger.ocr.info("Found \(recTexts.count) texts, \(recBoxes.count) boxes")
+
+        guard let json = json else {
+            Logger.ocr.error("Failed to parse JSON as dictionary")
+            return observations
+        }
+
+        guard let res = json["res"] as? [String: Any] else {
+            Logger.ocr.error("No 'res' key in JSON. Keys: \(json.keys.joined(separator: ", "))")
+            return observations
+        }
+
+        switch mode {
+        case .fast:
+            // Fast mode: parse rec_texts format
+            observations = try parseFastModeOutput(res: res, imageSize: imageSize)
+        case .precise:
+            // Precise mode: parse doc_parser output format: parsing_res_list
+            observations = try parsePreciseModeOutput(res: res, imageSize: imageSize)
+        }
+
+        return observations
+    }
+
+    /// Parse fast mode output (ocr command)
+    private func parseFastModeOutput(res: [String: Any], imageSize: CGSize) throws -> [OCRText] {
+        var observations: [OCRText] = []
+
+        // Fast mode output has parallel arrays: rec_texts, rec_scores, rec_boxes
+        guard let recTexts = res["rec_texts"] as? [String] else {
+            Logger.ocr.error("No rec_texts found in fast mode output. Keys: \(res.keys.joined(separator: ", "))")
+            return observations
+        }
+
+        // Get rec_boxes and rec_scores (optional)
+        let recBoxes = res["rec_boxes"] as? [[Double]]
+        let recScores = res["rec_scores"] as? [Double]
+
+        Logger.ocr.info("Found \(recTexts.count) text blocks from fast mode")
 
         for (index, text) in recTexts.enumerated() {
-            let confidence = index < recScores.count ? Float(recScores[index]) : 0.5
-            
+            guard !text.isEmpty else { continue }
+
+            // Get bounding box from rec_boxes (format: [[x1, y1, x2, y2], ...])
             var boundingBox: CGRect
-            if index < recBoxes.count && recBoxes[index].count >= 4 {
-                let box = recBoxes[index]
-                let x = CGFloat(box[0])
-                let y = CGFloat(box[1])
-                let x2 = CGFloat(box[2])
-                let y2 = CGFloat(box[3])
+            if let boxes = recBoxes, index < boxes.count {
+                let box = boxes[index]
+                if box.count >= 4 {
+                    let x = CGFloat(box[0])
+                    let y = CGFloat(box[1])
+                    let x2 = CGFloat(box[2])
+                    let y2 = CGFloat(box[3])
+                    boundingBox = CGRect(
+                        x: x / imageSize.width,
+                        y: y / imageSize.height,
+                        width: (x2 - x) / imageSize.width,
+                        height: (y2 - y) / imageSize.height
+                    )
+                } else {
+                    boundingBox = CGRect(x: 0, y: CGFloat(index) * 0.1, width: 1, height: 0.1)
+                }
+            } else {
+                // Fallback: stack vertically
+                boundingBox = CGRect(x: 0, y: CGFloat(index) * 0.1, width: 1, height: 0.1)
+            }
+
+            // Get confidence from rec_scores
+            let confidence: Float
+            if let scores = recScores, index < scores.count {
+                confidence = Float(scores[index])
+            } else {
+                confidence = 0.9
+            }
+
+            let observation = OCRText(
+                text: text,
+                boundingBox: boundingBox,
+                confidence: confidence
+            )
+            observations.append(observation)
+            Logger.ocr.debug("Fast mode block: '\(text)', box: \(String(describing: boundingBox))")
+        }
+
+        return observations
+    }
+
+    /// Parse precise mode output (doc_parser VL-1.5)
+    private func parsePreciseModeOutput(res: [String: Any], imageSize: CGSize) throws -> [OCRText] {
+        var observations: [OCRText] = []
+
+        // Log all keys in res for debugging
+        Logger.ocr.info("Precise mode res keys: \(res.keys.joined(separator: ", "))")
+
+        guard let parsingResList = res["parsing_res_list"] as? [[String: Any]] else {
+            Logger.ocr.error("No parsing_res_list found in res. Available keys: \(res.keys.joined(separator: ", "))")
+            // Try to log the raw res for debugging
+            if let resData = try? JSONSerialization.data(withJSONObject: res),
+               let resStr = String(data: resData, encoding: .utf8) {
+                Logger.ocr.debug("Raw res content: \(resStr.prefix(1000))")
+            }
+            return observations
+        }
+
+        Logger.ocr.info("Found \(parsingResList.count) blocks from doc_parser")
+
+        for (index, block) in parsingResList.enumerated() {
+            guard let text = block["block_content"] as? String else {
+                continue
+            }
+
+            // Skip non-text blocks (charts, seals, images, etc.)
+            if let label = block["block_label"] as? String {
+                let skipLabels = ["chart", "seal", "image", "table", "figure"]
+                if skipLabels.contains(where: { label.lowercased().contains($0) }) {
+                    Logger.ocr.debug("Skipping non-text block: \(label)")
+                    continue
+                }
+            }
+
+            var boundingBox: CGRect
+            if let bbox = block["block_bbox"] as? [Double], bbox.count >= 4 {
+                let x = CGFloat(bbox[0])
+                let y = CGFloat(bbox[1])
+                let x2 = CGFloat(bbox[2])
+                let y2 = CGFloat(bbox[3])
                 boundingBox = CGRect(
                     x: x / imageSize.width,
                     y: y / imageSize.height,
@@ -349,14 +486,17 @@ actor PaddleOCREngine {
             } else {
                 boundingBox = CGRect(x: 0, y: CGFloat(index) * 0.1, width: 1, height: 0.1)
             }
-            
+
+            // doc_parser doesn't provide confidence scores per block, use default
+            let confidence: Float = 0.9
+
             let observation = OCRText(
                 text: text,
                 boundingBox: boundingBox,
                 confidence: confidence
             )
             observations.append(observation)
-            Logger.ocr.debug("Text: '\(text)', box: \(String(describing: boundingBox)), confidence: \(confidence)")
+            Logger.ocr.debug("Block: '\(text)', box: \(String(describing: boundingBox))")
         }
 
         return observations
@@ -370,6 +510,13 @@ actor PaddleOCREngine {
         result = result.replacingOccurrences(of: "'", with: "\"")
 
         result = convertNumpyArraysToJson(result)
+
+        // Fix float format: "8." -> "8.0", "-5." -> "-5.0" (valid JSON)
+        let floatPattern = #"(-?\d+)\.\s*([,\]\}])"#
+        if let regex = try? NSRegularExpression(pattern: floatPattern) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(in: result, options: [], range: range, withTemplate: "$1.0$2")
+        }
 
         return result
     }
@@ -409,26 +556,34 @@ actor PaddleOCREngine {
     
     private func extractArrayContent(from arrayContent: String) -> String {
         var content = arrayContent
-        
+
+        // Remove shape and dtype info
         if let shapeRange = content.range(of: ", shape=") {
             content = String(content[..<shapeRange.lowerBound])
         }
         if let dtypeRange = content.range(of: ", dtype=") {
             content = String(content[..<dtypeRange.lowerBound])
         }
-        
+
         content = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        
+
         if content.hasPrefix("[") {
+            // Remove ellipsis (numpy truncation indicator)
             content = content.replacingOccurrences(of: "...", with: "")
+            // Remove newlines and extra spaces
             content = content.replacingOccurrences(of: "\n", with: "")
             content = content.replacingOccurrences(of: " ", with: "")
-            content = content.replacingOccurrences(of: ",,", with: ",")
+            // Clean up multiple commas and brackets
+            while content.contains(",,") {
+                content = content.replacingOccurrences(of: ",,", with: ",")
+            }
             content = content.replacingOccurrences(of: "[,", with: "[")
             content = content.replacingOccurrences(of: ",]", with: "]")
+            // Handle edge case of empty nested arrays
+            content = content.replacingOccurrences(of: "[]", with: "[]")
             return content
         }
-        
+
         return "[]"
     }
 

@@ -581,6 +581,19 @@
 "settings.paddleocr.install.hint" = "需要在系统上安装 Python 3 和 pip。";
 "settings.paddleocr.copy.command" = "复制命令";
 "settings.paddleocr.refresh" = "刷新状态";
+"settings.paddleocr.ready" = "PaddleOCR 已就绪";
+"settings.paddleocr.not.installed.message" = "PaddleOCR 未安装";
+"settings.paddleocr.description" = "PaddleOCR 是本地 OCR 引擎。免费、离线可用，无需 API 密钥。";
+"settings.paddleocr.install.button" = "安装 PaddleOCR";
+"settings.paddleocr.copy.command.button" = "复制安装命令";
+"settings.paddleocr.mode" = "模式";
+"settings.paddleocr.mode.fast" = "快速";
+"settings.paddleocr.mode.precise" = "精确";
+"settings.paddleocr.mode.fast.description" = "~1秒，快速 OCR 并自动合并行";
+"settings.paddleocr.mode.precise.description" = "~12秒，VL-1.5 模型，更高精度";
+"settings.paddleocr.useCloud" = "使用云端 API";
+"settings.paddleocr.cloudBaseURL" = "云端 API 地址";
+"settings.paddleocr.cloudAPIKey" = "API 密钥";
 
 
 /* ========================================
@@ -601,9 +614,11 @@
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";
 "vlm.provider.ollama" = "Ollama";
+"vlm.provider.paddleocr" = "PaddleOCR";
 "vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
 "vlm.provider.claude.description" = "Anthropic Claude Vision API";
 "vlm.provider.ollama.description" = "本地 Ollama 服务器";
+"vlm.provider.paddleocr.description" = "本地 OCR 引擎（免费、离线可用）";
 
 
 /* ========================================
