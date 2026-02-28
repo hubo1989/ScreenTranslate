@@ -308,6 +308,113 @@ actor KeychainService {
 
         logger.info("Deleted all credentials")
     }
+
+    // MARK: - PaddleOCR Cloud Methods
+
+    /// Save PaddleOCR cloud API key
+    /// - Parameter apiKey: The API key to store
+    func savePaddleOCRCredentials(apiKey: String) throws {
+        let account = "paddleocr_cloud"
+
+        let credentials = StoredCredentials(apiKey: apiKey)
+
+        guard let encodedData = try? JSONEncoder().encode(credentials) else {
+            throw KeychainError.invalidData
+        }
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+
+        // Check if item exists and update it, or add new if not found
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        if status == errSecSuccess {
+            // Item exists - update it
+            let updateQuery: [String: Any] = [
+                kSecValueData as String: encodedData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
+            let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
+            guard updateStatus == errSecSuccess else {
+                logger.error("Failed to update PaddleOCR cloud credentials: \(updateStatus)")
+                throw KeychainError.unexpectedStatus(updateStatus)
+            }
+            logger.info("Updated PaddleOCR cloud credentials")
+        } else if status == errSecItemNotFound {
+            // Item doesn't exist - add new
+            let addQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account,
+                kSecValueData as String: encodedData,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+            ]
+            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+            guard addStatus == errSecSuccess else {
+                logger.error("Failed to save PaddleOCR cloud credentials: \(addStatus)")
+                throw KeychainError.unexpectedStatus(addStatus)
+            }
+            logger.info("Saved PaddleOCR cloud credentials")
+        } else {
+            logger.error("Failed to check PaddleOCR cloud credentials: \(status)")
+            throw KeychainError.unexpectedStatus(status)
+        }
+    }
+
+    /// Retrieve stored PaddleOCR cloud API key
+    /// - Returns: The stored API key, or nil if not found
+    func getPaddleOCRCredentials() -> String? {
+        let account = "paddleocr_cloud"
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        guard status == errSecSuccess else {
+            if status == errSecItemNotFound {
+                logger.debug("No PaddleOCR cloud credentials found")
+                return nil
+            }
+            logger.error("Failed to retrieve PaddleOCR cloud credentials: \(status)")
+            return nil
+        }
+
+        guard let data = result as? Data else {
+            return nil
+        }
+
+        let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data)
+        return credentials?.apiKey
+    }
+
+    /// Delete stored PaddleOCR cloud credentials
+    func deletePaddleOCRCredentials() throws {
+        let account = "paddleocr_cloud"
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+
+        let status = SecItemDelete(query as CFDictionary)
+
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            logger.error("Failed to delete PaddleOCR cloud credentials: \(status)")
+            throw KeychainError.unexpectedStatus(status)
+        }
+
+        logger.info("Deleted PaddleOCR cloud credentials")
+    }
 }
 
 // MARK: - Stored Credentials

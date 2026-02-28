@@ -37,20 +37,31 @@ struct PaddleOCRVLMProvider: VLMProvider, Sendable {
 
     var isAvailable: Bool {
         get async {
-            await PaddleOCREngine.shared.isAvailable
+            // Check settings to determine mode
+            let useCloud = await MainActor.run { AppSettings.shared.paddleOCRUseCloud }
+            if useCloud {
+                // Cloud mode is available if base URL is configured
+                let baseURL = await MainActor.run { AppSettings.shared.paddleOCRCloudBaseURL }
+                return !baseURL.trimmingCharacters(in: .whitespaces).isEmpty
+            } else {
+                // Local mode requires PaddleOCR to be installed
+                return await PaddleOCREngine.shared.isAvailable
+            }
         }
     }
 
     func analyze(image: CGImage) async throws -> ScreenAnalysisResult {
-        // Check availability
-        guard await PaddleOCREngine.shared.isAvailable else {
-            throw VLMProviderError.invalidConfiguration(
-                "PaddleOCR is not installed. Install it using: pip3 install paddleocr paddlepaddle"
-            )
-        }
-
-        // Build configuration from AppSettings
+        // Build configuration from AppSettings first
         let config = await buildConfiguration()
+
+        // Check local availability only for local mode
+        if !config.useCloud {
+            guard await PaddleOCREngine.shared.isAvailable else {
+                throw VLMProviderError.invalidConfiguration(
+                    "PaddleOCR is not installed. Install it using: pip3 install paddleocr paddlepaddle"
+                )
+            }
+        }
 
         // Perform OCR using PaddleOCREngine with settings
         let ocrResult = try await PaddleOCREngine.shared.recognize(image, config: config)
@@ -179,10 +190,16 @@ private struct MergedLine {
 
         // Average confidence weighted by text length
         let totalLength = text.count + other.text.count
-        let weightedConfidence = (
-            Float(text.count) * confidence +
-            Float(other.text.count) * other.confidence
-        ) / Float(totalLength)
+        let weightedConfidence: Float
+        if totalLength == 0 {
+            // Edge case: both texts are empty, use average of confidences
+            weightedConfidence = (confidence + other.confidence) / 2.0
+        } else {
+            weightedConfidence = (
+                Float(text.count) * confidence +
+                Float(other.text.count) * other.confidence
+            ) / Float(totalLength)
+        }
 
         return MergedLine(
             text: combinedText,

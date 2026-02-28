@@ -402,10 +402,14 @@ final class SettingsViewModel {
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
 
         // Check screen recording permission using ScreenCaptureKit
-        Task {
+        // Cancel any existing task to avoid race conditions
+        permissionCheckTask?.cancel()
+
+        permissionCheckTask = Task {
             let granted = await checkScreenRecordingPermission()
             self.hasScreenRecordingPermission = granted
             self.isCheckingPermissions = false
+            permissionCheckTask = nil
         }
     }
 
@@ -897,13 +901,54 @@ final class SettingsViewModel {
         }
     }
 
-    /// Tests PaddleOCR availability
+    /// Tests PaddleOCR availability - checks cloud mode first, then local
     private func testPaddleOCRConnection() async throws -> (success: Bool, message: String) {
+        let settings = AppSettings.shared
+
+        // If cloud mode is enabled, test cloud connectivity first
+        if settings.paddleOCRUseCloud {
+            let cloudBaseURL = settings.paddleOCRCloudBaseURL.trimmingCharacters(in: .whitespaces)
+            guard !cloudBaseURL.isEmpty,
+                  let url = URL(string: cloudBaseURL) else {
+                throw VLMProviderError.invalidConfiguration("PaddleOCR cloud base URL is not configured")
+            }
+
+            // Test cloud API connectivity with a simple request
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+
+            // Add API key if configured
+            let apiKey = settings.paddleOCRCloudAPIKey.trimmingCharacters(in: .whitespaces)
+            if !apiKey.isEmpty {
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            }
+
+            do {
+                let (_, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw VLMProviderError.invalidResponse("Invalid HTTP response from PaddleOCR cloud")
+                }
+                switch httpResponse.statusCode {
+                case 200, 404:  // 404 is acceptable - means server is reachable
+                    return (true, "PaddleOCR cloud is reachable")
+                case 401, 403:
+                    throw VLMProviderError.authenticationFailed
+                default:
+                    throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
+                }
+            } catch let error as VLMProviderError {
+                throw error
+            } catch {
+                throw VLMProviderError.invalidConfiguration("PaddleOCR cloud is not reachable: \(error.localizedDescription)")
+            }
+        }
+
+        // Local mode - check if PaddleOCR is installed
         let isAvailable = await PaddleOCREngine.shared.isAvailable
         if isAvailable {
             return (true, "PaddleOCR is ready")
         } else {
-            throw VLMProviderError.invalidConfiguration("PaddleOCR is not installed")
+            throw VLMProviderError.invalidConfiguration("PaddleOCR is not installed. Install it using: pip3 install paddleocr paddlepaddle")
         }
     }
 

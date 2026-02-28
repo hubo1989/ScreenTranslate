@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import os
+import Security
 
 /// PaddleOCR mode selection
 enum PaddleOCRMode: String, Codable, CaseIterable, Sendable {
@@ -308,9 +309,18 @@ final class AppSettings {
         didSet { save(paddleOCRCloudBaseURL, forKey: Keys.paddleOCRCloudBaseURL) }
     }
 
-    /// Cloud API key
+    /// Cloud API key (stored securely in Keychain, not UserDefaults)
     var paddleOCRCloudAPIKey: String {
-        didSet { save(paddleOCRCloudAPIKey, forKey: Keys.paddleOCRCloudAPIKey) }
+        didSet {
+            // Save to Keychain asynchronously
+            Task.detached {
+                do {
+                    try await KeychainService.shared.savePaddleOCRCredentials(apiKey: self.paddleOCRCloudAPIKey)
+                } catch {
+                    Logger.settings.error("Failed to save PaddleOCR cloud API key to Keychain: \(error)")
+                }
+            }
+        }
     }
 
     // MARK: - Initialization
@@ -414,7 +424,9 @@ final class AppSettings {
             .flatMap { PaddleOCRMode(rawValue: $0) } ?? .fast
         paddleOCRUseCloud = defaults.object(forKey: Keys.paddleOCRUseCloud) as? Bool ?? false
         paddleOCRCloudBaseURL = defaults.string(forKey: Keys.paddleOCRCloudBaseURL) ?? ""
-        paddleOCRCloudAPIKey = defaults.string(forKey: Keys.paddleOCRCloudAPIKey) ?? ""
+
+        // Load PaddleOCR cloud API key from Keychain (secure storage)
+        paddleOCRCloudAPIKey = Self.loadPaddleOCRAPIKeyFromKeychain()
 
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
@@ -463,6 +475,10 @@ final class AppSettings {
         paddleOCRUseCloud = false
         paddleOCRCloudBaseURL = ""
         paddleOCRCloudAPIKey = ""
+        // Delete PaddleOCR cloud API key from Keychain
+        Task.detached {
+            try? await KeychainService.shared.deletePaddleOCRCredentials()
+        }
         // Reset multi-engine configuration - directly create defaults, don't load from persistence
         engineSelectionMode = .primaryWithFallback
         var defaultConfigs: [TranslationEngineType: TranslationEngineConfig] = [:]
@@ -514,6 +530,33 @@ final class AppSettings {
     private static func loadColor(forKey key: String) -> CodableColor? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(CodableColor.self, from: data)
+    }
+
+    // MARK: - Keychain Helpers
+
+    /// Load PaddleOCR cloud API key from Keychain synchronously
+    private static func loadPaddleOCRAPIKeyFromKeychain() -> String {
+        let service = "com.screentranslate.credentials"
+        let account = "paddleocr_cloud"
+
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
+            return ""
+        }
+
+        return credentials.apiKey
     }
 
     // MARK: - Multi-Engine Persistence Helpers
