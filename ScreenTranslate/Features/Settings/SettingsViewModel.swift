@@ -126,6 +126,36 @@ final class SettingsViewModel {
         set { settings.paddleOCRCloudAPIKey = newValue }
     }
 
+    /// Whether to use MLX-VLM inference framework
+    var paddleOCRUseMLXVLM: Bool {
+        get { settings.paddleOCRUseMLXVLM }
+        set { settings.paddleOCRUseMLXVLM = newValue }
+    }
+
+    /// MLX-VLM server URL
+    var paddleOCRMLXVLMServerURL: String {
+        get { settings.paddleOCRMLXVLMServerURL }
+        set { settings.paddleOCRMLXVLMServerURL = newValue }
+    }
+
+    /// MLX-VLM model name
+    var paddleOCRMLXVLMModelName: String {
+        get { settings.paddleOCRMLXVLMModelName }
+        set { settings.paddleOCRMLXVLMModelName = newValue }
+    }
+
+    /// Local VL model directory (for native backend)
+    var paddleOCRLocalVLModelDir: String {
+        get { settings.paddleOCRLocalVLModelDir }
+        set { settings.paddleOCRLocalVLModelDir = newValue }
+    }
+
+    /// Whether MLX-VLM server is running
+    var isMLXVLMServerRunning: Bool = false
+
+    /// Whether MLX-VLM server check is in progress
+    var isCheckingMLXVLMServer: Bool = false
+
     // MARK: - VLM Test State
 
     /// Whether VLM API test is in progress
@@ -761,7 +791,7 @@ final class SettingsViewModel {
     func refreshPaddleOCRStatus() {
         PaddleOCRChecker.resetCache()
         PaddleOCRChecker.checkAvailabilityAsync()
-        
+
         Task {
             for _ in 0..<20 {
                 try? await Task.sleep(for: .milliseconds(250))
@@ -773,6 +803,11 @@ final class SettingsViewModel {
                 isPaddleOCRInstalled = PaddleOCRChecker.isAvailable
                 paddleOCRVersion = PaddleOCRChecker.version
                 paddleOCRInstallError = nil
+
+                // Auto-check MLX-VLM server status if enabled
+                if paddleOCRUseMLXVLM {
+                    checkMLXVLMServerStatus()
+                }
             }
         }
     }
@@ -822,6 +857,43 @@ final class SettingsViewModel {
         let command = "pip3 install paddleocr paddlepaddle"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(command, forType: .string)
+    }
+
+    // MARK: - MLX-VLM Server Management
+
+    func checkMLXVLMServerStatus() {
+        guard paddleOCRUseMLXVLM else { return }
+
+        isCheckingMLXVLMServer = true
+
+        Task.detached { [serverURL = paddleOCRMLXVLMServerURL] in
+            var isRunning = false
+
+            do {
+                guard let url = URL(string: serverURL) else {
+                    await MainActor.run {
+                        self.isMLXVLMServerRunning = false
+                        self.isCheckingMLXVLMServer = false
+                    }
+                    return
+                }
+
+                // Try to connect to the server with a short timeout
+                let request = URLRequest(url: url, timeoutInterval: 3.0)
+                let (_, response) = try await URLSession.shared.data(for: request)
+
+                if let httpResponse = response as? HTTPURLResponse {
+                    isRunning = (200...299).contains(httpResponse.statusCode)
+                }
+            } catch {
+                isRunning = false
+            }
+
+            await MainActor.run {
+                self.isMLXVLMServerRunning = isRunning
+                self.isCheckingMLXVLMServer = false
+            }
+        }
     }
 
     // MARK: - VLM API Test

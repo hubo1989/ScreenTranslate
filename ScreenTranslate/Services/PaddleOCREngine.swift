@@ -54,6 +54,18 @@ actor PaddleOCREngine {
         /// Cloud API key
         var cloudAPIKey: String
 
+        /// Whether to use MLX-VLM inference framework (Apple Silicon optimization)
+        var useMLXVLM: Bool
+
+        /// MLX-VLM server URL
+        var mlxVLMServerURL: String
+
+        /// MLX-VLM model name
+        var mlxVLMModelName: String
+
+        /// Local VL model directory (for native backend)
+        var localVLModelDir: String
+
         static let `default` = Configuration(
             languages: [.chinese, .english],
             minimumConfidence: 0.0,
@@ -63,7 +75,11 @@ actor PaddleOCREngine {
             mode: .fast,
             useCloud: false,
             cloudBaseURL: "",
-            cloudAPIKey: ""
+            cloudAPIKey: "",
+            useMLXVLM: false,
+            mlxVLMServerURL: "http://localhost:8111",
+            mlxVLMModelName: "PaddlePaddle/PaddleOCR-VL-1.5",
+            localVLModelDir: ""
         )
     }
 
@@ -230,13 +246,32 @@ actor PaddleOCREngine {
                 "--use_angle_cls", config.useDirectionClassify ? "true" : "false"
             ]
         case .precise:
-            // Precise mode: use doc_parser with VL-1.5 (~12s)
-            return [
+            // Precise mode: use doc_parser with VL-1.5
+            var args = [
                 "doc_parser",
                 "-i", imagePath,
                 "--pipeline_version", "v1.5",
                 "--device", config.useGPU ? "gpu" : "cpu"
             ]
+
+            // Choose backend: MLX-VLM server or native (local model)
+            if config.useMLXVLM {
+                args += [
+                    "--vl_rec_backend", "mlx-vlm-server",
+                    "--vl_rec_server_url", config.mlxVLMServerURL,
+                    "--vl_rec_api_model_name", config.mlxVLMModelName
+                ]
+            } else if !config.localVLModelDir.isEmpty {
+                // Use native backend with local model
+                // Expand tilde in path (e.g., ~/.paddlex -> /Users/xxx/.paddlex)
+                let expandedPath = NSString(string: config.localVLModelDir).expandingTildeInPath
+                args += [
+                    "--vl_rec_backend", "native",
+                    "--vl_rec_model_dir", expandedPath
+                ]
+            }
+
+            return args
         }
     }
 
@@ -579,8 +614,7 @@ actor PaddleOCREngine {
             }
             content = content.replacingOccurrences(of: "[,", with: "[")
             content = content.replacingOccurrences(of: ",]", with: "]")
-            // Handle edge case of empty nested arrays
-            content = content.replacingOccurrences(of: "[]", with: "[]")
+            // Handle edge case of empty nested arrays - return early
             return content
         }
 
@@ -638,7 +672,7 @@ enum PaddleOCREngineError: LocalizedError, Sendable {
             )
         case .recognitionFailed:
             return NSLocalizedString(
-                "error.ocr.recognition.failed",
+                "error.ocr.failed",
                 comment: "Text recognition failed"
             )
         case .invalidOutput:

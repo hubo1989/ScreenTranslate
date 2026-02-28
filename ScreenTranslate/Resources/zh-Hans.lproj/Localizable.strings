@@ -594,6 +594,16 @@
 "settings.paddleocr.useCloud" = "使用云端 API";
 "settings.paddleocr.cloudBaseURL" = "云端 API 地址";
 "settings.paddleocr.cloudAPIKey" = "API 密钥";
+"settings.paddleocr.useMLXVLM" = "使用 MLX-VLM (Apple Silicon)";
+"settings.paddleocr.mlxVLMServerURL" = "MLX-VLM 服务地址";
+"settings.paddleocr.mlxVLMModelName" = "模型名称";
+"settings.paddleocr.mlxVLMStatus" = "服务状态";
+"settings.paddleocr.mlxVLMChecking" = "检测中...";
+"settings.paddleocr.mlxVLMRunning" = "运行中";
+"settings.paddleocr.mlxVLMNotRunning" = "未运行";
+"settings.paddleocr.localVLModelDir" = "本地模型目录";
+"settings.paddleocr.localVLModelDir.hint" = "本地 PaddleOCR-VL 模型路径（如 ~/.paddlex/official_models/PaddleOCR-VL-1.5）";
+"error.paddleocr.notInstalled" = "PaddleOCR 未安装。请使用以下命令安装：pip3 install paddleocr paddlepaddle";
 
 
 /* ========================================
@@ -668,9 +678,9 @@
 "translationFlow.error.title.translation" = "翻译失败";
 "translationFlow.error.title.rendering" = "渲染失败";
 "translationFlow.error.unknown" = "发生未知错误。";
-"translationFlow.error.analysis %@" = "分析失败：%@";
-"translationFlow.error.translation %@" = "翻译失败：%@";
-"translationFlow.error.rendering %@" = "渲染失败：%@";
+"translationFlow.error.analysis" = "分析失败：%@";
+"translationFlow.error.translation" = "翻译失败：%@";
+"translationFlow.error.rendering" = "渲染失败：%@";
 "translationFlow.error.cancelled" = "翻译已取消。";
 "translationFlow.error.noTextFound" = "选中区域未找到文字。";
 "translationFlow.error.translation.engine" = "翻译引擎";

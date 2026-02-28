@@ -594,6 +594,16 @@
 "settings.paddleocr.useCloud" = "Use Cloud API";
 "settings.paddleocr.cloudBaseURL" = "Cloud API URL";
 "settings.paddleocr.cloudAPIKey" = "API Key";
+"settings.paddleocr.useMLXVLM" = "Use MLX-VLM (Apple Silicon)";
+"settings.paddleocr.mlxVLMServerURL" = "MLX-VLM Server URL";
+"settings.paddleocr.mlxVLMModelName" = "Model Name";
+"settings.paddleocr.mlxVLMStatus" = "Server Status";
+"settings.paddleocr.mlxVLMChecking" = "Checking...";
+"settings.paddleocr.mlxVLMRunning" = "Running";
+"settings.paddleocr.mlxVLMNotRunning" = "Not Running";
+"settings.paddleocr.localVLModelDir" = "Local Model Directory";
+"settings.paddleocr.localVLModelDir.hint" = "Path to local PaddleOCR-VL model (e.g. ~/.paddlex/official_models/PaddleOCR-VL-1.5)";
+"error.paddleocr.notInstalled" = "PaddleOCR is not installed. Install it using: pip3 install paddleocr paddlepaddle";
 
 
 /* ========================================
@@ -668,9 +678,9 @@
 "translationFlow.error.title.translation" = "Translation Failed";
 "translationFlow.error.title.rendering" = "Rendering Failed";
 "translationFlow.error.unknown" = "An unknown error occurred.";
-"translationFlow.error.analysis %@" = "Analysis failed: %@";
-"translationFlow.error.translation %@" = "Translation failed: %@";
-"translationFlow.error.rendering %@" = "Rendering failed: %@";
+"translationFlow.error.analysis" = "Analysis failed: %@";
+"translationFlow.error.translation" = "Translation failed: %@";
+"translationFlow.error.rendering" = "Rendering failed: %@";
 "translationFlow.error.cancelled" = "Translation was cancelled.";
 "translationFlow.error.noTextFound" = "No text found in the selected area.";
 "translationFlow.error.translation.engine" = "Translation Engine";

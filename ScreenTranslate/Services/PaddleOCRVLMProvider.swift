@@ -58,7 +58,7 @@ struct PaddleOCRVLMProvider: VLMProvider, Sendable {
         if !config.useCloud {
             guard await PaddleOCREngine.shared.isAvailable else {
                 throw VLMProviderError.invalidConfiguration(
-                    "PaddleOCR is not installed. Install it using: pip3 install paddleocr paddlepaddle"
+                    NSLocalizedString("error.paddleocr.notInstalled", comment: "PaddleOCR not installed error")
                 )
             }
         }
@@ -80,6 +80,10 @@ struct PaddleOCRVLMProvider: VLMProvider, Sendable {
         config.useCloud = settings.paddleOCRUseCloud
         config.cloudBaseURL = settings.paddleOCRCloudBaseURL
         config.cloudAPIKey = settings.paddleOCRCloudAPIKey
+        config.useMLXVLM = settings.paddleOCRUseMLXVLM
+        config.mlxVLMServerURL = settings.paddleOCRMLXVLMServerURL
+        config.mlxVLMModelName = settings.paddleOCRMLXVLMModelName
+        config.localVLModelDir = settings.paddleOCRLocalVLModelDir
         return config
     }
 
@@ -226,16 +230,28 @@ private struct MergedLine {
 
     /// Checks if a character is CJK (Chinese/Japanese/Korean)
     private static func isCJKChar(_ char: Character) -> Bool {
-        let scalar = char.unicodeScalars.first?.value ?? 0
-        // CJK Unified Ideographs: U+4E00-U+9FFF
-        // CJK Unified Ideographs Extension A: U+3400-U+4DBF
-        // Hiragana: U+3040-U+309F
-        // Katakana: U+30A0-U+30FF
-        // Hangul Syllables: U+AC00-U+D7AF
-        return (0x4E00...0x9FFF).contains(scalar) ||
-               (0x3400...0x4DBF).contains(scalar) ||
-               (0x3040...0x309F).contains(scalar) ||
-               (0x30A0...0x30FF).contains(scalar) ||
-               (0xAC00...0xD7AF).contains(scalar)
+        // Check all unicode scalars to handle surrogate pairs correctly
+        for scalar in char.unicodeScalars {
+            let value = scalar.value
+            // CJK Unified Ideographs: U+4E00-U+9FFF
+            // CJK Unified Ideographs Extension A: U+3400-U+4DBF
+            // Hiragana: U+3040-U+309F
+            // Katakana: U+30A0-U+30FF
+            // Hangul Syllables: U+AC00-U+D7AF
+            // CJK Symbols and Punctuation: U+3000-U+303F
+            // Fullwidth Forms: U+FF00-U+FFEF
+            // CJK Extension B-F: U+20000-U+2FA1F
+            if (0x4E00...0x9FFF).contains(value) ||
+               (0x3400...0x4DBF).contains(value) ||
+               (0x3040...0x309F).contains(value) ||
+               (0x30A0...0x30FF).contains(value) ||
+               (0xAC00...0xD7AF).contains(value) ||
+               (0x3000...0x303F).contains(value) ||
+               (0xFF00...0xFFEF).contains(value) ||
+               (0x20000...0x2FA1F).contains(value) {
+                return true
+            }
+        }
+        return false
     }
 }
