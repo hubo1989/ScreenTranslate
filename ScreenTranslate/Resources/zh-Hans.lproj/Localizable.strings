@@ -597,6 +597,10 @@
 "settings.paddleocr.useMLXVLM" = "使用 MLX-VLM (Apple Silicon)";
 "settings.paddleocr.mlxVLMServerURL" = "MLX-VLM 服务地址";
 "settings.paddleocr.mlxVLMModelName" = "模型名称";
+"settings.paddleocr.mlxVLMStatus" = "服务状态";
+"settings.paddleocr.mlxVLMChecking" = "检测中...";
+"settings.paddleocr.mlxVLMRunning" = "运行中";
+"settings.paddleocr.mlxVLMNotRunning" = "未运行";
 
 
 /* ========================================

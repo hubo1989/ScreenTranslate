@@ -144,6 +144,12 @@ final class SettingsViewModel {
         set { settings.paddleOCRMLXVLMModelName = newValue }
     }
 
+    /// Whether MLX-VLM server is running
+    var isMLXVLMServerRunning: Bool = false
+
+    /// Whether MLX-VLM server check is in progress
+    var isCheckingMLXVLMServer: Bool = false
+
     // MARK: - VLM Test State
 
     /// Whether VLM API test is in progress
@@ -840,6 +846,43 @@ final class SettingsViewModel {
         let command = "pip3 install paddleocr paddlepaddle"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(command, forType: .string)
+    }
+
+    // MARK: - MLX-VLM Server Management
+
+    func checkMLXVLMServerStatus() {
+        guard paddleOCRUseMLXVLM else { return }
+
+        isCheckingMLXVLMServer = true
+
+        Task.detached { [serverURL = paddleOCRMLXVLMServerURL] in
+            var isRunning = false
+
+            do {
+                guard let url = URL(string: serverURL) else {
+                    await MainActor.run {
+                        self.isMLXVLMServerRunning = false
+                        self.isCheckingMLXVLMServer = false
+                    }
+                    return
+                }
+
+                // Try to connect to the server with a short timeout
+                let request = URLRequest(url: url, timeoutInterval: 3.0)
+                let (_, response) = try await URLSession.shared.data(for: request)
+
+                if let httpResponse = response as? HTTPURLResponse {
+                    isRunning = httpResponse.statusCode < 500
+                }
+            } catch {
+                isRunning = false
+            }
+
+            await MainActor.run {
+                self.isMLXVLMServerRunning = isRunning
+                self.isCheckingMLXVLMServer = false
+            }
+        }
     }
 
     // MARK: - VLM API Test

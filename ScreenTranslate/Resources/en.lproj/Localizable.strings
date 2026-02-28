@@ -597,6 +597,10 @@
 "settings.paddleocr.useMLXVLM" = "Use MLX-VLM (Apple Silicon)";
 "settings.paddleocr.mlxVLMServerURL" = "MLX-VLM Server URL";
 "settings.paddleocr.mlxVLMModelName" = "Model Name";
+"settings.paddleocr.mlxVLMStatus" = "Server Status";
+"settings.paddleocr.mlxVLMChecking" = "Checking...";
+"settings.paddleocr.mlxVLMRunning" = "Running";
+"settings.paddleocr.mlxVLMNotRunning" = "Not Running";
 
 
 /* ========================================
