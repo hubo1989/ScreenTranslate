@@ -675,9 +675,9 @@
 "translationFlow.error.title.translation" = "翻译失败";
 "translationFlow.error.title.rendering" = "渲染失败";
 "translationFlow.error.unknown" = "发生未知错误。";
-"translationFlow.error.analysis %@" = "分析失败：%@";
-"translationFlow.error.translation %@" = "翻译失败：%@";
-"translationFlow.error.rendering %@" = "渲染失败：%@";
+"translationFlow.error.analysis" = "分析失败：%@";
+"translationFlow.error.translation" = "翻译失败：%@";
+"translationFlow.error.rendering" = "渲染失败：%@";
 "translationFlow.error.cancelled" = "翻译已取消。";
 "translationFlow.error.noTextFound" = "选中区域未找到文字。";
 "translationFlow.error.translation.engine" = "翻译引擎";

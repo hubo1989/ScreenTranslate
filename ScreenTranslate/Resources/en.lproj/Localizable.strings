@@ -675,9 +675,9 @@
 "translationFlow.error.title.translation" = "Translation Failed";
 "translationFlow.error.title.rendering" = "Rendering Failed";
 "translationFlow.error.unknown" = "An unknown error occurred.";
-"translationFlow.error.analysis %@" = "Analysis failed: %@";
-"translationFlow.error.translation %@" = "Translation failed: %@";
-"translationFlow.error.rendering %@" = "Rendering failed: %@";
+"translationFlow.error.analysis" = "Analysis failed: %@";
+"translationFlow.error.translation" = "Translation failed: %@";
+"translationFlow.error.rendering" = "Rendering failed: %@";
 "translationFlow.error.cancelled" = "Translation was cancelled.";
 "translationFlow.error.noTextFound" = "No text found in the selected area.";
 "translationFlow.error.translation.engine" = "Translation Engine";
