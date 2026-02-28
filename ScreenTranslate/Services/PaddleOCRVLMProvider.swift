@@ -19,13 +19,16 @@ struct PaddleOCRVLMProvider: VLMProvider, Sendable {
     /// Empty configuration (PaddleOCR doesn't need API keys or URLs)
     let configuration: VLMProviderConfiguration
 
+    /// Default base URL for local PaddleOCR (not used, but required by protocol)
+    private static let defaultBaseURL = URL(string: "http://localhost")!
+
     // MARK: - Initialization
 
     init() {
         // Create an empty configuration for PaddleOCR
         self.configuration = VLMProviderConfiguration(
             apiKey: "",
-            baseURL: URL(string: "http://localhost")!,
+            baseURL: Self.defaultBaseURL,
             modelName: "paddleocr"
         )
     }
@@ -167,23 +170,48 @@ private struct MergedLine {
     }
     
     func merged(with other: OCRText) -> MergedLine {
-        // Combine texts with space
-        let combinedText = text + " " + other.text
-        
+        // Combine texts with appropriate separator for CJK vs non-CJK
+        let separator = Self.separator(for: text, and: other.text)
+        let combinedText = text + separator + other.text
+
         // Merge bounding boxes
         let mergedBox = boundingBox.union(other.boundingBox)
-        
+
         // Average confidence weighted by text length
         let totalLength = text.count + other.text.count
         let weightedConfidence = (
             Float(text.count) * confidence +
             Float(other.text.count) * other.confidence
         ) / Float(totalLength)
-        
+
         return MergedLine(
             text: combinedText,
             boundingBox: mergedBox,
             confidence: weightedConfidence
         )
+    }
+
+    /// Returns appropriate separator between two text segments based on CJK detection
+    private static func separator(for first: String, and second: String) -> String {
+        let firstIsCJK = isCJKText(first)
+        let secondIsCJK = isCJKText(second)
+        // No space between CJK characters, space otherwise
+        return (firstIsCJK && secondIsCJK) ? "" : " "
+    }
+
+    /// Checks if text contains CJK (Chinese/Japanese/Korean) characters
+    private static func isCJKText(_ text: String) -> Bool {
+        guard let firstChar = text.first else { return false }
+        let scalar = firstChar.unicodeScalars.first?.value ?? 0
+        // CJK Unified Ideographs: U+4E00-U+9FFF
+        // CJK Unified Ideographs Extension A: U+3400-U+4DBF
+        // Hiragana: U+3040-U+309F
+        // Katakana: U+30A0-U+30FF
+        // Hangul Syllables: U+AC00-U+D7AF
+        return (0x4E00...0x9FFF).contains(scalar) ||
+               (0x3400...0x4DBF).contains(scalar) ||
+               (0x3040...0x309F).contains(scalar) ||
+               (0x30A0...0x30FF).contains(scalar) ||
+               (0xAC00...0xD7AF).contains(scalar)
     }
 }

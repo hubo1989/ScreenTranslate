@@ -4,8 +4,8 @@ import os
 
 /// PaddleOCR mode selection
 enum PaddleOCRMode: String, Codable, CaseIterable, Sendable {
-    case fast = "fast"
-    case precise = "precise"
+    case fast
+    case precise
 
     var localizedName: String {
         switch self {
@@ -458,6 +458,11 @@ final class AppSettings {
         onboardingCompleted = false
         translateAndInsertSourceLanguage = .auto
         translateAndInsertTargetLanguage = nil
+        // Reset PaddleOCR settings
+        paddleOCRMode = .fast
+        paddleOCRUseCloud = false
+        paddleOCRCloudBaseURL = ""
+        paddleOCRCloudAPIKey = ""
         // Reset multi-engine configuration - directly create defaults, don't load from persistence
         engineSelectionMode = .primaryWithFallback
         var defaultConfigs: [TranslationEngineType: TranslationEngineConfig] = [:]

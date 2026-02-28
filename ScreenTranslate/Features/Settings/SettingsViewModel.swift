@@ -404,10 +404,8 @@ final class SettingsViewModel {
         // Check screen recording permission using ScreenCaptureKit
         Task {
             let granted = await checkScreenRecordingPermission()
-            await MainActor.run {
-                self.hasScreenRecordingPermission = granted
-                self.isCheckingPermissions = false
-            }
+            self.hasScreenRecordingPermission = granted
+            self.isCheckingPermissions = false
         }
     }
 
