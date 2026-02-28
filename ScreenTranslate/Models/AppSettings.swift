@@ -92,6 +92,7 @@ final class AppSettings {
         static let paddleOCRUseMLXVLM = prefix + "paddleOCRUseMLXVLM"
         static let paddleOCRMLXVLMServerURL = prefix + "paddleOCRMLXVLMServerURL"
         static let paddleOCRMLXVLMModelName = prefix + "paddleOCRMLXVLMModelName"
+        static let paddleOCRLocalVLModelDir = prefix + "paddleOCRLocalVLModelDir"
     }
 
     // MARK: - Properties
@@ -344,6 +345,11 @@ final class AppSettings {
         didSet { save(paddleOCRMLXVLMModelName, forKey: Keys.paddleOCRMLXVLMModelName) }
     }
 
+    /// Local VL model directory (for native backend without MLX-VLM server)
+    var paddleOCRLocalVLModelDir: String {
+        didSet { save(paddleOCRLocalVLModelDir, forKey: Keys.paddleOCRLocalVLModelDir) }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -453,6 +459,7 @@ final class AppSettings {
         paddleOCRUseMLXVLM = defaults.object(forKey: Keys.paddleOCRUseMLXVLM) as? Bool ?? false
         paddleOCRMLXVLMServerURL = defaults.string(forKey: Keys.paddleOCRMLXVLMServerURL) ?? "http://localhost:8111"
         paddleOCRMLXVLMModelName = defaults.string(forKey: Keys.paddleOCRMLXVLMModelName) ?? "PaddlePaddle/PaddleOCR-VL-1.5"
+        paddleOCRLocalVLModelDir = defaults.string(forKey: Keys.paddleOCRLocalVLModelDir) ?? ""
 
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
@@ -509,6 +516,7 @@ final class AppSettings {
         paddleOCRUseMLXVLM = false
         paddleOCRMLXVLMServerURL = "http://localhost:8111"
         paddleOCRMLXVLMModelName = "PaddlePaddle/PaddleOCR-VL-1.5"
+        paddleOCRLocalVLModelDir = ""
         // Reset multi-engine configuration - directly create defaults, don't load from persistence
         engineSelectionMode = .primaryWithFallback
         var defaultConfigs: [TranslationEngineType: TranslationEngineConfig] = [:]

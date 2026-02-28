@@ -63,6 +63,9 @@ actor PaddleOCREngine {
         /// MLX-VLM model name
         var mlxVLMModelName: String
 
+        /// Local VL model directory (for native backend)
+        var localVLModelDir: String
+
         static let `default` = Configuration(
             languages: [.chinese, .english],
             minimumConfidence: 0.0,
@@ -75,7 +78,8 @@ actor PaddleOCREngine {
             cloudAPIKey: "",
             useMLXVLM: false,
             mlxVLMServerURL: "http://localhost:8111",
-            mlxVLMModelName: "PaddlePaddle/PaddleOCR-VL-1.5"
+            mlxVLMModelName: "PaddlePaddle/PaddleOCR-VL-1.5",
+            localVLModelDir: ""
         )
     }
 
@@ -250,12 +254,18 @@ actor PaddleOCREngine {
                 "--device", config.useGPU ? "gpu" : "cpu"
             ]
 
-            // Add MLX-VLM backend arguments if enabled
+            // Choose backend: MLX-VLM server or native (local model)
             if config.useMLXVLM {
                 args += [
                     "--vl_rec_backend", "mlx-vlm-server",
                     "--vl_rec_server_url", config.mlxVLMServerURL,
                     "--vl_rec_api_model_name", config.mlxVLMModelName
+                ]
+            } else if !config.localVLModelDir.isEmpty {
+                // Use native backend with local model
+                args += [
+                    "--vl_rec_backend", "native",
+                    "--vl_rec_model_dir", config.localVLModelDir
                 ]
             }
 
@@ -661,7 +671,7 @@ enum PaddleOCREngineError: LocalizedError, Sendable {
             )
         case .recognitionFailed:
             return NSLocalizedString(
-                "error.ocr.recognition.failed",
+                "error.ocr.failed",
                 comment: "Text recognition failed"
             )
         case .invalidOutput:

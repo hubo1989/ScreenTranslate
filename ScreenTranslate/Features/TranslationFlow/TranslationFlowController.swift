@@ -347,7 +347,16 @@ final class TranslationFlowController {
         if case .analysisFailure = error {
             let settings = AppSettings.shared
             errorDetails += "\n\nProvider: \(settings.vlmProvider.localizedName)"
-            errorDetails += "\nModel: \(settings.vlmModelName)"
+            // Show appropriate model info based on provider type
+            switch settings.vlmProvider {
+            case .paddleocr:
+                if settings.paddleOCRUseMLXVLM {
+                    errorDetails += "\nModel: \(settings.paddleOCRMLXVLMModelName)"
+                }
+                // For local/cloud PaddleOCR modes, model info is not applicable
+            default:
+                errorDetails += "\nModel: \(settings.vlmModelName)"
+            }
         }
 
         // Add provider info for translation errors

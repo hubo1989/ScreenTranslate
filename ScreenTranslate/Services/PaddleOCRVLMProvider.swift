@@ -83,6 +83,7 @@ struct PaddleOCRVLMProvider: VLMProvider, Sendable {
         config.useMLXVLM = settings.paddleOCRUseMLXVLM
         config.mlxVLMServerURL = settings.paddleOCRMLXVLMServerURL
         config.mlxVLMModelName = settings.paddleOCRMLXVLMModelName
+        config.localVLModelDir = settings.paddleOCRLocalVLModelDir
         return config
     }
 

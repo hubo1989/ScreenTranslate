@@ -144,6 +144,12 @@ final class SettingsViewModel {
         set { settings.paddleOCRMLXVLMModelName = newValue }
     }
 
+    /// Local VL model directory (for native backend)
+    var paddleOCRLocalVLModelDir: String {
+        get { settings.paddleOCRLocalVLModelDir }
+        set { settings.paddleOCRLocalVLModelDir = newValue }
+    }
+
     /// Whether MLX-VLM server is running
     var isMLXVLMServerRunning: Bool = false
 

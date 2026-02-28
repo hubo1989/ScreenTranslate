@@ -601,6 +601,8 @@
 "settings.paddleocr.mlxVLMChecking" = "Checking...";
 "settings.paddleocr.mlxVLMRunning" = "Running";
 "settings.paddleocr.mlxVLMNotRunning" = "Not Running";
+"settings.paddleocr.localVLModelDir" = "Local Model Directory";
+"settings.paddleocr.localVLModelDir.hint" = "Path to local PaddleOCR-VL model (e.g. ~/.paddlex/official_models/PaddleOCR-VL-1.5)";
 
 
 /* ========================================

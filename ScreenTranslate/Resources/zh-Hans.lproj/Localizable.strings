@@ -601,6 +601,8 @@
 "settings.paddleocr.mlxVLMChecking" = "检测中...";
 "settings.paddleocr.mlxVLMRunning" = "运行中";
 "settings.paddleocr.mlxVLMNotRunning" = "未运行";
+"settings.paddleocr.localVLModelDir" = "本地模型目录";
+"settings.paddleocr.localVLModelDir.hint" = "本地 PaddleOCR-VL 模型路径（如 ~/.paddlex/official_models/PaddleOCR-VL-1.5）";
 
 
 /* ========================================

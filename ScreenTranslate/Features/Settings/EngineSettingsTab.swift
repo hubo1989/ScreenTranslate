@@ -288,6 +288,21 @@ struct PaddleOCRStatusSection: View {
                                 .textFieldStyle(.roundedBorder)
                                 .frame(maxWidth: 300)
                         }
+                    } else {
+                        // Local model directory for native backend (when not using MLX-VLM)
+                        GridRow {
+                            Text(localized("settings.paddleocr.localVLModelDir"))
+                                .foregroundStyle(.secondary)
+                                .gridColumnAlignment(.trailing)
+                            VStack(alignment: .leading, spacing: 4) {
+                                TextField("", text: $viewModel.paddleOCRLocalVLModelDir)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(maxWidth: 300)
+                                Text(localized("settings.paddleocr.localVLModelDir.hint"))
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
                     }
                 }
             }
