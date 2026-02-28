@@ -209,17 +209,24 @@ private struct MergedLine {
     }
 
     /// Returns appropriate separator between two text segments based on CJK detection
+    /// Checks the last character of the first string and the first character of the second string
     private static func separator(for first: String, and second: String) -> String {
-        let firstIsCJK = isCJKText(first)
-        let secondIsCJK = isCJKText(second)
+        // Check last character of first string and first character of second string
+        // This handles mixed-content cases like "Hello世界" correctly
+        guard let firstLast = first.last,
+              let secondFirst = second.first else {
+            return " "  // Default to space if either string is empty
+        }
+
+        let firstLastIsCJK = isCJKChar(firstLast)
+        let secondFirstIsCJK = isCJKChar(secondFirst)
         // No space between CJK characters, space otherwise
-        return (firstIsCJK && secondIsCJK) ? "" : " "
+        return (firstLastIsCJK && secondFirstIsCJK) ? "" : " "
     }
 
-    /// Checks if text contains CJK (Chinese/Japanese/Korean) characters
-    private static func isCJKText(_ text: String) -> Bool {
-        guard let firstChar = text.first else { return false }
-        let scalar = firstChar.unicodeScalars.first?.value ?? 0
+    /// Checks if a character is CJK (Chinese/Japanese/Korean)
+    private static func isCJKChar(_ char: Character) -> Bool {
+        let scalar = char.unicodeScalars.first?.value ?? 0
         // CJK Unified Ideographs: U+4E00-U+9FFF
         // CJK Unified Ideographs Extension A: U+3400-U+4DBF
         // Hiragana: U+3040-U+309F

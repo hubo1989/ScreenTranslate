@@ -17,10 +17,16 @@ actor KeychainService {
     static let shared = KeychainService()
 
     /// Service identifier for Keychain items
-    private let service = "com.screentranslate.credentials"
+    static let serviceIdentifier = "com.screentranslate.credentials"
+
+    /// PaddleOCR cloud account identifier
+    static let paddleOCRAccount = "paddleocr_cloud"
 
     /// Logger instance
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "ScreenTranslate", category: "KeychainService")
+
+    /// Internal service property for instance methods
+    private var service: String { Self.serviceIdentifier }
 
     private init() {}
 
@@ -314,7 +320,7 @@ actor KeychainService {
     /// Save PaddleOCR cloud API key
     /// - Parameter apiKey: The API key to store
     func savePaddleOCRCredentials(apiKey: String) throws {
-        let account = "paddleocr_cloud"
+        let account = Self.paddleOCRAccount
 
         let credentials = StoredCredentials(apiKey: apiKey)
 
@@ -366,7 +372,7 @@ actor KeychainService {
     /// Retrieve stored PaddleOCR cloud API key
     /// - Returns: The stored API key, or nil if not found
     func getPaddleOCRCredentials() -> String? {
-        let account = "paddleocr_cloud"
+        let account = Self.paddleOCRAccount
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -398,7 +404,7 @@ actor KeychainService {
 
     /// Delete stored PaddleOCR cloud credentials
     func deletePaddleOCRCredentials() throws {
-        let account = "paddleocr_cloud"
+        let account = Self.paddleOCRAccount
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

@@ -312,10 +312,12 @@ final class AppSettings {
     /// Cloud API key (stored securely in Keychain, not UserDefaults)
     var paddleOCRCloudAPIKey: String {
         didSet {
+            // Capture the value on the actor before spawning detached task
+            let capturedKey = paddleOCRCloudAPIKey
             // Save to Keychain asynchronously
             Task.detached {
                 do {
-                    try await KeychainService.shared.savePaddleOCRCredentials(apiKey: self.paddleOCRCloudAPIKey)
+                    try await KeychainService.shared.savePaddleOCRCredentials(apiKey: capturedKey)
                 } catch {
                     Logger.settings.error("Failed to save PaddleOCR cloud API key to Keychain: \(error)")
                 }
@@ -536,13 +538,11 @@ final class AppSettings {
 
     /// Load PaddleOCR cloud API key from Keychain synchronously
     private static func loadPaddleOCRAPIKeyFromKeychain() -> String {
-        let service = "com.screentranslate.credentials"
-        let account = "paddleocr_cloud"
-
+        // Use shared constants from KeychainService
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
+            kSecAttrService as String: KeychainService.serviceIdentifier,
+            kSecAttrAccount as String: KeychainService.paddleOCRAccount,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]
