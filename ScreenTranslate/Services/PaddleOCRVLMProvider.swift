@@ -80,6 +80,9 @@ struct PaddleOCRVLMProvider: VLMProvider, Sendable {
         config.useCloud = settings.paddleOCRUseCloud
         config.cloudBaseURL = settings.paddleOCRCloudBaseURL
         config.cloudAPIKey = settings.paddleOCRCloudAPIKey
+        config.useMLXVLM = settings.paddleOCRUseMLXVLM
+        config.mlxVLMServerURL = settings.paddleOCRMLXVLMServerURL
+        config.mlxVLMModelName = settings.paddleOCRMLXVLMModelName
         return config
     }
 

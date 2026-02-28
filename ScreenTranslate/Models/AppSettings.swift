@@ -88,6 +88,10 @@ final class AppSettings {
         static let paddleOCRUseCloud = prefix + "paddleOCRUseCloud"
         static let paddleOCRCloudBaseURL = prefix + "paddleOCRCloudBaseURL"
         static let paddleOCRCloudAPIKey = prefix + "paddleOCRCloudAPIKey"
+        // MLX-VLM Configuration (for Apple Silicon optimization)
+        static let paddleOCRUseMLXVLM = prefix + "paddleOCRUseMLXVLM"
+        static let paddleOCRMLXVLMServerURL = prefix + "paddleOCRMLXVLMServerURL"
+        static let paddleOCRMLXVLMModelName = prefix + "paddleOCRMLXVLMModelName"
     }
 
     // MARK: - Properties
@@ -325,6 +329,21 @@ final class AppSettings {
         }
     }
 
+    /// Whether to use MLX-VLM inference framework (Apple Silicon optimization)
+    var paddleOCRUseMLXVLM: Bool {
+        didSet { save(paddleOCRUseMLXVLM, forKey: Keys.paddleOCRUseMLXVLM) }
+    }
+
+    /// MLX-VLM server URL (default: http://localhost:8111)
+    var paddleOCRMLXVLMServerURL: String {
+        didSet { save(paddleOCRMLXVLMServerURL, forKey: Keys.paddleOCRMLXVLMServerURL) }
+    }
+
+    /// MLX-VLM model name (default: PaddlePaddle/PaddleOCR-VL-1.5)
+    var paddleOCRMLXVLMModelName: String {
+        didSet { save(paddleOCRMLXVLMModelName, forKey: Keys.paddleOCRMLXVLMModelName) }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -430,6 +449,11 @@ final class AppSettings {
         // Load PaddleOCR cloud API key from Keychain (secure storage)
         paddleOCRCloudAPIKey = Self.loadPaddleOCRAPIKeyFromKeychain()
 
+        // Load MLX-VLM configuration
+        paddleOCRUseMLXVLM = defaults.object(forKey: Keys.paddleOCRUseMLXVLM) as? Bool ?? false
+        paddleOCRMLXVLMServerURL = defaults.string(forKey: Keys.paddleOCRMLXVLMServerURL) ?? "http://localhost:8111"
+        paddleOCRMLXVLMModelName = defaults.string(forKey: Keys.paddleOCRMLXVLMModelName) ?? "PaddlePaddle/PaddleOCR-VL-1.5"
+
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
 
@@ -481,6 +505,10 @@ final class AppSettings {
         Task.detached {
             try? await KeychainService.shared.deletePaddleOCRCredentials()
         }
+        // Reset MLX-VLM settings
+        paddleOCRUseMLXVLM = false
+        paddleOCRMLXVLMServerURL = "http://localhost:8111"
+        paddleOCRMLXVLMModelName = "PaddlePaddle/PaddleOCR-VL-1.5"
         // Reset multi-engine configuration - directly create defaults, don't load from persistence
         engineSelectionMode = .primaryWithFallback
         var defaultConfigs: [TranslationEngineType: TranslationEngineConfig] = [:]

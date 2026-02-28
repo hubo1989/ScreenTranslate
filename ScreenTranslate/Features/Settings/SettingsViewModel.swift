@@ -126,6 +126,24 @@ final class SettingsViewModel {
         set { settings.paddleOCRCloudAPIKey = newValue }
     }
 
+    /// Whether to use MLX-VLM inference framework
+    var paddleOCRUseMLXVLM: Bool {
+        get { settings.paddleOCRUseMLXVLM }
+        set { settings.paddleOCRUseMLXVLM = newValue }
+    }
+
+    /// MLX-VLM server URL
+    var paddleOCRMLXVLMServerURL: String {
+        get { settings.paddleOCRMLXVLMServerURL }
+        set { settings.paddleOCRMLXVLMServerURL = newValue }
+    }
+
+    /// MLX-VLM model name
+    var paddleOCRMLXVLMModelName: String {
+        get { settings.paddleOCRMLXVLMModelName }
+        set { settings.paddleOCRMLXVLMModelName = newValue }
+    }
+
     // MARK: - VLM Test State
 
     /// Whether VLM API test is in progress

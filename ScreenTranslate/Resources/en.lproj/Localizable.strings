@@ -594,6 +594,9 @@
 "settings.paddleocr.useCloud" = "Use Cloud API";
 "settings.paddleocr.cloudBaseURL" = "Cloud API URL";
 "settings.paddleocr.cloudAPIKey" = "API Key";
+"settings.paddleocr.useMLXVLM" = "Use MLX-VLM (Apple Silicon)";
+"settings.paddleocr.mlxVLMServerURL" = "MLX-VLM Server URL";
+"settings.paddleocr.mlxVLMModelName" = "Model Name";
 
 
 /* ========================================

@@ -594,6 +594,9 @@
 "settings.paddleocr.useCloud" = "使用云端 API";
 "settings.paddleocr.cloudBaseURL" = "云端 API 地址";
 "settings.paddleocr.cloudAPIKey" = "API 密钥";
+"settings.paddleocr.useMLXVLM" = "使用 MLX-VLM (Apple Silicon)";
+"settings.paddleocr.mlxVLMServerURL" = "MLX-VLM 服务地址";
+"settings.paddleocr.mlxVLMModelName" = "模型名称";
 
 
 /* ========================================

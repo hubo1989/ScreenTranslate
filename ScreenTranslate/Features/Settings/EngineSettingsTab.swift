@@ -221,6 +221,40 @@ struct PaddleOCRStatusSection: View {
                             .frame(maxWidth: 300)
                     }
                 }
+
+                // MLX-VLM settings (only show when mode is precise and not using cloud)
+                if viewModel.paddleOCRMode == .precise && !viewModel.paddleOCRUseCloud {
+                    Divider()
+                        .gridCellUnsizedAxes(.horizontal)
+
+                    GridRow {
+                        Text(localized("settings.paddleocr.useMLXVLM"))
+                            .foregroundStyle(.secondary)
+                            .gridColumnAlignment(.trailing)
+                        Toggle("", isOn: $viewModel.paddleOCRUseMLXVLM)
+                            .toggleStyle(.checkbox)
+                    }
+
+                    if viewModel.paddleOCRUseMLXVLM {
+                        GridRow {
+                            Text(localized("settings.paddleocr.mlxVLMServerURL"))
+                                .foregroundStyle(.secondary)
+                                .gridColumnAlignment(.trailing)
+                            TextField("", text: $viewModel.paddleOCRMLXVLMServerURL)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(maxWidth: 300)
+                        }
+
+                        GridRow {
+                            Text(localized("settings.paddleocr.mlxVLMModelName"))
+                                .foregroundStyle(.secondary)
+                                .gridColumnAlignment(.trailing)
+                            TextField("", text: $viewModel.paddleOCRMLXVLMModelName)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(maxWidth: 300)
+                        }
+                    }
+                }
             }
 
             // Description

@@ -54,6 +54,15 @@ actor PaddleOCREngine {
         /// Cloud API key
         var cloudAPIKey: String
 
+        /// Whether to use MLX-VLM inference framework (Apple Silicon optimization)
+        var useMLXVLM: Bool
+
+        /// MLX-VLM server URL
+        var mlxVLMServerURL: String
+
+        /// MLX-VLM model name
+        var mlxVLMModelName: String
+
         static let `default` = Configuration(
             languages: [.chinese, .english],
             minimumConfidence: 0.0,
@@ -63,7 +72,10 @@ actor PaddleOCREngine {
             mode: .fast,
             useCloud: false,
             cloudBaseURL: "",
-            cloudAPIKey: ""
+            cloudAPIKey: "",
+            useMLXVLM: false,
+            mlxVLMServerURL: "http://localhost:8111",
+            mlxVLMModelName: "PaddlePaddle/PaddleOCR-VL-1.5"
         )
     }
 
@@ -230,13 +242,24 @@ actor PaddleOCREngine {
                 "--use_angle_cls", config.useDirectionClassify ? "true" : "false"
             ]
         case .precise:
-            // Precise mode: use doc_parser with VL-1.5 (~12s)
-            return [
+            // Precise mode: use doc_parser with VL-1.5
+            var args = [
                 "doc_parser",
                 "-i", imagePath,
                 "--pipeline_version", "v1.5",
                 "--device", config.useGPU ? "gpu" : "cpu"
             ]
+
+            // Add MLX-VLM backend arguments if enabled
+            if config.useMLXVLM {
+                args += [
+                    "--vl_rec_backend", "mlx-vlm-server",
+                    "--vl_rec_server_url", config.mlxVLMServerURL,
+                    "--vl_rec_api_model_name", config.mlxVLMModelName
+                ]
+            }
+
+            return args
         }
     }
 
