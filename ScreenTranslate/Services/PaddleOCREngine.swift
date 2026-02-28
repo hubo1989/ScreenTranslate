@@ -263,9 +263,11 @@ actor PaddleOCREngine {
                 ]
             } else if !config.localVLModelDir.isEmpty {
                 // Use native backend with local model
+                // Expand tilde in path (e.g., ~/.paddlex -> /Users/xxx/.paddlex)
+                let expandedPath = NSString(string: config.localVLModelDir).expandingTildeInPath
                 args += [
                     "--vl_rec_backend", "native",
-                    "--vl_rec_model_dir", config.localVLModelDir
+                    "--vl_rec_model_dir", expandedPath
                 ]
             }
 
@@ -612,8 +614,7 @@ actor PaddleOCREngine {
             }
             content = content.replacingOccurrences(of: "[,", with: "[")
             content = content.replacingOccurrences(of: ",]", with: "]")
-            // Handle edge case of empty nested arrays
-            content = content.replacingOccurrences(of: "[]", with: "[]")
+            // Handle edge case of empty nested arrays - return early
             return content
         }
 

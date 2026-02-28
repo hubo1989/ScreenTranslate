@@ -603,6 +603,7 @@
 "settings.paddleocr.mlxVLMNotRunning" = "未运行";
 "settings.paddleocr.localVLModelDir" = "本地模型目录";
 "settings.paddleocr.localVLModelDir.hint" = "本地 PaddleOCR-VL 模型路径（如 ~/.paddlex/official_models/PaddleOCR-VL-1.5）";
+"error.paddleocr.notInstalled" = "PaddleOCR 未安装。请使用以下命令安装：pip3 install paddleocr paddlepaddle";
 
 
 /* ========================================

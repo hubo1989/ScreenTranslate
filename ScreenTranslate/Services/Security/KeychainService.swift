@@ -48,6 +48,19 @@ actor KeychainService {
             additional: additionalData
         )
 
+        try saveCredentialsInternal(
+            credentials: credentials,
+            account: engine.rawValue,
+            label: engine.rawValue
+        )
+    }
+
+    /// Internal helper for saving credentials to keychain
+    /// - Parameters:
+    ///   - credentials: The credentials to save
+    ///   - account: The account identifier for the keychain item
+    ///   - label: A descriptive label for logging
+    private func saveCredentialsInternal(credentials: StoredCredentials, account: String, label: String) throws {
         guard let encodedData = try? JSONEncoder().encode(credentials) else {
             throw KeychainError.invalidData
         }
@@ -55,7 +68,7 @@ actor KeychainService {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: engine.rawValue
+            kSecAttrAccount as String: account
         ]
 
         // Check if item exists and update it, or add new if not found
@@ -68,27 +81,27 @@ actor KeychainService {
             ]
             let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
             guard updateStatus == errSecSuccess else {
-                logger.error("Failed to update credentials for \(engine.rawValue): \(updateStatus)")
+                logger.error("Failed to update credentials for \(label): \(updateStatus)")
                 throw KeychainError.unexpectedStatus(updateStatus)
             }
-            logger.info("Updated credentials for \(engine.rawValue)")
+            logger.info("Updated credentials for \(label)")
         } else if status == errSecItemNotFound {
             // Item doesn't exist - add new
             let addQuery: [String: Any] = [
                 kSecClass as String: kSecClassGenericPassword,
                 kSecAttrService as String: service,
-                kSecAttrAccount as String: engine.rawValue,
+                kSecAttrAccount as String: account,
                 kSecValueData as String: encodedData,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
             ]
             let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
             guard addStatus == errSecSuccess else {
-                logger.error("Failed to save credentials for \(engine.rawValue): \(addStatus)")
+                logger.error("Failed to save credentials for \(label): \(addStatus)")
                 throw KeychainError.unexpectedStatus(addStatus)
             }
-            logger.info("Saved credentials for \(engine.rawValue)")
+            logger.info("Saved credentials for \(label)")
         } else {
-            logger.error("Failed to check credentials for \(engine.rawValue): \(status)")
+            logger.error("Failed to check credentials for \(label): \(status)")
             throw KeychainError.unexpectedStatus(status)
         }
     }
@@ -183,50 +196,11 @@ actor KeychainService {
     ///   - compatibleId: The compatible engine identifier (e.g., "custom:0", "custom:1")
     func saveCredentials(apiKey: String, forCompatibleId compatibleId: String) throws {
         let credentials = StoredCredentials(apiKey: apiKey)
-
-        guard let encodedData = try? JSONEncoder().encode(credentials) else {
-            throw KeychainError.invalidData
-        }
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: compatibleId
-        ]
-
-        // Check if item exists and update it, or add new if not found
-        let status = SecItemCopyMatching(query as CFDictionary, nil)
-        if status == errSecSuccess {
-            // Item exists - update it
-            let updateQuery: [String: Any] = [
-                kSecValueData as String: encodedData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-            ]
-            let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
-            guard updateStatus == errSecSuccess else {
-                logger.error("Failed to update credentials for \(compatibleId): \(updateStatus)")
-                throw KeychainError.unexpectedStatus(updateStatus)
-            }
-            logger.info("Updated credentials for compatible engine \(compatibleId)")
-        } else if status == errSecItemNotFound {
-            // Item doesn't exist - add new
-            let addQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: service,
-                kSecAttrAccount as String: compatibleId,
-                kSecValueData as String: encodedData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-            ]
-            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
-            guard addStatus == errSecSuccess else {
-                logger.error("Failed to save credentials for \(compatibleId): \(addStatus)")
-                throw KeychainError.unexpectedStatus(addStatus)
-            }
-            logger.info("Saved credentials for compatible engine \(compatibleId)")
-        } else {
-            logger.error("Failed to check credentials for \(compatibleId): \(status)")
-            throw KeychainError.unexpectedStatus(status)
-        }
+        try saveCredentialsInternal(
+            credentials: credentials,
+            account: compatibleId,
+            label: "compatible engine \(compatibleId)"
+        )
     }
 
     /// Retrieve stored credentials for a compatible engine instance
@@ -320,53 +294,12 @@ actor KeychainService {
     /// Save PaddleOCR cloud API key
     /// - Parameter apiKey: The API key to store
     func savePaddleOCRCredentials(apiKey: String) throws {
-        let account = Self.paddleOCRAccount
-
         let credentials = StoredCredentials(apiKey: apiKey)
-
-        guard let encodedData = try? JSONEncoder().encode(credentials) else {
-            throw KeychainError.invalidData
-        }
-
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-
-        // Check if item exists and update it, or add new if not found
-        let status = SecItemCopyMatching(query as CFDictionary, nil)
-        if status == errSecSuccess {
-            // Item exists - update it
-            let updateQuery: [String: Any] = [
-                kSecValueData as String: encodedData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-            ]
-            let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
-            guard updateStatus == errSecSuccess else {
-                logger.error("Failed to update PaddleOCR cloud credentials: \(updateStatus)")
-                throw KeychainError.unexpectedStatus(updateStatus)
-            }
-            logger.info("Updated PaddleOCR cloud credentials")
-        } else if status == errSecItemNotFound {
-            // Item doesn't exist - add new
-            let addQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: service,
-                kSecAttrAccount as String: account,
-                kSecValueData as String: encodedData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
-            ]
-            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
-            guard addStatus == errSecSuccess else {
-                logger.error("Failed to save PaddleOCR cloud credentials: \(addStatus)")
-                throw KeychainError.unexpectedStatus(addStatus)
-            }
-            logger.info("Saved PaddleOCR cloud credentials")
-        } else {
-            logger.error("Failed to check PaddleOCR cloud credentials: \(status)")
-            throw KeychainError.unexpectedStatus(status)
-        }
+        try saveCredentialsInternal(
+            credentials: credentials,
+            account: Self.paddleOCRAccount,
+            label: "PaddleOCR cloud"
+        )
     }
 
     /// Retrieve stored PaddleOCR cloud API key

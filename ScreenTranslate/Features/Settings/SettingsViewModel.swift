@@ -883,7 +883,7 @@ final class SettingsViewModel {
                 let (_, response) = try await URLSession.shared.data(for: request)
 
                 if let httpResponse = response as? HTTPURLResponse {
-                    isRunning = httpResponse.statusCode < 500
+                    isRunning = (200...299).contains(httpResponse.statusCode)
                 }
             } catch {
                 isRunning = false

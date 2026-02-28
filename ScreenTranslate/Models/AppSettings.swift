@@ -510,7 +510,11 @@ final class AppSettings {
         paddleOCRCloudAPIKey = ""
         // Delete PaddleOCR cloud API key from Keychain
         Task.detached {
-            try? await KeychainService.shared.deletePaddleOCRCredentials()
+            do {
+                try await KeychainService.shared.deletePaddleOCRCredentials()
+            } catch {
+                Logger.settings.error("Failed to delete PaddleOCR credentials from keychain: \(error.localizedDescription)")
+            }
         }
         // Reset MLX-VLM settings
         paddleOCRUseMLXVLM = false
