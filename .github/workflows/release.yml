@@ -127,7 +127,7 @@ jobs:
                 <pubDate>${PUBDATE}</pubDate>
                 <sparkle:version>${BUILD_NUM}</sparkle:version>
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
-                <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+                <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
                 ${ENCLOSURE}
                 <description><![CDATA[<p>Latest release of ScreenTranslate</p>]]></description>
               </item>
