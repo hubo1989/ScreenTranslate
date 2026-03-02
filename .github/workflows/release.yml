@@ -24,6 +24,30 @@ jobs:
         with:
           xcode-version: '26.2'
 
+      - name: Auto-increment build number
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          
+          # Get current build number from latest release's appcast
+          CURRENT_BUILD=0
+          LATEST_APPCAST=$(curl -sL "https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml" 2>/dev/null || echo "")
+          
+          if [ -n "$LATEST_APPCAST" ]; then
+            CURRENT_BUILD=$(echo "$LATEST_APPCAST" | grep -o '<sparkle:version>[^<]*</sparkle:version>' | sed 's/<[^>]*>//g' | head -1)
+            echo "Current build number from appcast: $CURRENT_BUILD"
+          fi
+          
+          # Increment build number
+          NEW_BUILD=$((CURRENT_BUILD + 1))
+          echo "New build number: $NEW_BUILD"
+          
+          # Update project.pbxproj
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $NEW_BUILD;/g" ScreenTranslate.xcodeproj/project.pbxproj
+          sed -i '' "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $VERSION;/g" ScreenTranslate.xcodeproj/project.pbxproj
+          
+          echo "Updated to version $VERSION (build $NEW_BUILD)"
+          echo "new_build=$NEW_BUILD" >> $GITHUB_OUTPUT
+
       - name: Build Release
         run: |
           xcodebuild -project ${{ env.PROJECT_NAME }}.xcodeproj \
