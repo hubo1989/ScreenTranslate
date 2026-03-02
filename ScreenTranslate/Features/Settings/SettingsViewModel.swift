@@ -870,7 +870,9 @@ final class SettingsViewModel {
             var isRunning = false
 
             do {
-                guard let url = URL(string: serverURL) else {
+                // MLX-VLM server uses /health endpoint for health check
+                let healthURL = serverURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                guard let url = URL(string: "\(healthURL)/health") else {
                     await MainActor.run {
                         self.isMLXVLMServerRunning = false
                         self.isCheckingMLXVLMServer = false
