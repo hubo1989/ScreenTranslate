@@ -5,184 +5,206 @@
 <h1 align="center">ScreenTranslate</h1>
 
 <p align="center">
-  macOS 菜单栏截图翻译工具，支持 OCR 识别、多引擎翻译、文本选择翻译和翻译插入
+  macOS menu bar app for screenshot translation with OCR, multi-engine translation, text selection translation, and translate-and-insert features
 </p>
 
 <p align="center">
-  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.1.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B-brightgreen.svg" alt="macOS"></a>
   <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift"></a>
 </p>
 
-## ✨ 功能特性
+<p align="center">
+  <a href="README_CN.md">简体中文</a>
+</p>
 
-### 截图功能
-- **区域截图** - 选择屏幕任意区域进行截图
-- **全屏截图** - 一键截取整个屏幕
-- **翻译模式** - 截图后直接翻译，无需额外操作
-- **多显示器支持** - 自动识别并支持多显示器环境
-- **Retina 屏幕优化** - 完美支持高分辨率显示器
+## ✨ Features
 
-### 🆕 文本翻译功能
-- **文本选择翻译** - 选中任意文本，一键翻译并弹出结果窗口
-- **翻译并插入** - 选中文本翻译后，自动替换为译文（绕过输入法）
-- **独立语言设置** - 翻译并插入支持独立的目标语言配置
+### Screenshot Capture
+- **Region Capture** - Select any area of the screen to capture
+- **Full Screen Capture** - Capture the entire screen with one click
+- **Translation Mode** - Translate directly after capture, no extra steps needed
+- **Multi-Monitor Support** - Automatic detection and support for multiple displays
+- **Retina Display Optimized** - Perfect support for high-resolution displays
 
-### OCR 文字识别
-- **Apple Vision** - 原生 OCR，无需额外配置
-- **PaddleOCR** - 可选外部引擎，中文识别更准确
+### 🆕 Text Translation
+- **Text Selection Translation** - Select any text and translate with a popup result window
+- **Translate and Insert** - Replace selected text with translation (bypasses input method)
+- **Independent Language Settings** - Separate target language configuration for translate-and-insert
 
-### 多引擎翻译
-- **Apple Translation** - 系统内置翻译，离线可用
-- **MTranServer** - 自建翻译服务器，高质量翻译
-- **VLM 视觉模型** - OpenAI GPT-4 Vision / Claude / Ollama 本地模型
+### OCR Text Recognition
+- **Apple Vision** - Native OCR, no additional configuration required
+- **PaddleOCR** - Optional external engine with better Chinese recognition
 
-### 标注工具
-- 矩形框选
-- 箭头标注
-- 手绘涂鸦
-- 文字注释
-- 截图裁剪
+### Multi-Engine Translation
+- **Apple Translation** - Built-in system translation, works offline
+- **MTranServer** - Self-hosted translation server for high-quality translation
+- **VLM Vision Models** - OpenAI GPT-4 Vision / Claude / Ollama local models
 
-### 其他功能
-- **翻译历史** - 保存翻译记录，支持搜索和导出
-- **双语对照** - 原文译文并排显示
-- **覆盖层显示** - 翻译结果直接显示在截图上方
-- **自定义快捷键** - 支持全局快捷键快速截图和翻译
-- **菜单栏快捷操作** - 所有功能均可通过菜单栏访问
-- **多语言支持** - 支持 25+ 种语言翻译
+### Annotation Tools
+- Rectangle selection
+- Arrow annotation
+- Freehand drawing
+- Text annotation
+- Screenshot cropping
 
-## ⌨️ 快捷键
+### Other Features
+- **Translation History** - Save translation records with search and export
+- **Bilingual Display** - Side-by-side original and translated text
+- **Overlay Display** - Translation results displayed directly on the screenshot
+- **Custom Shortcuts** - Global hotkeys for quick capture and translation
+- **Menu Bar Quick Access** - All features accessible from menu bar
+- **Multi-Language Support** - Support for 25+ languages
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Cmd+Shift+3` | 全屏截图 |
-| `Cmd+Shift+4` | 区域截图翻译（默认） |
-| `Cmd+Shift+T` | 翻译模式（截图后直接翻译） |
-| `Cmd+Shift+Y` | 文本选择翻译 |
-| `Cmd+Shift+I` | 翻译并插入 |
+## ⌨️ Keyboard Shortcuts
 
-> 所有快捷键均可在设置中自定义
+| Shortcut | Action |
+|----------|--------|
+| `Cmd+Shift+3` | Capture Full Screen |
+| `Cmd+Shift+4` | Capture Selection (default) |
+| `Cmd+Shift+T` | Translation Mode (translate after capture) |
+| `Cmd+Shift+Y` | Text Selection Translation |
+| `Cmd+Shift+I` | Translate and Insert |
 
-## 预览窗口操作
+> All shortcuts can be customized in Settings
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Enter` / `Cmd+S` | 保存截图 |
-| `Cmd+C` | 复制到剪贴板 |
-| `Escape` | 关闭窗口 / 取消裁剪 |
-| `R` / `1` | 矩形工具 |
-| `D` / `2` | 手绘工具 |
-| `A` / `3` | 箭头工具 |
-| `T` / `4` | 文字工具 |
-| `C` | 裁剪模式 |
-| `Cmd+Z` | 撤销 |
-| `Cmd+Shift+Z` | 重做 |
+## Preview Window Shortcuts
 
-## 📦 安装要求
+| Shortcut | Action |
+|----------|--------|
+| `Enter` / `Cmd+S` | Save Screenshot |
+| `Cmd+C` | Copy to Clipboard |
+| `Escape` | Close Window / Cancel Crop |
+| `R` / `1` | Rectangle Tool |
+| `D` / `2` | Freehand Tool |
+| `A` / `3` | Arrow Tool |
+| `T` / `4` | Text Tool |
+| `C` | Crop Mode |
+| `Cmd+Z` | Undo |
+| `Cmd+Shift+Z` | Redo |
 
-- macOS 13.0 (Ventura) 或更高版本
-- 屏幕录制权限（首次使用时会提示）
-- 辅助功能权限（文本翻译功能需要）
+## 📦 Requirements
 
-## 下载安装
+- macOS 13.0 (Ventura) or later
+- Screen Recording permission (prompted on first use)
+- Accessibility permission (required for text translation features)
 
-从 [Releases](../../releases) 页面下载最新版本。
+## Download & Installation
 
-> ⚠️ **注意：应用未经过 Apple 开发者签名**
+Download the latest version from the [Releases](../../releases) page.
+
+> ⚠️ **Note: The app is not signed by Apple Developer**
 >
-> 由于目前没有 Apple Developer 账号，应用未进行代码签名。首次运行时 macOS 会提示「无法打开」或「开发者无法验证」。
+> Since there's no Apple Developer account, the app is not code-signed. On first launch, macOS may show "cannot be opened" or "developer cannot be verified".
 >
-> **解决方法**（二选一）：
+> **Solutions** (choose one):
 >
-> **方法 1 - 终端命令（推荐）**
+> **Method 1 - Terminal Command (Recommended)**
 > ```bash
 > xattr -rd com.apple.quarantine /Applications/ScreenTranslate.app
 > ```
 >
-> **方法 2 - 系统设置**
-> 1. 打开「系统设置」→「隐私与安全性」
-> 2. 在「安全性」部分找到关于 ScreenTranslate 的提示
-> 3. 点击「仍要打开」
+> **Method 2 - System Settings**
+> 1. Open "System Settings" → "Privacy & Security"
+> 2. Find the notification about ScreenTranslate under "Security"
+> 3. Click "Open Anyway"
 >
-> 两种方法都只需要执行一次，之后可以正常使用。
+> Either method only needs to be done once, after which the app can be used normally.
 
-## 🔧 技术栈
+## 🔧 Tech Stack
 
-- **Swift 6.0** - 现代 Swift 语言特性，严格并发检查
-- **SwiftUI + AppKit** - 声明式 UI 与原生 macOS 组件结合
-- **ScreenCaptureKit** - 系统级屏幕录制与截图
-- **Vision** - Apple 原生 OCR 文字识别
-- **Translation** - Apple 系统翻译框架
-- **CoreGraphics** - 图像处理与渲染
+- **Swift 6.0** - Modern Swift language features with strict concurrency checking
+- **SwiftUI + AppKit** - Declarative UI combined with native macOS components
+- **ScreenCaptureKit** - System-level screen recording and capture
+- **Vision** - Apple native OCR text recognition
+- **Translation** - Apple system translation framework
+- **CoreGraphics** - Image processing and rendering
 
-## 📁 项目结构
+## 📁 Project Structure
 
-```
+```text
 ScreenTranslate/
-├── App/                    # 应用入口与协调器
+├── App/                    # App entry point and coordinators
 │   ├── AppDelegate.swift
-│   └── Coordinators/       # 功能协调器
+│   └── Coordinators/       # Feature coordinators
 │       ├── CaptureCoordinator.swift
 │       ├── TextTranslationCoordinator.swift
 │       └── HotkeyCoordinator.swift
-├── Features/               # 功能模块
-│   ├── Capture/           # 截图功能
-│   ├── Preview/           # 预览与标注
-│   ├── TextTranslation/   # 文本翻译
-│   ├── Overlay/           # 翻译覆盖层
-│   ├── BilingualResult/   # 双语结果展示
-│   ├── History/           # 历史记录
-│   ├── Settings/          # 设置界面
-│   └── MenuBar/           # 菜单栏控制
-├── Services/              # 业务服务
-│   ├── Protocols/         # 服务协议（依赖注入）
-│   ├── OCREngine/         # OCR 引擎
-│   ├── Translation/       # 翻译服务
-│   └── VLMProvider/       # 视觉语言模型
-├── Models/                # 数据模型
-└── Resources/             # 资源文件
+├── Features/               # Feature modules
+│   ├── Capture/           # Screenshot capture
+│   ├── Preview/           # Preview and annotation
+│   ├── TextTranslation/   # Text translation
+│   ├── Overlay/           # Translation overlay
+│   ├── BilingualResult/   # Bilingual result display
+│   ├── History/           # Translation history
+│   ├── Settings/          # Settings UI
+│   └── MenuBar/           # Menu bar control
+├── Services/              # Business services
+│   ├── Protocols/         # Service protocols (dependency injection)
+│   ├── OCREngine/         # OCR engines
+│   ├── Translation/       # Translation services
+│   └── VLMProvider/       # Vision-language models
+├── Models/                # Data models
+└── Resources/             # Resource files
 ```
 
-## 🛠️ 构建源码
+## 🛠️ Build from Source
 
 ```bash
-# 克隆仓库
+# Clone the repository
 git clone https://github.com/hubo1989/ScreenTranslate.git
 cd ScreenTranslate
 
-# 用 Xcode 打开
+# Open in Xcode
 open ScreenTranslate.xcodeproj
 
-# 或命令行构建
+# Or build from command line
 xcodebuild -project ScreenTranslate.xcodeproj -scheme ScreenTranslate
 ```
 
-## 📝 更新日志
+## 📝 Changelog
+
+### v1.3.0
+- ✨ Added About menu with version, license, and acknowledgements
+- ✨ Integrated Sparkle auto-update framework
+- ✨ Added GitHub Actions CI/CD for automated releases
+- 📚 Translated README to English
+
+### v1.2.0
+- ✨ Added unified EngineIdentifier for standard and compatible engines
+- ✨ Added multi-instance support for OpenAI-compatible engines
+- ✨ Optimized engine selection UI and added Gemini support
+- ✨ Improved prompt editor UX with copyable variables
+- ✨ Improved engine config UX with API key links
+- ✨ Moved prompt configuration to dedicated sidebar tab
+- ✨ Implemented multi-translation engine support
+- 🐛 Fixed quick switch order editing
+- 🐛 Improved multi-engine settings interface
+- 🌐 Added Chinese localization for multi-engine settings
 
 ### v1.1.0
-- ✨ 新增文本选择翻译功能（选中任意文本一键翻译）
-- ✨ 新增翻译并插入功能（自动替换选中文本为译文）
-- ✨ 菜单栏快捷键与设置同步
-- 🏗️ 架构重构：AppDelegate 拆分为 3 个 Coordinator
-- 🧪 添加单元测试覆盖
-- 🐛 修复 Retina 屏幕显示问题
-- 🐛 修复翻译并插入语言设置不生效问题
+- ✨ Added text selection translation feature
+- ✨ Added translate and insert feature
+- ✨ Menu bar shortcuts synced with settings
+- 🏗️ Architecture refactoring: AppDelegate split into 3 Coordinators
+- 🧪 Added unit test coverage
+- 🐛 Fixed Retina display issues
+- 🐛 Fixed translate-and-insert language settings not applying
 
 ### v1.0.2
-- 🐛 深度修复 Retina 屏幕缩放问题
+- 🐛 Deep fix for Retina display scaling issues
 
 ### v1.0.1
-- 🎉 首次发布
+- 🎉 Initial release
 
-## 🤝 贡献指南
+## 🤝 Contributing
 
-欢迎提交 Issue 和 Pull Request。
+Issues and Pull Requests are welcome!
 
-## 📄 许可证
+## 📄 License
 
-MIT License - 详见 [LICENSE](LICENSE) 文件
+MIT License - See [LICENSE](LICENSE) file for details
 
 ---
 

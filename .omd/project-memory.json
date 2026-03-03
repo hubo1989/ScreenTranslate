@@ -1,0 +1,244 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1772269310504,
+  "projectRoot": "/Users/hubo/.superset/worktrees/screentranslate/featadd-translate-engine",
+  "techStack": {
+    "languages": [],
+    "frameworks": [],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "Build": {
+      "path": "Build",
+      "purpose": "Build output",
+      "fileCount": 1,
+      "lastAccessed": 1772269310491,
+      "keyFiles": []
+    },
+    "ScreenTranslate": {
+      "path": "ScreenTranslate",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1772269310492,
+      "keyFiles": []
+    },
+    "ScreenTranslate.xcodeproj": {
+      "path": "ScreenTranslate.xcodeproj",
+      "purpose": null,
+      "fileCount": 1,
+      "lastAccessed": 1772269310492,
+      "keyFiles": [
+        "project.pbxproj"
+      ]
+    },
+    "ScreenTranslateTests": {
+      "path": "ScreenTranslateTests",
+      "purpose": null,
+      "fileCount": 5,
+      "lastAccessed": 1772269310493,
+      "keyFiles": [
+        "KeyboardShortcutTests.swift",
+        "README.md",
+        "ScreenTranslateErrorTests.swift",
+        "ShortcutRecordingTypeTests.swift",
+        "TextTranslationErrorTests.swift"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 6,
+      "lastAccessed": 1772269310493,
+      "keyFiles": [
+        "README.md",
+        "api-reference.md",
+        "architecture.md",
+        "components.md",
+        "developer-guide.md"
+      ]
+    },
+    "skills": {
+      "path": "skills",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1772269310494,
+      "keyFiles": []
+    },
+    "tasks": {
+      "path": "tasks",
+      "purpose": null,
+      "fileCount": 6,
+      "lastAccessed": 1772269310494,
+      "keyFiles": [
+        "prd-.md",
+        "prd-macos-screentranslate.md",
+        "prd-screencoder-kiss-translator.md",
+        "prd-screencoder.md",
+        "prd-text-translation.json"
+      ]
+    },
+    "ScreenTranslate/App": {
+      "path": "ScreenTranslate/App",
+      "purpose": "Application code",
+      "fileCount": 2,
+      "lastAccessed": 1772269310495,
+      "keyFiles": [
+        "AppDelegate.swift",
+        "ScreenTranslateApp.swift"
+      ]
+    },
+    "ScreenTranslate/Models": {
+      "path": "ScreenTranslate/Models",
+      "purpose": "Data models",
+      "fileCount": 23,
+      "lastAccessed": 1772269310495,
+      "keyFiles": [
+        "Annotation.swift",
+        "AppLanguage.swift",
+        "AppSettings.swift"
+      ]
+    },
+    "ScreenTranslate/Services": {
+      "path": "ScreenTranslate/Services",
+      "purpose": "Business logic services",
+      "fileCount": 26,
+      "lastAccessed": 1772269310495,
+      "keyFiles": [
+        "AccessibilityPermissionChecker.swift",
+        "AppleTranslationProvider.swift",
+        "ClaudeVLMProvider.swift"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "ScreenTranslate/Services/PaddleOCREngine.swift",
+      "accessCount": 17,
+      "lastAccessed": 1772277198204,
+      "type": "file"
+    },
+    {
+      "path": "ScreenTranslate/Services/Security/KeychainService.swift",
+      "accessCount": 14,
+      "lastAccessed": 1772277575721,
+      "type": "file"
+    },
+    {
+      "path": "ScreenTranslate/Models/AppSettings.swift",
+      "accessCount": 13,
+      "lastAccessed": 1772277135092,
+      "type": "directory"
+    },
+    {
+      "path": "ScreenTranslate/Resources/en.lproj/Localizable.strings",
+      "accessCount": 6,
+      "lastAccessed": 1772277251555,
+      "type": "file"
+    },
+    {
+      "path": "ScreenTranslate/Services/PaddleOCRVLMProvider.swift",
+      "accessCount": 6,
+      "lastAccessed": 1772277354512,
+      "type": "directory"
+    },
+    {
+      "path": "ScreenTranslate/Features/Settings/SettingsViewModel.swift",
+      "accessCount": 5,
+      "lastAccessed": 1772277092578,
+      "type": "directory"
+    },
+    {
+      "path": "ScreenTranslate/Resources",
+      "accessCount": 4,
+      "lastAccessed": 1772271181502,
+      "type": "directory"
+    },
+    {
+      "path": "ScreenTranslate/Features/Settings/EngineSettingsTab.swift",
+      "accessCount": 4,
+      "lastAccessed": 1772274724758,
+      "type": "directory"
+    },
+    {
+      "path": "ScreenTranslate/Resources/zh-Hans.lproj/Localizable.strings",
+      "accessCount": 4,
+      "lastAccessed": 1772277283269,
+      "type": "file"
+    },
+    {
+      "path": "ScreenTranslate/Features/TranslationFlow/TranslationFlowController.swift",
+      "accessCount": 3,
+      "lastAccessed": 1772270086752,
+      "type": "file"
+    },
+    {
+      "path": "ScreenTranslate",
+      "accessCount": 3,
+      "lastAccessed": 1772271133277,
+      "type": "directory"
+    },
+    {
+      "path": "ScreenTranslate/Features/Capture/ScreenDetector.swift",
+      "accessCount": 3,
+      "lastAccessed": 1772277067534,
+      "type": "directory"
+    },
+    {
+      "path": "ScreenTranslate/Features/Capture/CaptureManager.swift",
+      "accessCount": 2,
+      "lastAccessed": 1772277030873,
+      "type": "directory"
+    },
+    {
+      "path": "",
+      "accessCount": 1,
+      "lastAccessed": 1772269949125,
+      "type": "directory"
+    },
+    {
+      "path": "ScreenTranslate/Errors/ScreenTranslateError.swift",
+      "accessCount": 1,
+      "lastAccessed": 1772269960584,
+      "type": "file"
+    },
+    {
+      "path": "ScreenTranslate/Models/VLMProviderType.swift",
+      "accessCount": 1,
+      "lastAccessed": 1772269960585,
+      "type": "file"
+    },
+    {
+      "path": "ScreenTranslate/Services/ScreenCoderEngine.swift",
+      "accessCount": 1,
+      "lastAccessed": 1772270035460,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

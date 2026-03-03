@@ -95,11 +95,8 @@ final class SettingsWindowController: NSObject {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
-        // Check permissions after window is shown to avoid state changes during view initialization
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(100))
-            viewModel.checkPermissions()
-        }
+        // Don't auto-check permissions on window open - it may trigger system dialogs
+        // User can manually check via the reset button in Settings > General
     }
 
     /// Closes the settings window if open.

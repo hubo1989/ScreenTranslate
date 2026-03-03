@@ -375,7 +375,9 @@ final class PermissionManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.refreshIfNeeded()
+            Task { @MainActor [weak self] in
+                self?.refreshIfNeeded()
+            }
         }
     }
 

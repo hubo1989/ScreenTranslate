@@ -1,6 +1,31 @@
 import Foundation
 import SwiftUI
 import os
+import Security
+
+/// PaddleOCR mode selection
+enum PaddleOCRMode: String, Codable, CaseIterable, Sendable {
+    case fast
+    case precise
+
+    var localizedName: String {
+        switch self {
+        case .fast:
+            return NSLocalizedString("settings.paddleocr.mode.fast", comment: "Fast mode")
+        case .precise:
+            return NSLocalizedString("settings.paddleocr.mode.precise", comment: "Precise mode")
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .fast:
+            return NSLocalizedString("settings.paddleocr.mode.fast.description", comment: "~1s, uses groupIntoLines")
+        case .precise:
+            return NSLocalizedString("settings.paddleocr.mode.precise.description", comment: "~12s, VL-1.5 model")
+        }
+    }
+}
 
 /// User preferences persisted across sessions via UserDefaults.
 /// All properties automatically sync to UserDefaults with the `ScreenTranslate.` prefix.
@@ -51,6 +76,23 @@ final class AppSettings {
         // Translate and Insert Language Configuration
         static let translateAndInsertSourceLanguage = prefix + "translateAndInsertSourceLanguage"
         static let translateAndInsertTargetLanguage = prefix + "translateAndInsertTargetLanguage"
+        // Multi-Engine Configuration
+        static let engineSelectionMode = prefix + "engineSelectionMode"
+        static let engineConfigs = prefix + "engineConfigs"
+        static let promptConfig = prefix + "promptConfig"
+        static let sceneBindings = prefix + "sceneBindings"
+        static let parallelEngines = prefix + "parallelEngines"
+        static let compatibleProviderConfigs = prefix + "compatibleProviderConfigs"
+        // PaddleOCR Configuration
+        static let paddleOCRMode = prefix + "paddleOCRMode"
+        static let paddleOCRUseCloud = prefix + "paddleOCRUseCloud"
+        static let paddleOCRCloudBaseURL = prefix + "paddleOCRCloudBaseURL"
+        static let paddleOCRCloudAPIKey = prefix + "paddleOCRCloudAPIKey"
+        // MLX-VLM Configuration (for Apple Silicon optimization)
+        static let paddleOCRUseMLXVLM = prefix + "paddleOCRUseMLXVLM"
+        static let paddleOCRMLXVLMServerURL = prefix + "paddleOCRMLXVLMServerURL"
+        static let paddleOCRMLXVLMModelName = prefix + "paddleOCRMLXVLMModelName"
+        static let paddleOCRLocalVLModelDir = prefix + "paddleOCRLocalVLModelDir"
     }
 
     // MARK: - Properties
@@ -223,6 +265,91 @@ final class AppSettings {
         }
     }
 
+    // MARK: - Multi-Engine Configuration
+
+    /// Engine selection mode
+    var engineSelectionMode: EngineSelectionMode {
+        didSet { save(engineSelectionMode.rawValue, forKey: Keys.engineSelectionMode) }
+    }
+
+    /// Engine configurations (JSON encoded)
+    var engineConfigs: [TranslationEngineType: TranslationEngineConfig] {
+        didSet { saveEngineConfigs() }
+    }
+
+    /// Prompt configuration
+    var promptConfig: TranslationPromptConfig {
+        didSet { savePromptConfig() }
+    }
+
+    /// Scene-to-engine bindings
+    var sceneBindings: [TranslationScene: SceneEngineBinding] {
+        didSet { saveSceneBindings() }
+    }
+
+    /// Engines to run in parallel mode
+    var parallelEngines: [TranslationEngineType] {
+        didSet { saveParallelEngines() }
+    }
+
+    /// Compatible provider configurations
+    var compatibleProviderConfigs: [CompatibleTranslationProvider.CompatibleConfig] {
+        didSet { saveCompatibleConfigs() }
+    }
+
+    // MARK: - PaddleOCR Configuration
+
+    /// PaddleOCR mode: fast (ocr command) or precise (doc_parser VL-1.5)
+    var paddleOCRMode: PaddleOCRMode {
+        didSet { save(paddleOCRMode.rawValue, forKey: Keys.paddleOCRMode) }
+    }
+
+    /// Whether to use cloud API instead of local CLI
+    var paddleOCRUseCloud: Bool {
+        didSet { save(paddleOCRUseCloud, forKey: Keys.paddleOCRUseCloud) }
+    }
+
+    /// Cloud API base URL (for third-party PaddleOCR cloud services)
+    var paddleOCRCloudBaseURL: String {
+        didSet { save(paddleOCRCloudBaseURL, forKey: Keys.paddleOCRCloudBaseURL) }
+    }
+
+    /// Cloud API key (stored securely in Keychain, not UserDefaults)
+    var paddleOCRCloudAPIKey: String {
+        didSet {
+            // Capture the value on the actor before spawning detached task
+            let capturedKey = paddleOCRCloudAPIKey
+            // Save to Keychain asynchronously
+            Task.detached {
+                do {
+                    try await KeychainService.shared.savePaddleOCRCredentials(apiKey: capturedKey)
+                } catch {
+                    Logger.settings.error("Failed to save PaddleOCR cloud API key to Keychain: \(error)")
+                }
+            }
+        }
+    }
+
+    /// Whether to use MLX-VLM inference framework (Apple Silicon optimization)
+    var paddleOCRUseMLXVLM: Bool {
+        didSet { save(paddleOCRUseMLXVLM, forKey: Keys.paddleOCRUseMLXVLM) }
+    }
+
+    /// MLX-VLM server URL (default: http://localhost:8111)
+    var paddleOCRMLXVLMServerURL: String {
+        didSet { save(paddleOCRMLXVLMServerURL, forKey: Keys.paddleOCRMLXVLMServerURL) }
+    }
+
+    /// MLX-VLM model name (default: PaddlePaddle/PaddleOCR-VL-1.5)
+    var paddleOCRMLXVLMModelName: String {
+        didSet { save(paddleOCRMLXVLMModelName, forKey: Keys.paddleOCRMLXVLMModelName) }
+    }
+
+    /// Local VL model directory (for native backend without MLX-VLM server)
+    var paddleOCRLocalVLModelDir: String {
+        didSet { save(paddleOCRLocalVLModelDir, forKey: Keys.paddleOCRLocalVLModelDir) }
+    }
+
     // MARK: - Initialization
 
     private init() {
@@ -309,6 +436,31 @@ final class AppSettings {
         translateAndInsertTargetLanguage = defaults.string(forKey: Keys.translateAndInsertTargetLanguage)
             .flatMap { TranslationLanguage(rawValue: $0) }
 
+        // Load multi-engine configuration
+        engineSelectionMode = defaults.string(forKey: Keys.engineSelectionMode)
+            .flatMap { EngineSelectionMode(rawValue: $0) } ?? .primaryWithFallback
+
+        engineConfigs = Self.loadEngineConfigs()
+        promptConfig = Self.loadPromptConfig()
+        sceneBindings = Self.loadSceneBindings()
+        parallelEngines = Self.loadParallelEngines()
+        compatibleProviderConfigs = Self.loadCompatibleConfigs()
+
+        // Load PaddleOCR configuration
+        paddleOCRMode = defaults.string(forKey: Keys.paddleOCRMode)
+            .flatMap { PaddleOCRMode(rawValue: $0) } ?? .fast
+        paddleOCRUseCloud = defaults.object(forKey: Keys.paddleOCRUseCloud) as? Bool ?? false
+        paddleOCRCloudBaseURL = defaults.string(forKey: Keys.paddleOCRCloudBaseURL) ?? ""
+
+        // Load PaddleOCR cloud API key from Keychain (secure storage)
+        paddleOCRCloudAPIKey = Self.loadPaddleOCRAPIKeyFromKeychain()
+
+        // Load MLX-VLM configuration
+        paddleOCRUseMLXVLM = defaults.object(forKey: Keys.paddleOCRUseMLXVLM) as? Bool ?? false
+        paddleOCRMLXVLMServerURL = defaults.string(forKey: Keys.paddleOCRMLXVLMServerURL) ?? "http://localhost:8111"
+        paddleOCRMLXVLMModelName = defaults.string(forKey: Keys.paddleOCRMLXVLMModelName) ?? "PaddlePaddle/PaddleOCR-VL-1.5"
+        paddleOCRLocalVLModelDir = defaults.string(forKey: Keys.paddleOCRLocalVLModelDir) ?? ""
+
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
 
@@ -351,6 +503,35 @@ final class AppSettings {
         onboardingCompleted = false
         translateAndInsertSourceLanguage = .auto
         translateAndInsertTargetLanguage = nil
+        // Reset PaddleOCR settings
+        paddleOCRMode = .fast
+        paddleOCRUseCloud = false
+        paddleOCRCloudBaseURL = ""
+        paddleOCRCloudAPIKey = ""
+        // Delete PaddleOCR cloud API key from Keychain
+        Task.detached {
+            do {
+                try await KeychainService.shared.deletePaddleOCRCredentials()
+            } catch {
+                Logger.settings.error("Failed to delete PaddleOCR credentials from keychain: \(error.localizedDescription)")
+            }
+        }
+        // Reset MLX-VLM settings
+        paddleOCRUseMLXVLM = false
+        paddleOCRMLXVLMServerURL = "http://localhost:8111"
+        paddleOCRMLXVLMModelName = "PaddlePaddle/PaddleOCR-VL-1.5"
+        paddleOCRLocalVLModelDir = ""
+        // Reset multi-engine configuration - directly create defaults, don't load from persistence
+        engineSelectionMode = .primaryWithFallback
+        var defaultConfigs: [TranslationEngineType: TranslationEngineConfig] = [:]
+        for type in TranslationEngineType.allCases {
+            defaultConfigs[type] = .default(for: type)
+        }
+        engineConfigs = defaultConfigs
+        promptConfig = TranslationPromptConfig()
+        sceneBindings = SceneEngineBinding.allDefaults
+        parallelEngines = [.apple, .mtranServer]
+        compatibleProviderConfigs = []
     }
 
     // MARK: - Notifications
@@ -391,6 +572,128 @@ final class AppSettings {
     private static func loadColor(forKey key: String) -> CodableColor? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(CodableColor.self, from: data)
+    }
+
+    // MARK: - Keychain Helpers
+
+    /// Load PaddleOCR cloud API key from Keychain synchronously
+    private static func loadPaddleOCRAPIKeyFromKeychain() -> String {
+        // Use shared constants from KeychainService
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: KeychainService.serviceIdentifier,
+            kSecAttrAccount as String: KeychainService.paddleOCRAccount,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
+            return ""
+        }
+
+        return credentials.apiKey
+    }
+
+    // MARK: - Multi-Engine Persistence Helpers
+
+    private func saveEngineConfigs() {
+        let configArray = Array(engineConfigs.values)
+        if let data = try? JSONEncoder().encode(configArray) {
+            UserDefaults.standard.set(data, forKey: Keys.engineConfigs)
+        }
+    }
+
+    private static func loadEngineConfigs() -> [TranslationEngineType: TranslationEngineConfig] {
+        // Start with defaults
+        var result: [TranslationEngineType: TranslationEngineConfig] = [:]
+        for type in TranslationEngineType.allCases {
+            result[type] = .default(for: type)
+        }
+
+        // Load saved configs and merge
+        guard let data = UserDefaults.standard.data(forKey: Keys.engineConfigs),
+              let configs = try? JSONDecoder().decode([TranslationEngineConfig].self, from: data) else {
+            return result
+        }
+
+        // Merge loaded configs over defaults (using reduce to handle duplicates safely)
+        _ = configs.reduce(into: result) { dict, config in
+            dict[config.id] = config
+        }
+
+        return result
+    }
+
+    private func savePromptConfig() {
+        if let data = try? JSONEncoder().encode(promptConfig) {
+            UserDefaults.standard.set(data, forKey: Keys.promptConfig)
+        }
+    }
+
+    private static func loadPromptConfig() -> TranslationPromptConfig {
+        guard let data = UserDefaults.standard.data(forKey: Keys.promptConfig),
+              let config = try? JSONDecoder().decode(TranslationPromptConfig.self, from: data) else {
+            return TranslationPromptConfig()
+        }
+        return config
+    }
+
+    private func saveSceneBindings() {
+        let bindingArray = Array(sceneBindings.values)
+        if let data = try? JSONEncoder().encode(bindingArray) {
+            UserDefaults.standard.set(data, forKey: Keys.sceneBindings)
+        }
+    }
+
+    private static func loadSceneBindings() -> [TranslationScene: SceneEngineBinding] {
+        // Start with defaults
+        var result = SceneEngineBinding.allDefaults
+
+        // Load saved bindings and merge
+        guard let data = UserDefaults.standard.data(forKey: Keys.sceneBindings),
+              let bindings = try? JSONDecoder().decode([SceneEngineBinding].self, from: data) else {
+            return result
+        }
+
+        // Merge loaded bindings over defaults (using reduce to handle duplicates safely)
+        _ = bindings.reduce(into: result) { dict, binding in
+            dict[binding.scene] = binding
+        }
+
+        return result
+    }
+
+    private func saveParallelEngines() {
+        let rawValues = parallelEngines.map { $0.rawValue }
+        UserDefaults.standard.set(rawValues, forKey: Keys.parallelEngines)
+    }
+
+    private static func loadParallelEngines() -> [TranslationEngineType] {
+        guard let rawValues = UserDefaults.standard.array(forKey: Keys.parallelEngines) as? [String] else {
+            return [.apple, .mtranServer]
+        }
+        let engines = rawValues.compactMap { TranslationEngineType(rawValue: $0) }
+        // Return default if result is empty (dirty data case)
+        return engines.isEmpty ? [.apple, .mtranServer] : engines
+    }
+
+    private func saveCompatibleConfigs() {
+        if let data = try? JSONEncoder().encode(compatibleProviderConfigs) {
+            UserDefaults.standard.set(data, forKey: Keys.compatibleProviderConfigs)
+        }
+    }
+
+    private static func loadCompatibleConfigs() -> [CompatibleTranslationProvider.CompatibleConfig] {
+        guard let data = UserDefaults.standard.data(forKey: Keys.compatibleProviderConfigs),
+              let configs = try? JSONDecoder().decode([CompatibleTranslationProvider.CompatibleConfig].self, from: data) else {
+            return []
+        }
+        return configs
     }
 
     /// Resolves a security-scoped bookmark to a URL

@@ -127,6 +127,15 @@ final class MenuBarController {
             imageName: "gearshape"
         ))
 
+        // About
+        menu.addItem(createMenuItem(
+            titleKey: "menu.about",
+            comment: "About ScreenTranslate",
+            action: #selector(AppDelegate.openAbout),
+            target: appDelegate,
+            imageName: "info.circle"
+        ))
+
         menu.addItem(NSMenuItem.separator())
 
         // Quit

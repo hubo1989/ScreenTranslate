@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import AppKit
 import Carbon.HIToolbox
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 
 // MARK: - Shortcut Recording Type
 
@@ -23,7 +23,7 @@ final class SettingsViewModel {
     // MARK: - Properties
 
     /// Reference to shared app settings
-    private let settings: AppSettings
+    let settings: AppSettings
 
     /// Reference to app delegate for hotkey re-registration
     private weak var appDelegate: AppDelegate?
@@ -70,11 +70,23 @@ final class SettingsViewModel {
     /// Screen recording permission status
     var hasScreenRecordingPermission: Bool = false
 
+    /// Accessibility permission status
+    var hasAccessibilityPermission: Bool = false
+
     /// Folder access permission status
     var hasFolderAccessPermission: Bool = false
 
     /// Whether permission check is in progress
     var isCheckingPermissions: Bool = false
+
+    /// Task for permission checking (stored for cancellation)
+    private var permissionCheckTask: Task<Void, Never>?
+
+    /// Type of permission being requested
+    enum PermissionType {
+        case screenRecording
+        case accessibility
+    }
 
     /// Whether PaddleOCR is installed
     var isPaddleOCRInstalled: Bool = false
@@ -87,6 +99,62 @@ final class SettingsViewModel {
 
     /// PaddleOCR version if installed
     var paddleOCRVersion: String?
+
+    // MARK: - PaddleOCR Settings
+
+    /// PaddleOCR mode: fast or precise
+    var paddleOCRMode: PaddleOCRMode {
+        get { settings.paddleOCRMode }
+        set { settings.paddleOCRMode = newValue }
+    }
+
+    /// Whether to use cloud API
+    var paddleOCRUseCloud: Bool {
+        get { settings.paddleOCRUseCloud }
+        set { settings.paddleOCRUseCloud = newValue }
+    }
+
+    /// Cloud API base URL
+    var paddleOCRCloudBaseURL: String {
+        get { settings.paddleOCRCloudBaseURL }
+        set { settings.paddleOCRCloudBaseURL = newValue }
+    }
+
+    /// Cloud API key
+    var paddleOCRCloudAPIKey: String {
+        get { settings.paddleOCRCloudAPIKey }
+        set { settings.paddleOCRCloudAPIKey = newValue }
+    }
+
+    /// Whether to use MLX-VLM inference framework
+    var paddleOCRUseMLXVLM: Bool {
+        get { settings.paddleOCRUseMLXVLM }
+        set { settings.paddleOCRUseMLXVLM = newValue }
+    }
+
+    /// MLX-VLM server URL
+    var paddleOCRMLXVLMServerURL: String {
+        get { settings.paddleOCRMLXVLMServerURL }
+        set { settings.paddleOCRMLXVLMServerURL = newValue }
+    }
+
+    /// MLX-VLM model name
+    var paddleOCRMLXVLMModelName: String {
+        get { settings.paddleOCRMLXVLMModelName }
+        set { settings.paddleOCRMLXVLMModelName = newValue }
+    }
+
+    /// Local VL model directory (for native backend)
+    var paddleOCRLocalVLModelDir: String {
+        get { settings.paddleOCRLocalVLModelDir }
+        set { settings.paddleOCRLocalVLModelDir = newValue }
+    }
+
+    /// Whether MLX-VLM server is running
+    var isMLXVLMServerRunning: Bool = false
+
+    /// Whether MLX-VLM server check is in progress
+    var isCheckingMLXVLMServer: Bool = false
 
     // MARK: - VLM Test State
 
@@ -356,13 +424,40 @@ final class SettingsViewModel {
     func checkPermissions() {
         isCheckingPermissions = true
 
-        // Check screen recording permission using CGPreflightScreenCaptureAccess
-        hasScreenRecordingPermission = CGPreflightScreenCaptureAccess()
+        // Check accessibility permission using AXIsProcessTrusted() without any prompt
+        let accessibilityGranted = AXIsProcessTrusted()
+        hasAccessibilityPermission = accessibilityGranted
 
         // Check folder access permission by testing if we can write to the save location
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
 
-        isCheckingPermissions = false
+        // Check screen recording permission using ScreenCaptureKit
+        // Cancel any existing task to avoid race conditions
+        permissionCheckTask?.cancel()
+
+        permissionCheckTask = Task {
+            let granted = await checkScreenRecordingPermission()
+            self.hasScreenRecordingPermission = granted
+            self.isCheckingPermissions = false
+            permissionCheckTask = nil
+        }
+    }
+
+    /// Checks screen recording permission using ScreenCaptureKit for reliable detection
+    private func checkScreenRecordingPermission() async -> Bool {
+        // First do a quick check with CGPreflightScreenCaptureAccess
+        if !CGPreflightScreenCaptureAccess() {
+            return false
+        }
+        
+        // Verify by actually trying to get shareable content
+        // This ensures permission is truly granted (not just cached)
+        do {
+            _ = try await SCShareableContent.current
+            return true
+        } catch {
+            return false
+        }
     }
 
     /// Checks if we have write access to the specified folder
@@ -379,20 +474,90 @@ final class SettingsViewModel {
         return fileManager.isWritableFile(atPath: url.path)
     }
 
-    /// Requests screen recording permission or opens System Settings
+    /// Requests screen recording permission
     func requestScreenRecordingPermission() {
-        // First try to request permission (this triggers the system prompt if not asked before)
-        let hasAccess = CGRequestScreenCaptureAccess()
-
-        if !hasAccess {
-            // If no access, open System Settings to the Screen Recording pane
-            openScreenRecordingSettings()
+        // First check if already granted
+        if CGPreflightScreenCaptureAccess() {
+            hasScreenRecordingPermission = true
+            return
         }
 
-        // Recheck permissions after a short delay
-        Task {
-            try? await Task.sleep(for: .milliseconds(500))
-            checkPermissions()
+        // Request permission - CGRequestScreenCaptureAccess() returns true if granted
+        let granted = CGRequestScreenCaptureAccess()
+        if granted {
+            hasScreenRecordingPermission = true
+            return
+        }
+
+        // If not granted, open System Settings
+        openScreenRecordingSettings()
+
+        // Start polling for permission status
+        startPermissionCheck(for: .screenRecording)
+    }
+
+    /// Opens System Settings for screen recording permission
+    func openScreenRecordingSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Requests accessibility permission - triggers system dialog only
+    func requestAccessibilityPermission() {
+        // Check current status first
+        if AXIsProcessTrusted() {
+            hasAccessibilityPermission = true
+            return
+        }
+
+        // Request accessibility - triggers system dialog (will guide user to settings if needed)
+        let options: CFDictionary = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+        // Start checking for permission
+        startPermissionCheck(for: .accessibility)
+    }
+
+    /// Opens System Settings for accessibility permission
+    func openAccessibilitySettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Starts checking for permission status periodically
+    private func startPermissionCheck(for type: PermissionType) {
+        // Cancel any existing permission check task
+        permissionCheckTask?.cancel()
+
+        permissionCheckTask = Task {
+            for _ in 0..<60 {  // Check for up to 30 seconds
+                do {
+                    try await Task.sleep(for: .milliseconds(500))
+                } catch {
+                    // Task was cancelled
+                    return
+                }
+
+                switch type {
+                case .screenRecording:
+                    // Use the same reliable check method
+                    let granted = await checkScreenRecordingPermission()
+                    if granted {
+                        hasScreenRecordingPermission = true
+                        permissionCheckTask = nil
+                        return
+                    }
+
+                case .accessibility:
+                    let granted = AXIsProcessTrusted()
+                    if granted {
+                        hasAccessibilityPermission = granted
+                        permissionCheckTask = nil
+                        return
+                    }
+                }
+            }
         }
     }
 
@@ -425,13 +590,6 @@ final class SettingsViewModel {
 
         // Recheck permissions
         checkPermissions()
-    }
-
-    /// Opens System Settings to the Screen Recording privacy pane
-    func openScreenRecordingSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            NSWorkspace.shared.open(url)
-        }
     }
 
     // MARK: - Actions
@@ -633,7 +791,7 @@ final class SettingsViewModel {
     func refreshPaddleOCRStatus() {
         PaddleOCRChecker.resetCache()
         PaddleOCRChecker.checkAvailabilityAsync()
-        
+
         Task {
             for _ in 0..<20 {
                 try? await Task.sleep(for: .milliseconds(250))
@@ -645,6 +803,11 @@ final class SettingsViewModel {
                 isPaddleOCRInstalled = PaddleOCRChecker.isAvailable
                 paddleOCRVersion = PaddleOCRChecker.version
                 paddleOCRInstallError = nil
+
+                // Auto-check MLX-VLM server status if enabled
+                if paddleOCRUseMLXVLM {
+                    checkMLXVLMServerStatus()
+                }
             }
         }
     }
@@ -694,6 +857,45 @@ final class SettingsViewModel {
         let command = "pip3 install paddleocr paddlepaddle"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(command, forType: .string)
+    }
+
+    // MARK: - MLX-VLM Server Management
+
+    func checkMLXVLMServerStatus() {
+        guard paddleOCRUseMLXVLM else { return }
+
+        isCheckingMLXVLMServer = true
+
+        Task.detached { [serverURL = paddleOCRMLXVLMServerURL] in
+            var isRunning = false
+
+            do {
+                // MLX-VLM server uses /health endpoint for health check
+                let healthURL = serverURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                guard let url = URL(string: "\(healthURL)/health") else {
+                    await MainActor.run {
+                        self.isMLXVLMServerRunning = false
+                        self.isCheckingMLXVLMServer = false
+                    }
+                    return
+                }
+
+                // Try to connect to the server with a short timeout
+                let request = URLRequest(url: url, timeoutInterval: 3.0)
+                let (_, response) = try await URLSession.shared.data(for: request)
+
+                if let httpResponse = response as? HTTPURLResponse {
+                    isRunning = (200...299).contains(httpResponse.statusCode)
+                }
+            } catch {
+                isRunning = false
+            }
+
+            await MainActor.run {
+                self.isMLXVLMServerRunning = isRunning
+                self.isCheckingMLXVLMServer = false
+            }
+        }
     }
 
     // MARK: - VLM API Test
@@ -768,6 +970,59 @@ final class SettingsViewModel {
             return try await testClaudeConnection(baseURL: baseURL, apiKey: apiKey, modelName: modelName)
         case .ollama:
             return try await testOllamaConnection(baseURL: baseURL, modelName: modelName)
+        case .paddleocr:
+            return try await testPaddleOCRConnection()
+        }
+    }
+
+    /// Tests PaddleOCR availability - checks cloud mode first, then local
+    private func testPaddleOCRConnection() async throws -> (success: Bool, message: String) {
+        let settings = AppSettings.shared
+
+        // If cloud mode is enabled, test cloud connectivity first
+        if settings.paddleOCRUseCloud {
+            let cloudBaseURL = settings.paddleOCRCloudBaseURL.trimmingCharacters(in: .whitespaces)
+            guard !cloudBaseURL.isEmpty,
+                  let url = URL(string: cloudBaseURL) else {
+                throw VLMProviderError.invalidConfiguration("PaddleOCR cloud base URL is not configured")
+            }
+
+            // Test cloud API connectivity with a simple request
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 10
+
+            // Add API key if configured
+            let apiKey = settings.paddleOCRCloudAPIKey.trimmingCharacters(in: .whitespaces)
+            if !apiKey.isEmpty {
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            }
+
+            do {
+                let (_, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw VLMProviderError.invalidResponse("Invalid HTTP response from PaddleOCR cloud")
+                }
+                switch httpResponse.statusCode {
+                case 200, 404:  // 404 is acceptable - means server is reachable
+                    return (true, "PaddleOCR cloud is reachable")
+                case 401, 403:
+                    throw VLMProviderError.authenticationFailed
+                default:
+                    throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
+                }
+            } catch let error as VLMProviderError {
+                throw error
+            } catch {
+                throw VLMProviderError.invalidConfiguration("PaddleOCR cloud is not reachable: \(error.localizedDescription)")
+            }
+        }
+
+        // Local mode - check if PaddleOCR is installed
+        let isAvailable = await PaddleOCREngine.shared.isAvailable
+        if isAvailable {
+            return (true, "PaddleOCR is ready")
+        } else {
+            throw VLMProviderError.invalidConfiguration("PaddleOCR is not installed. Install it using: pip3 install paddleocr paddlepaddle")
         }
     }
 
