@@ -1,9 +1,14 @@
 import SwiftUI
 import AppKit
+import CoreImage
 
 /// SwiftUI Canvas view for drawing and displaying annotations.
 /// Renders existing annotations and in-progress drawing.
 struct AnnotationCanvas: View {
+    // MARK: - Shared CIContext for performance
+    
+    private static let sharedCIContext = CIContext()
+    
     // MARK: - Properties
 
     /// The annotations to display
@@ -338,8 +343,7 @@ struct AnnotationCanvas: View {
                 blockSize: blockSize / scale,
                 canvasSize: CGSize(width: imageWidth, height: imageHeight)
             ) {
-                let ciContext = CIContext()
-                if let outputImage = ciContext.createCGImage(pixelatedCI, from: pixelatedCI.extent) {
+                if let outputImage = Self.sharedCIContext.createCGImage(pixelatedCI, from: pixelatedCI.extent) {
                     let nsImage = NSImage(cgImage: outputImage, size: NSSize(width: imageWidth, height: imageHeight))
                     context.draw(Image(nsImage: nsImage), in: scaledRect)
                     return

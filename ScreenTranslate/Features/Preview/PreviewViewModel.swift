@@ -148,7 +148,15 @@ final class PreviewViewModel {
         isWaitingForTextInputInternal
     }
 
-    var textInputContent: String = ""
+    /// Synchronized text input content that stays in sync with TextTool
+    var textInputContent: String {
+        get {
+            textTool.currentText
+        }
+        set {
+            textTool.updateText(newValue)
+        }
+    }
 
     var textInputPosition: CGPoint? {
         textInputPositionInternal

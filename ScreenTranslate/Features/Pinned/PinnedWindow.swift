@@ -12,6 +12,9 @@ final class PinnedWindow: NSPanel {
 
     /// Callback when the window is closed
     var onClose: (() -> Void)?
+    
+    /// Flag to prevent reentrant close calls
+    var isProgrammaticClose = false
 
     // MARK: - Initialization
 
@@ -28,7 +31,7 @@ final class PinnedWindow: NSPanel {
             height: CGFloat(screenshot.image.height) / scaleFactor
         )
 
-        // Limit window size to 80% of screen
+        // Limit window size to 60% of screen
         let windowSize = Self.calculateWindowSize(for: imageSize)
         let contentRect = Self.calculateCenteredRect(size: windowSize)
 
@@ -127,7 +130,10 @@ final class PinnedWindow: NSPanel {
     // MARK: - Lifecycle
 
     override func close() {
-        onClose?()
+        // Only call onClose for user-initiated closes
+        if !isProgrammaticClose {
+            onClose?()
+        }
         super.close()
     }
 

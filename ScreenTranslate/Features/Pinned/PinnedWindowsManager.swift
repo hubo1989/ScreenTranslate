@@ -62,8 +62,11 @@ final class PinnedWindowsManager {
     /// Unpins a screenshot by its ID.
     /// - Parameter id: The screenshot ID to unpin
     func unpinWindow(_ id: UUID) {
-        // Only remove from dictionary; don't call close() to avoid reentrant cycle
-        // The window will be closed by its own onClose handler or manually
+        guard let window = pinnedWindows[id] else { return }
+        
+        // Mark as programmatic close to prevent reentrancy
+        window.isProgrammaticClose = true
+        window.close()
         pinnedWindows.removeValue(forKey: id)
     }
 

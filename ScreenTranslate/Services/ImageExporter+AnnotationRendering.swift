@@ -1,10 +1,16 @@
 import Foundation
 import CoreGraphics
 import AppKit
+import CoreImage
 
 // MARK: - Annotation Rendering
 
 extension ImageExporter {
+    // MARK: - Shared CIContext for performance
+    
+    private static let sharedCIContext = CIContext()
+    
+    // MARK: - Annotation Rendering Methods
     /// Renders a single annotation into a graphics context.
     /// - Parameters:
     ///   - annotation: The annotation to render
@@ -249,9 +255,34 @@ extension ImageExporter {
             width: annotation.rect.width,
             height: annotation.rect.height
         )
+        
+        // Try to use real pixelation if source image is available
+        if let sourceImage = context.dataProvider?.data {
+            // Get the source CGImage from the context
+            if let cgImage = context.makeImage() {
+                // Convert rect to image coordinates (origin at bottom-left)
+                let imageRect = CGRect(
+                    x: annotation.rect.origin.x,
+                    y: annotation.rect.origin.y,
+                    width: annotation.rect.width,
+                    height: annotation.rect.height
+                )
+                
+                // Create pixelated version
+                if let pixelatedCGImage = createPixelatedImage(
+                    from: cgImage,
+                    rect: imageRect,
+                    blockSize: CGFloat(annotation.blockSize)
+                ) {
+                    // Draw the pixelated image
+                    context.draw(pixelatedCGImage, in: rect)
+                    return
+                }
+            }
+        }
+        
+        // Fallback: draw mosaic blocks (same as preview fallback)
         let blockSize = CGFloat(annotation.blockSize)
-
-        // Draw mosaic blocks
         for y in stride(from: rect.minY, to: rect.maxY, by: blockSize) {
             for x in stride(from: rect.minX, to: rect.maxX, by: blockSize) {
                 let blockRect = CGRect(
@@ -266,6 +297,33 @@ extension ImageExporter {
                 context.fill(blockRect)
             }
         }
+    }
+    
+    /// Creates a pixelated CGImage from the source image in the specified rect
+    private func createPixelatedImage(
+        from cgImage: CGImage,
+        rect: CGRect,
+        blockSize: CGFloat
+    ) -> CGImage? {
+        let ciImage = CIImage(cgImage: cgImage)
+        
+        // Apply pixelation using CIPixellate filter
+        guard let pixellateFilter = CIFilter(name: "CIPixellate") else {
+            return nil
+        }
+        
+        pixellateFilter.setValue(ciImage, forKey: kCIInputImageKey)
+        pixellateFilter.setValue(blockSize, forKey: kCIInputScaleKey)
+        
+        guard let pixelatedCI = pixellateFilter.outputImage else {
+            return nil
+        }
+        
+        // Crop to the rect we want to pixelate
+        let croppedCI = pixelatedCI.cropped(to: rect)
+        
+        // Create CGImage from CIImage
+        return Self.sharedCIContext.createCGImage(croppedCI, from: croppedCI.extent)
     }
 
     /// Renders a number label annotation.

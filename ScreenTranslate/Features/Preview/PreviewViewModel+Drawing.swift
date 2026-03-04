@@ -467,6 +467,18 @@ extension PreviewViewModel {
 
         let annotation = annotations[index]
         
+        // Check if the fill state is actually changing
+        let shouldUpdate: Bool
+        if case .rectangle(let rect) = annotation {
+            shouldUpdate = rect.isFilled != isFilled
+        } else if case .ellipse(let ellipse) = annotation {
+            shouldUpdate = ellipse.isFilled != isFilled
+        } else {
+            return
+        }
+        
+        guard shouldUpdate else { return }
+        
         pushUndoState()
         
         if case .rectangle(var rect) = annotation {

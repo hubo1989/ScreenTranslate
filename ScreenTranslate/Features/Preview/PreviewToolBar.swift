@@ -105,7 +105,7 @@ struct PreviewStyleCustomizationBar: View {
     }
 
     private var shouldShowStrokeWidth: Bool {
-        if effectiveToolType == .freehand || effectiveToolType == .arrow {
+        if effectiveToolType == .freehand || effectiveToolType == .arrow || effectiveToolType == .line {
             return true
         }
         
@@ -312,13 +312,13 @@ struct PreviewStyleCustomizationBar: View {
                         if isEditingAnnotation {
                             return Double(viewModel.selectedAnnotationBlockSize ?? 10)
                         }
-                        return AppSettings.shared.mosaicBlockSize
+                        return Double(AppSettings.shared.mosaicBlockSize)
                     },
                     set: { newSize in
                         if isEditingAnnotation {
                             viewModel.updateSelectedAnnotationBlockSize(Int(newSize))
                         } else {
-                            AppSettings.shared.mosaicBlockSize = newSize
+                            AppSettings.shared.mosaicBlockSize = CGFloat(newSize)
                         }
                     }
                 ),
