@@ -54,6 +54,7 @@ final class AppSettings {
         static let strokeWidth = prefix + "strokeWidth"
         static let textSize = prefix + "textSize"
         static let rectangleFilled = prefix + "rectangleFilled"
+        static let ellipseFilled = prefix + "ellipseFilled"
         static let mosaicBlockSize = prefix + "mosaicBlockSize"
         static let translationTargetLanguage = prefix + "translationTargetLanguage"
         static let translationSourceLanguage = prefix + "translationSourceLanguage"
@@ -158,6 +159,11 @@ final class AppSettings {
     /// Whether rectangles are filled (solid) by default
     var rectangleFilled: Bool {
         didSet { save(rectangleFilled, forKey: Keys.rectangleFilled) }
+    }
+
+    /// Whether ellipses are filled (solid) by default
+    var ellipseFilled: Bool {
+        didSet { save(ellipseFilled, forKey: Keys.ellipseFilled) }
     }
 
     /// Default mosaic block size (pixelation level)
@@ -392,6 +398,7 @@ final class AppSettings {
         strokeWidth = CGFloat(defaults.object(forKey: Keys.strokeWidth) as? Double ?? 2.0)
         textSize = CGFloat(defaults.object(forKey: Keys.textSize) as? Double ?? 14.0)
         rectangleFilled = defaults.object(forKey: Keys.rectangleFilled) as? Bool ?? false
+        ellipseFilled = defaults.object(forKey: Keys.ellipseFilled) as? Bool ?? false
         mosaicBlockSize = CGFloat(defaults.object(forKey: Keys.mosaicBlockSize) as? Double ?? 10.0)
 
         // Load translation settings
@@ -488,6 +495,7 @@ final class AppSettings {
         strokeWidth = 2.0
         textSize = 14.0
         rectangleFilled = false
+        ellipseFilled = false
         mosaicBlockSize = 10.0
         translationTargetLanguage = nil
         translationSourceLanguage = .auto

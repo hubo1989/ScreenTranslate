@@ -52,7 +52,7 @@ struct EllipseTool: AnnotationTool {
         let rect = calculateRect()
         drawingState.reset()
 
-        guard rect.width >= 2 && rect.height >= 2 else { return nil }
+        guard rect.width >= 5 && rect.height >= 5 else { return nil }
 
         return .ellipse(EllipseAnnotation(rect: rect, style: strokeStyle, isFilled: isFilled))
     }

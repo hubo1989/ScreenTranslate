@@ -29,6 +29,7 @@ extension PreviewViewModel {
             rectangleTool.beginDrawing(at: point)
         case .ellipse:
             ellipseTool.strokeStyle = strokeStyle
+            ellipseTool.isFilled = settings.ellipseFilled
             ellipseTool.beginDrawing(at: point)
         case .line:
             lineTool.strokeStyle = strokeStyle
@@ -459,17 +460,23 @@ extension PreviewViewModel {
         redoStack.removeAll()
     }
 
-    /// Updates the isFilled state of the selected rectangle annotation
+    /// Updates the isFilled state of the selected rectangle or ellipse annotation
     func updateSelectedAnnotationFilled(_ isFilled: Bool) {
         guard let index = selectedAnnotationIndex,
               index < annotations.count else { return }
 
         let annotation = annotations[index]
-        guard case .rectangle(var rect) = annotation else { return }
-
+        
         pushUndoState()
-        rect.isFilled = isFilled
-        screenshot = screenshot.replacingAnnotation(at: index, with: .rectangle(rect))
+        
+        if case .rectangle(var rect) = annotation {
+            rect.isFilled = isFilled
+            screenshot = screenshot.replacingAnnotation(at: index, with: .rectangle(rect))
+        } else if case .ellipse(var ellipse) = annotation {
+            ellipse.isFilled = isFilled
+            screenshot = screenshot.replacingAnnotation(at: index, with: .ellipse(ellipse))
+        }
+        
         redoStack.removeAll()
     }
 
@@ -481,8 +488,12 @@ extension PreviewViewModel {
         let annotation = annotations[index]
         guard case .mosaic(var mosaic) = annotation else { return }
 
+        // Enforce minimum block size of 1 to prevent rendering errors
+        let clampedBlockSize = max(1, blockSize)
+        guard mosaic.blockSize != clampedBlockSize else { return }
+
         pushUndoState()
-        mosaic.blockSize = blockSize
+        mosaic.blockSize = clampedBlockSize
         screenshot = screenshot.replacingAnnotation(at: index, with: .mosaic(mosaic))
         redoStack.removeAll()
     }

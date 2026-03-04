@@ -77,8 +77,8 @@ struct PreviewStyleCustomizationBar: View {
                     .frame(height: 16)
             }
 
-            if effectiveToolType == .rectangle {
-                rectangleFillToggle
+            if effectiveToolType == .rectangle || effectiveToolType == .ellipse {
+                shapeFillToggle
                 Divider()
                     .frame(height: 16)
             }
@@ -113,6 +113,13 @@ struct PreviewStyleCustomizationBar: View {
             let isFilled = isEditingAnnotation
                 ? (viewModel.selectedAnnotationIsFilled ?? false)
                 : AppSettings.shared.rectangleFilled
+            return !isFilled
+        }
+        
+        if effectiveToolType == .ellipse {
+            let isFilled = isEditingAnnotation
+                ? (viewModel.selectedAnnotationIsFilled ?? false)
+                : AppSettings.shared.ellipseFilled
             return !isFilled
         }
         
@@ -180,19 +187,23 @@ struct PreviewStyleCustomizationBar: View {
         .help(colorName(for: color))
     }
 
-    private var rectangleFillToggle: some View {
+    private var shapeFillToggle: some View {
         let isFilled = isEditingAnnotation
             ? (viewModel.selectedAnnotationIsFilled ?? false)
-            : AppSettings.shared.rectangleFilled
+            : (effectiveToolType == .ellipse ? AppSettings.shared.ellipseFilled : AppSettings.shared.rectangleFilled)
 
         return Button {
             if isEditingAnnotation {
                 viewModel.updateSelectedAnnotationFilled(!isFilled)
             } else {
-                AppSettings.shared.rectangleFilled.toggle()
+                if effectiveToolType == .ellipse {
+                    AppSettings.shared.ellipseFilled.toggle()
+                } else {
+                    AppSettings.shared.rectangleFilled.toggle()
+                }
             }
         } label: {
-            Image(systemName: isFilled ? "rectangle.fill" : "rectangle")
+            Image(systemName: isFilled ? getFillIconName() : getHollowIconName())
                 .frame(width: 24, height: 24)
         }
         .buttonStyle(.accessoryBar)
@@ -203,6 +214,14 @@ struct PreviewStyleCustomizationBar: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 4))
         .help(isFilled ? String(localized: "preview.shape.filled") : String(localized: "preview.shape.hollow"))
+    }
+    
+    private func getFillIconName() -> String {
+        effectiveToolType == .ellipse ? "circle.fill" : "rectangle.fill"
+    }
+    
+    private func getHollowIconName() -> String {
+        effectiveToolType == .ellipse ? "circle" : "rectangle"
     }
 
     private var strokeWidthControl: some View {

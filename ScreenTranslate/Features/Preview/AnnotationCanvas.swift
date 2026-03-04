@@ -257,11 +257,21 @@ struct AnnotationCanvas: View {
     ) {
         let scaledRect = scaleRect(annotation.rect)
         let path = Path(ellipseIn: scaledRect)
-        context.stroke(
-            path,
-            with: .color(annotation.style.color.color),
-            lineWidth: annotation.style.lineWidth * scale
-        )
+        
+        if annotation.isFilled {
+            // Filled ellipse - solid color to hide underlying content
+            context.fill(
+                path,
+                with: .color(annotation.style.color.color)
+            )
+        } else {
+            // Hollow ellipse - outline only
+            context.stroke(
+                path,
+                with: .color(annotation.style.color.color),
+                lineWidth: annotation.style.lineWidth * scale
+            )
+        }
     }
 
     /// Draws a line annotation
@@ -294,7 +304,7 @@ struct AnnotationCanvas: View {
         let path = Path(scaledRect)
         context.fill(
             path,
-            with: .color(annotation.color.color.opacity(0.3))
+            with: .color(annotation.color.color.opacity(annotation.opacity))
         )
     }
 

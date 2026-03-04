@@ -271,6 +271,10 @@ final class PreviewViewModel {
     }
 
     func selectTool(_ tool: AnnotationToolType?) {
+        // Reset number label counter when deselecting the tool
+        if selectedTool == .numberLabel && tool != .numberLabel {
+            numberLabelTool.resetNumber()
+        }
         selectedTool = tool
     }
 
@@ -362,6 +366,9 @@ final class PreviewViewModel {
 
         if case .rectangle(let rect) = annotations[index] {
             return rect.isFilled
+        }
+        if case .ellipse(let ellipse) = annotations[index] {
+            return ellipse.isFilled
         }
         return nil
     }

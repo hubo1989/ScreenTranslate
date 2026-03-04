@@ -158,7 +158,7 @@ private struct PinnedWindowContent: View {
             // Image with annotations
             GeometryReader { geometry in
                 let viewSize = geometry.size
-                let imageSize = CGSize(width: image.width, height: image.height)
+                let imageSize = CGSize(width: CGFloat(image.width), height: CGFloat(image.height))
                 let scale = min(viewSize.width / imageSize.width, viewSize.height / imageSize.height)
 
                 ZStack {
@@ -177,9 +177,10 @@ private struct PinnedWindowContent: View {
                     AnnotationCanvas(
                         annotations: annotations,
                         currentAnnotation: nil,
-                        canvasSize: CGSize(width: image.width, height: image.height),
+                        canvasSize: CGSize(width: CGFloat(image.width), height: CGFloat(image.height)),
                         scale: scale * scaleFactor,
-                        selectedIndex: nil
+                        selectedIndex: nil,
+                        sourceImage: image
                     )
                     .aspectRatio(contentMode: .fit)
                 }
