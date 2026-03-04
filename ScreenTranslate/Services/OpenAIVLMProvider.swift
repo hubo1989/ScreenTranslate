@@ -93,7 +93,22 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     /// Detects if the provider is using a local endpoint (for lower max_tokens)
     private var isLocalEndpoint: Bool {
         let host = configuration.baseURL.host ?? ""
-        return host == "localhost" || host == "127.0.0.1" || host.hasPrefix("192.168.") || host.hasPrefix("10.")
+        // IPv6 loopback
+        if host == "::1" { return true }
+        // IPv4 loopback
+        if host == "localhost" || host == "127.0.0.1" { return true }
+        // Private ranges: 10.x.x.x
+        if host.hasPrefix("10.") { return true }
+        // Private ranges: 192.168.x.x
+        if host.hasPrefix("192.168.") { return true }
+        // Private ranges: 172.16.x.x - 172.31.x.x
+        if host.hasPrefix("172.") {
+            let parts = host.split(separator: ".")
+            if parts.count >= 2, let second = Int(parts[1]), second >= 16, second <= 31 {
+                return true
+            }
+        }
+        return false
     }
 
     /// Performs analysis with automatic continuation on truncation
@@ -462,11 +477,23 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
     /// Parses plain text response (one text per line) from local models
     private func parsePlainTextResponse(_ content: String) -> VLMAnalysisResponse? {
-        let lines = content
+        let rawLines = content
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
+
+        // Filter out structural/noise lines
+        let lines = rawLines.filter { line in
+            guard !line.isEmpty else { return false }
+            // Skip code fence markers
+            if line == "```" || line == "`" || line.hasPrefix("```") { return false }
+            // Skip lone JSON structural tokens
+            if ["{", "}", "[", "]", "{ }", "[ ]"].contains(line) { return false }
+            // Skip JSON field names (quoted identifiers)
+            let metadataPatterns = ["\"segments\"", "\"boundingBox\"", "\"text\"", "\"confidence\"", "\"x\"", "\"y\"", "\"width\"", "\"height\""]
+            if metadataPatterns.contains(where: { line.contains($0) }) { return false }
+            return true
+        }
 
         guard !lines.isEmpty else { return nil }
 
@@ -480,7 +507,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                     width: 1.0,
                     height: 1.0 / CGFloat(max(lines.count, 1))
                 ),
-                confidence: 1.0
+                confidence: nil  // Unknown confidence for plain text fallback
             )
         }
 

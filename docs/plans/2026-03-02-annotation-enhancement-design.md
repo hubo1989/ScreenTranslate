@@ -29,7 +29,7 @@
 
 ### 目录结构
 
-```
+```text
 ScreenTranslate/
 ├── Features/
 │   ├── Preview/
@@ -218,7 +218,7 @@ final class PinnedWindow: NSPanel {
 
 ### 工具栏布局
 
-```
+```text
 [矩形 R] [圆形 O] [直线 L] [箭头 A] [画笔 D] | [高亮 H] [马赛克 M] | [文字 T] [编号 N] [气泡 B] | [裁剪 C] [钉图 P]
 ```
 
