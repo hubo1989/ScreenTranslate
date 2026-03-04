@@ -131,8 +131,9 @@
 "preview.tooltip.undo" = "Undo (⌘Z)";
 "preview.tooltip.redo" = "Redo (⌘⇧Z)";
 "preview.tooltip.copy" = "Copy to Clipboard (⌘C)";
-"preview.tooltip.save" = "Save (⌘S or Enter)";
+"preview.tooltip.save" = "Save (⌘S)";
 "preview.tooltip.ocr" = "Recognize Text (OCR)";
+"preview.tooltip.confirm" = "Copy to Clipboard and Close (Enter)";
 "preview.tooltip.dismiss" = "Dismiss (Escape)";
 "preview.tooltip.delete" = "Delete selected annotation";
 
@@ -195,6 +196,7 @@
 "button.reset" = "Reset";
 "button.save" = "Save";
 "button.delete" = "Delete";
+"button.confirm" = "Confirm";
 
 /* Save Success */
 "save.success.title" = "Saved Successfully";
