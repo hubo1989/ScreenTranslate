@@ -122,6 +122,21 @@ jobs:
           BUILD_NUM=$(grep -m1 'CURRENT_PROJECT_VERSION' ScreenTranslate.xcodeproj/project.pbxproj | sed 's/.*= *//;s/;//' | tr -d ' ')
           echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
 
+      - name: Get Tag Message
+        id: tag_message
+        run: |
+          # Get the tag annotation message
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' ${{ github.ref_name }} | head -n -1 || echo "")
+          # If tag message is empty, use a default message
+          if [ -z "$TAG_MESSAGE" ]; then
+            TAG_MESSAGE="Latest release of ScreenTranslate"
+          fi
+          # Escape the message for XML (basic escaping)
+          TAG_MESSAGE=$(echo "$TAG_MESSAGE" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g')
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo "$TAG_MESSAGE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Generate Sparkle Appcast
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
@@ -130,6 +145,7 @@ jobs:
           PUBDATE="${{ steps.pubdate.outputs.date }}"
           DMG_SIZE="${{ steps.create_dmg.outputs.dmg_size }}"
           SIGNATURE="${{ steps.sign_dmg.outputs.signature }}"
+          RELEASE_NOTES="${{ steps.tag_message.outputs.message }}"
           
           # Build enclosure tag with or without signature
           if [ -n "$SIGNATURE" ]; then
@@ -153,7 +169,7 @@ jobs:
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                 <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
                 ${ENCLOSURE}
-                <description><![CDATA[<p>Latest release of ScreenTranslate</p>]]></description>
+                <description><![CDATA[${RELEASE_NOTES}]]></description>
               </item>
             </channel>
           </rss>
