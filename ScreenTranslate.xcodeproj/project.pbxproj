@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		868655F32F513DB5001A63FD /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 868655F22F513DB5001A63FD /* Sparkle */; };
+		86DCC59B2F56BB9D000ECF4B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 86DCC59A2F56BB9D000ECF4B /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,7 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				868655F32F513DB5001A63FD /* Sparkle in Frameworks */,
+				86DCC59B2F56BB9D000ECF4B /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,7 +84,7 @@
 			);
 			name = ScreenTranslate;
 			packageProductDependencies = (
-				868655F22F513DB5001A63FD /* Sparkle */,
+				86DCC59A2F56BB9D000ECF4B /* Sparkle */,
 			);
 			productName = ScreenTranslate;
 			productReference = SC000001 /* ScreenTranslate.app */;
@@ -116,7 +116,7 @@
 			mainGroup = SC000004;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				868655F12F513DB5001A63FD /* XCRemoteSwiftPackageReference "Sparkle" */,
+				86DCC5992F56BB9D000ECF4B /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = SC000005 /* Products */;
@@ -383,7 +383,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		868655F12F513DB5001A63FD /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+		86DCC5992F56BB9D000ECF4B /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
 			requirement = {
@@ -394,9 +394,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		868655F22F513DB5001A63FD /* Sparkle */ = {
+		86DCC59A2F56BB9D000ECF4B /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 868655F12F513DB5001A63FD /* XCRemoteSwiftPackageReference "Sparkle" */;
+			package = 86DCC5992F56BB9D000ECF4B /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
