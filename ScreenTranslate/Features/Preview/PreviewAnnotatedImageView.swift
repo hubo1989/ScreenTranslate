@@ -30,7 +30,8 @@ struct PreviewAnnotatedImageView: View {
                 currentAnnotation: viewModel.currentAnnotation,
                 canvasSize: imageSize,
                 scale: 1.0 / displayScaleFactor,
-                selectedIndex: viewModel.selectedAnnotationIndex
+                selectedIndex: viewModel.selectedAnnotationIndex,
+                sourceImage: viewModel.image
             )
             .frame(width: imageSize.width, height: imageSize.height)
 
@@ -90,7 +91,7 @@ struct PreviewAnnotatedImageView: View {
         }
 
         switch tool {
-        case .rectangle, .freehand, .arrow:
+        case .rectangle, .ellipse, .line, .freehand, .arrow, .highlight, .mosaic, .numberLabel:
             return .crosshair
         case .text:
             return .iBeam

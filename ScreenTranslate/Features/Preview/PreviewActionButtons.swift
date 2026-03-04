@@ -7,7 +7,13 @@ struct PreviewActionButtons: View {
     var body: some View {
         HStack(spacing: 8) {
             cropButton
-            
+
+            Divider()
+                .frame(height: 16)
+                .accessibilityHidden(true)
+
+            pinButton
+
             Divider()
                 .frame(height: 16)
                 .accessibilityHidden(true)
@@ -53,6 +59,24 @@ struct PreviewActionButtons: View {
         .help(String(localized: "preview.tooltip.crop"))
         .accessibilityLabel(Text("preview.crop"))
         .accessibilityHint(Text("Press C to toggle"))
+    }
+
+    private var pinButton: some View {
+        Button {
+            viewModel.pinScreenshot()
+        } label: {
+            Image(systemName: viewModel.isPinned ? "pin.fill" : "pin")
+        }
+        .buttonStyle(.accessoryBar)
+        .background(
+            viewModel.isPinned
+                ? Color.accentColor.opacity(0.2)
+                : Color.clear
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .help(String(localized: "preview.tooltip.pin"))
+        .accessibilityLabel(Text("preview.pin"))
+        .accessibilityHint(Text("Press P to pin"))
     }
 
     private var undoRedoButtons: some View {
