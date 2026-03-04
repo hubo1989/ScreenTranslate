@@ -40,7 +40,7 @@ struct PreviewToolBar: View {
                 : Color.clear
         )
         .clipShape(RoundedRectangle(cornerRadius: 4))
-        .help("\(tool.displayName) (\(String(tool.keyboardShortcut).uppercased()))")
+        .customTooltip("\(tool.displayName) (\(String(tool.keyboardShortcut).uppercased()))")
         .accessibilityLabel(Text(tool.displayName))
         .accessibilityHint(Text("Press \(String(tool.keyboardShortcut).uppercased()) to toggle"))
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
@@ -70,10 +70,12 @@ struct PreviewStyleCustomizationBar: View {
                     .foregroundStyle(.secondary)
             }
 
-            colorPicker
+            if effectiveToolType != .mosaic {
+                colorPicker
 
-            Divider()
-                .frame(height: 16)
+                Divider()
+                    .frame(height: 16)
+            }
 
             if effectiveToolType == .rectangle {
                 rectangleFillToggle
@@ -87,6 +89,10 @@ struct PreviewStyleCustomizationBar: View {
 
             if effectiveToolType == .text {
                 textSizeControl
+            }
+
+            if effectiveToolType == .mosaic {
+                blockSizeControl
             }
 
             if isEditingAnnotation {
@@ -275,6 +281,44 @@ struct PreviewStyleCustomizationBar: View {
         }
     }
 
+    private var blockSizeControl: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "square.grid.3x3")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Slider(
+                value: Binding(
+                    get: {
+                        if isEditingAnnotation {
+                            return Double(viewModel.selectedAnnotationBlockSize ?? 10)
+                        }
+                        return AppSettings.shared.mosaicBlockSize
+                    },
+                    set: { newSize in
+                        if isEditingAnnotation {
+                            viewModel.updateSelectedAnnotationBlockSize(Int(newSize))
+                        } else {
+                            AppSettings.shared.mosaicBlockSize = newSize
+                        }
+                    }
+                ),
+                in: 1.0...32.0,
+                step: 1
+            )
+            .frame(width: 80)
+            .help(String(localized: "settings.mosaic.blockSize"))
+
+            let size = isEditingAnnotation
+                ? Int(viewModel.selectedAnnotationBlockSize ?? 10)
+                : Int(AppSettings.shared.mosaicBlockSize)
+            Text("\(size)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+        }
+    }
+
     private var deleteButton: some View {
         Button {
             viewModel.deleteSelectedAnnotation()
@@ -309,5 +353,53 @@ struct PreviewStyleCustomizationBar: View {
         case .black: return String(localized: "color.black")
         default: return String(localized: "color.custom")
         }
+    }
+}
+
+// MARK: - Custom Tooltip for Floating Windows
+
+extension View {
+    /// Custom tooltip that works in floating windows where .help() may not display
+    func customTooltip(_ text: String) -> some View {
+        self.modifier(CustomTooltipModifier(text: text))
+    }
+}
+
+struct CustomTooltipModifier: ViewModifier {
+    let text: String
+    @State private var isHovered = false
+    @State private var showTooltip = false
+    
+    func body(content: Content) -> some View {
+        content
+            .onHover { hovering in
+                isHovered = hovering
+                if hovering {
+                    // Short delay before showing tooltip
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        if isHovered {
+                            showTooltip = true
+                        }
+                    }
+                } else {
+                    showTooltip = false
+                }
+            }
+            .overlay(alignment: .top) {
+                if showTooltip {
+                    Text(text)
+                        .font(.caption)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(Color(nsColor: .windowBackgroundColor))
+                        .foregroundColor(.primary)
+                        .cornerRadius(4)
+                        .shadow(color: .black.opacity(0.2), radius: 2, x: 0, y: 1)
+                        .offset(y: -28)
+                        .transition(.opacity)
+                        .fixedSize()
+                        .compositingGroup()
+                }
+            }
     }
 }

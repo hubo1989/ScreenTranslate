@@ -82,13 +82,28 @@ final class PreviewViewModel {
     var rectangleTool = RectangleTool()
 
     @ObservationIgnored
+    var ellipseTool = EllipseTool()
+
+    @ObservationIgnored
+    var lineTool = LineTool()
+
+    @ObservationIgnored
     var freehandTool = FreehandTool()
 
     @ObservationIgnored
     var arrowTool = ArrowTool()
 
     @ObservationIgnored
+    var highlightTool = HighlightTool()
+
+    @ObservationIgnored
+    var mosaicTool = MosaicTool()
+
+    @ObservationIgnored
     var textTool = TextTool()
+
+    @ObservationIgnored
+    var numberLabelTool = NumberLabelTool()
 
     var drawingUpdateCounter: Int = 0
     var currentAnnotationInternal: Annotation?
@@ -118,9 +133,14 @@ final class PreviewViewModel {
         guard let selectedTool else { return nil }
         switch selectedTool {
         case .rectangle: return rectangleTool
-        case .freehand: return freehandTool
+        case .ellipse: return ellipseTool
+        case .line: return lineTool
         case .arrow: return arrowTool
+        case .freehand: return freehandTool
+        case .highlight: return highlightTool
+        case .mosaic: return mosaicTool
         case .text: return textTool
+        case .numberLabel: return numberLabelTool
         }
     }
 
@@ -128,10 +148,7 @@ final class PreviewViewModel {
         isWaitingForTextInputInternal
     }
 
-    var textInputContent: String {
-        get { textTool.currentText }
-        set { textTool.updateText(newValue) }
-    }
+    var textInputContent: String = ""
 
     var textInputPosition: CGPoint? {
         textInputPositionInternal
@@ -284,9 +301,14 @@ final class PreviewViewModel {
 
         switch annotations[index] {
         case .rectangle: return .rectangle
+        case .ellipse: return .ellipse
+        case .line: return .line
         case .freehand: return .freehand
         case .arrow: return .arrow
+        case .highlight: return .highlight
+        case .mosaic: return .mosaic
         case .text: return .text
+        case .numberLabel: return .numberLabel
         }
     }
 
@@ -296,9 +318,14 @@ final class PreviewViewModel {
 
         switch annotations[index] {
         case .rectangle(let rect): return rect.style.color
+        case .ellipse(let ellipse): return ellipse.style.color
+        case .line(let line): return line.style.color
         case .freehand(let freehand): return freehand.style.color
         case .arrow(let arrow): return arrow.style.color
         case .text(let text): return text.style.color
+        case .highlight(let highlight): return highlight.color
+        case .mosaic: return nil
+        case .numberLabel(let label): return label.color
         }
     }
 
@@ -308,9 +335,14 @@ final class PreviewViewModel {
 
         switch annotations[index] {
         case .rectangle(let rect): return rect.style.lineWidth
+        case .ellipse(let ellipse): return ellipse.style.lineWidth
+        case .line(let line): return line.style.lineWidth
         case .freehand(let freehand): return freehand.style.lineWidth
         case .arrow(let arrow): return arrow.style.lineWidth
         case .text: return nil
+        case .mosaic: return nil
+        case .highlight: return nil
+        case .numberLabel: return nil
         }
     }
 
@@ -334,6 +366,16 @@ final class PreviewViewModel {
         return nil
     }
 
+    var selectedAnnotationBlockSize: Int? {
+        guard let index = selectedAnnotationIndex,
+              index < annotations.count else { return nil }
+
+        if case .mosaic(let mosaic) = annotations[index] {
+            return mosaic.blockSize
+        }
+        return nil
+    }
+
     var hasOCRResults: Bool {
         ocrResult?.hasResults ?? false
     }
@@ -341,42 +383,74 @@ final class PreviewViewModel {
     var combinedOCRText: String {
         ocrResult?.fullText ?? ""
     }
+
+    // MARK: - Pin Functionality
+
+    /// Pins the current screenshot with all annotations
+    func pinScreenshot() {
+        PinnedWindowsManager.shared.pinScreenshot(screenshot, annotations: annotations)
+    }
+
+    /// Checks if the current screenshot is pinned
+    var isPinned: Bool {
+        PinnedWindowsManager.shared.isPinned(screenshot.id)
+    }
 }
 
 // MARK: - Annotation Tool Type
 
 enum AnnotationToolType: String, CaseIterable, Identifiable, Sendable {
     case rectangle
-    case freehand
+    case ellipse
+    case line
     case arrow
+    case freehand
+    case highlight
+    case mosaic
     case text
+    case numberLabel
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .rectangle: return "Rectangle"
-        case .freehand: return "Draw"
-        case .arrow: return "Arrow"
-        case .text: return "Text"
+        case .rectangle: return String(localized: "tool.rectangle")
+        case .ellipse: return String(localized: "tool.ellipse")
+        case .line: return String(localized: "tool.line")
+        case .arrow: return String(localized: "tool.arrow")
+        case .freehand: return String(localized: "tool.freehand")
+        case .highlight: return String(localized: "tool.highlight")
+        case .mosaic: return String(localized: "tool.mosaic")
+        case .text: return String(localized: "tool.text")
+        case .numberLabel: return String(localized: "tool.numberLabel")
         }
     }
 
     var keyboardShortcut: Character {
         switch self {
         case .rectangle: return "r"
-        case .freehand: return "d"
+        case .ellipse: return "o"
+        case .line: return "l"
         case .arrow: return "a"
+        case .freehand: return "d"
+        case .highlight: return "h"
+        case .mosaic: return "m"
         case .text: return "t"
+        case .numberLabel: return "n"
         }
     }
 
     var systemImage: String {
         switch self {
         case .rectangle: return "rectangle"
-        case .freehand: return "pencil.line"
+        case .ellipse: return "circle"
+        case .line: return "line.diagonal"
         case .arrow: return "arrow.up.right"
-        case .text: return "textformat"
+        case .freehand: return "pencil.line"
+        case .highlight: return "highlighter"
+        case .mosaic: return "checkerboard.rectangle"
+        case .text: return "textbox"
+        case .numberLabel: return "number.circle"
         }
     }
 }
