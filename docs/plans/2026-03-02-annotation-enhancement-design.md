@@ -246,9 +246,9 @@ final class PinnedWindow: NSPanel {
     
     init(screenshot: Screenshot, annotations: [Annotation])
     
-    /// 配置为始终置顶
+    /// 配置为始终置顶（不覆盖系统对话框/通知）
     func configureAsPinned() {
-        level = .screenSaver
+        level = .floating  // 保持置顶但不干扰系统级窗口
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         styleMask = [.borderless, .nonactivatingPanel]
         // 简化 UI，只保留关闭按钮
@@ -331,8 +331,10 @@ context.fill(path, with: .color(color.color.withAlphaComponent(opacity)))
 
 ### 编号标签
 使用 `NumberFormatter` 或 Unicode 圈数字字符 (①②③...)：
-- Unicode 范围: U+2460 - U+2473 (①-⑳)
-- 超过 20 时使用 "21" 等数字
+- U+2460 - U+2473 (①-⑳): 基础范围 1-20
+- U+3251 - U+325F (㉑-㉟): 扩展范围 21-35
+- U+32B1 - U+32BF (㊱-㊿): 扩展范围 36-50
+- 超过 50 时使用普通数字 "51" 等作为回退
 
 ### 气泡框
 使用贝塞尔曲线绘制圆角矩形 + 三角形箭头：
