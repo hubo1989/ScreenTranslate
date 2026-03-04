@@ -54,16 +54,10 @@ actor PaddleOCREngine {
         /// Cloud API key
         var cloudAPIKey: String
 
-        /// Whether to use MLX-VLM inference framework (Apple Silicon optimization)
-        var useMLXVLM: Bool
+        /// Cloud API model ID
+        var cloudModelId: String
 
-        /// MLX-VLM server URL
-        var mlxVLMServerURL: String
-
-        /// MLX-VLM model name
-        var mlxVLMModelName: String
-
-        /// Local VL model directory (for native backend)
+        /// Local VL model directory (for vllm backend)
         var localVLModelDir: String
 
         static let `default` = Configuration(
@@ -76,9 +70,7 @@ actor PaddleOCREngine {
             useCloud: false,
             cloudBaseURL: "",
             cloudAPIKey: "",
-            useMLXVLM: false,
-            mlxVLMServerURL: "http://localhost:8111",
-            mlxVLMModelName: "PaddlePaddle/PaddleOCR-VL-1.5",
+            cloudModelId: "",
             localVLModelDir: ""
         )
     }
@@ -140,11 +132,6 @@ actor PaddleOCREngine {
         _ image: CGImage,
         config: Configuration = .default
     ) async throws -> OCRResult {
-        // Check availability
-        guard isAvailable else {
-            throw PaddleOCREngineError.notInstalled
-        }
-
         // Prevent concurrent operations
         guard !isProcessing else {
             throw PaddleOCREngineError.operationInProgress
@@ -155,6 +142,16 @@ actor PaddleOCREngine {
         // Validate image
         guard image.width > 0 && image.height > 0 else {
             throw PaddleOCREngineError.invalidImage
+        }
+
+        // Use cloud API if configured
+        if config.useCloud {
+            return try await recognizeViaCloudAPI(image: image, config: config)
+        }
+
+        // Local mode - check availability
+        guard isAvailable else {
+            throw PaddleOCREngineError.notInstalled
         }
 
         // Save image to temporary file
@@ -206,6 +203,189 @@ actor PaddleOCREngine {
         return try await recognize(image, config: config)
     }
 
+    // MARK: - Cloud API
+
+    /// Performs OCR via cloud API (OpenAI-compatible format for vllm)
+    private func recognizeViaCloudAPI(image: CGImage, config: Configuration) async throws -> OCRResult {
+        guard !config.cloudBaseURL.isEmpty else {
+            throw PaddleOCREngineError.invalidConfiguration("Cloud API base URL is not configured")
+        }
+
+        // Build URL for OpenAI-compatible endpoint
+        let apiURL: URL
+        if config.cloudBaseURL.hasSuffix("/v1") || config.cloudBaseURL.contains("/v1/") {
+            apiURL = URL(string: config.cloudBaseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/")))!
+                .appendingPathComponent("chat/completions")
+        } else {
+            apiURL = URL(string: config.cloudBaseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/")))!
+                .appendingPathComponent("v1")
+                .appendingPathComponent("chat")
+                .appendingPathComponent("completions")
+        }
+
+        // Convert image to base64 data URL
+        guard let data = CFDataCreateMutable(nil, 0) else {
+            throw PaddleOCREngineError.failedToSaveImage
+        }
+        guard let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else {
+            throw PaddleOCREngineError.failedToSaveImage
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            throw PaddleOCREngineError.failedToSaveImage
+        }
+        let base64Image = (data as Data).base64EncodedString()
+        let imageURL = "data:image/png;base64,\(base64Image)"
+
+        // Build OpenAI-compatible request
+        var request = URLRequest(url: apiURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        if !config.cloudAPIKey.isEmpty {
+            request.setValue("Bearer \(config.cloudAPIKey)", forHTTPHeaderField: "Authorization")
+        }
+
+        // Build OpenAI chat completion format
+        let modelName = config.cloudModelId.isEmpty ? "default" : config.cloudModelId
+        let body: [String: Any] = [
+            "model": modelName,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        ["type": "text", "text": "Please recognize all text in this image and return the results in JSON format with 'text', 'confidence', and 'box' (x, y, width, height) for each text region."],
+                        ["type": "image_url", "image_url": ["url": imageURL]]
+                    ]
+                ]
+            ],
+            "max_tokens": 4096
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        Logger.ocr.info("PaddleOCR cloud API request to: \(apiURL.absoluteString)")
+
+        // Execute request
+        let (responseData, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw PaddleOCREngineError.cloudAPIError("Invalid HTTP response")
+        }
+
+        Logger.ocr.info("PaddleOCR cloud API response status: \(httpResponse.statusCode)")
+
+        guard httpResponse.statusCode == 200 else {
+            let errorMessage = String(data: responseData, encoding: .utf8) ?? "Unknown error"
+            Logger.ocr.error("PaddleOCR cloud API error: \(errorMessage)")
+            throw PaddleOCREngineError.cloudAPIError("Cloud API error: HTTP \(httpResponse.statusCode) - \(errorMessage)")
+        }
+
+        // Parse response
+        return try parseCloudAPIResponse(responseData, imageSize: CGSize(width: image.width, height: image.height))
+    }
+
+    /// Parses cloud API response into OCRResult (OpenAI chat completion format)
+    private func parseCloudAPIResponse(_ data: Data, imageSize: CGSize) throws -> OCRResult {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw PaddleOCREngineError.cloudAPIError("Invalid JSON response")
+        }
+
+        Logger.ocr.debug("Parsing cloud API response")
+
+        var observations: [OCRText] = []
+
+        // Parse OpenAI chat completion format
+        if let choices = json["choices"] as? [[String: Any]],
+           let firstChoice = choices.first,
+           let message = firstChoice["message"] as? [String: Any],
+           let content = message["content"] as? String {
+            // Try to parse JSON from the content
+            if let jsonData = extractJSON(from: content),
+               let results = try? JSONSerialization.jsonObject(with: jsonData) as? [[String: Any]] {
+                // Parse structured OCR results
+                for result in results {
+                    guard let text = result["text"] as? String else { continue }
+                    let confidence = Float(result["confidence"] as? Double ?? 1.0)
+
+                    var boundingBox = CGRect.zero
+                    if let box = result["box"] as? [String: Double] {
+                        boundingBox = CGRect(
+                            x: box["x"] ?? 0,
+                            y: box["y"] ?? 0,
+                            width: box["width"] ?? 0,
+                            height: box["height"] ?? 0
+                        )
+                    }
+
+                    observations.append(OCRText(
+                        text: text,
+                        boundingBox: boundingBox,
+                        confidence: confidence
+                    ))
+                }
+            } else {
+                // Fallback: treat entire content as single text block
+                observations.append(OCRText(
+                    text: content,
+                    boundingBox: CGRect(origin: .zero, size: imageSize),
+                    confidence: 1.0
+                ))
+            }
+        } else if let results = json["results"] as? [[String: Any]] {
+            // Legacy format with direct results array
+            for result in results {
+                guard let text = result["text"] as? String else { continue }
+                let confidence = Float(result["confidence"] as? Double ?? 1.0)
+
+                var boundingBox = CGRect.zero
+                if let box = result["box"] as? [String: Double] {
+                    boundingBox = CGRect(
+                        x: box["x"] ?? 0,
+                        y: box["y"] ?? 0,
+                        width: box["width"] ?? 0,
+                        height: box["height"] ?? 0
+                    )
+                }
+
+                observations.append(OCRText(
+                    text: text,
+                    boundingBox: boundingBox,
+                    confidence: confidence
+                ))
+            }
+        } else if let text = json["text"] as? String {
+            // Simple text response
+            observations.append(OCRText(
+                text: text,
+                boundingBox: CGRect(origin: .zero, size: imageSize),
+                confidence: 1.0
+            ))
+        }
+
+        Logger.ocr.info("Parsed \(observations.count) text observations from cloud API")
+        return OCRResult(observations: observations, imageSize: imageSize)
+    }
+
+    /// Extracts JSON array from text content (handles markdown code blocks)
+    private func extractJSON(from content: String) -> Data? {
+        // Try to extract JSON from markdown code block
+        if let range = content.range(of: "```json"),
+           let endRange = content.range(of: "```", range: content.index(range.upperBound, offsetBy: 0)..<content.endIndex) {
+            let jsonString = String(content[range.upperBound..<endRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return jsonString.data(using: .utf8)
+        }
+
+        // Try to find JSON array directly
+        if let startIndex = content.firstIndex(of: "["),
+           let endIndex = content.lastIndex(of: "]") {
+            let jsonString = String(content[startIndex...endIndex])
+            return jsonString.data(using: .utf8)
+        }
+
+        return nil
+    }
+
     // MARK: - Private Methods
 
     /// Saves a CGImage to a temporary PNG file
@@ -254,15 +434,8 @@ actor PaddleOCREngine {
                 "--device", config.useGPU ? "gpu" : "cpu"
             ]
 
-            // Choose backend: MLX-VLM server or native (local model)
-            if config.useMLXVLM {
-                args += [
-                    "--vl_rec_backend", "mlx-vlm-server",
-                    "--vl_rec_server_url", config.mlxVLMServerURL,
-                    "--vl_rec_api_model_name", config.mlxVLMModelName
-                ]
-            } else if !config.localVLModelDir.isEmpty {
-                // Use native backend with local model
+            // Use native backend with local model (vllm)
+            if !config.localVLModelDir.isEmpty {
                 // Expand tilde in path (e.g., ~/.paddlex -> /Users/xxx/.paddlex)
                 let expandedPath = NSString(string: config.localVLModelDir).expandingTildeInPath
                 args += [
@@ -648,6 +821,12 @@ enum PaddleOCREngineError: LocalizedError, Sendable {
     /// Invalid output from PaddleOCR
     case invalidOutput
 
+    /// Invalid configuration
+    case invalidConfiguration(String)
+
+    /// Cloud API error
+    case cloudAPIError(String)
+
     var errorDescription: String? {
         switch self {
         case .notInstalled:
@@ -680,6 +859,10 @@ enum PaddleOCREngineError: LocalizedError, Sendable {
                 "error.paddleocr.invalid.output",
                 comment: "Invalid output from PaddleOCR"
             )
+        case .invalidConfiguration(let message):
+            return message
+        case .cloudAPIError(let message):
+            return message
         }
     }
 
@@ -711,6 +894,16 @@ enum PaddleOCREngineError: LocalizedError, Sendable {
             return NSLocalizedString(
                 "error.paddleocr.invalid.output.recovery",
                 comment: "Ensure PaddleOCR is correctly installed"
+            )
+        case .invalidConfiguration:
+            return NSLocalizedString(
+                "error.paddleocr.invalid.config.recovery",
+                comment: "Check your PaddleOCR cloud API settings"
+            )
+        case .cloudAPIError:
+            return NSLocalizedString(
+                "error.paddleocr.cloud.api.recovery",
+                comment: "Check your network connection and cloud API settings"
             )
         }
     }

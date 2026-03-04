@@ -350,10 +350,8 @@ final class TranslationFlowController {
             // Show appropriate model info based on provider type
             switch settings.vlmProvider {
             case .paddleocr:
-                if settings.paddleOCRUseMLXVLM {
-                    errorDetails += "\nModel: \(settings.paddleOCRMLXVLMModelName)"
-                }
                 // For local/cloud PaddleOCR modes, model info is not applicable
+                break
             default:
                 errorDetails += "\nModel: \(settings.vlmModelName)"
             }

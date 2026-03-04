@@ -232,13 +232,15 @@ actor CompatibleTranslationProvider: TranslationProvider {
         prompt: String,
         credentials: StoredCredentials?
     ) async throws -> String {
-        guard let url = URL(string: compatibleConfig.baseURL) else {
+        let baseURL = compatibleConfig.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard let url = URL(string: baseURL) else {
             throw TranslationProviderError.invalidConfiguration("Invalid base URL")
         }
 
-        let endpoint = url.appendingPathComponent("chat/completions")
+        // Build OpenAI-compatible endpoint: baseURL/chat/completions
+        let apiURL = url.appendingPathComponent("chat/completions")
 
-        var request = URLRequest(url: endpoint)
+        var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = config.options?.timeout ?? 60
