@@ -90,6 +90,12 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         return vlmResponse.toScreenAnalysisResult(imageSize: imageSize)
     }
 
+    /// Detects if the provider is using a local endpoint (for lower max_tokens)
+    private var isLocalEndpoint: Bool {
+        let host = configuration.baseURL.host ?? ""
+        return host == "localhost" || host == "127.0.0.1" || host.hasPrefix("192.168.") || host.hasPrefix("10.")
+    }
+
     /// Performs analysis with automatic continuation on truncation
     private func analyzeWithContinuation(
         base64Image: String,
@@ -97,6 +103,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         maxAttempts: Int
     ) async throws -> VLMAnalysisResponse {
         var allSegments: [VLMTextSegment] = []
+
         var conversationMessages: [OpenAIChatMessage] = [
             OpenAIChatMessage(
                 role: "system",
@@ -296,8 +303,13 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = timeout
 
-        // Use higher max_tokens for continuation requests
-        let maxTokens = isContinuation ? 16384 : 8192
+        // Use lower max_tokens for local models (they're slower and don't need as many)
+        let maxTokens: Int
+        if isLocalEndpoint {
+            maxTokens = isContinuation ? 2048 : 1024
+        } else {
+            maxTokens = isContinuation ? 16384 : 8192
+        }
 
         let requestBody = OpenAIChatRequest(
             model: configuration.modelName,
@@ -432,6 +444,13 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             let response = try JSONDecoder().decode(VLMAnalysisResponse.self, from: jsonData)
             return response
         } catch {
+            // JSON parsing failed - try to handle plain text response from local models
+            print("[OpenAI] JSON parsing failed, attempting plain text fallback...")
+            if let plainTextResponse = parsePlainTextResponse(content) {
+                print("[OpenAI] Successfully parsed plain text response with \(plainTextResponse.segments.count) segments")
+                return plainTextResponse
+            }
+
             if wasTruncated {
                 throw VLMProviderError.invalidResponse("Response was truncated due to token limit. Try selecting a smaller area or using a model with larger context window.")
             }
@@ -439,6 +458,33 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 "Failed to parse VLM response JSON: \(error.localizedDescription). Content: \(cleanedContent.prefix(200))..."
             )
         }
+    }
+
+    /// Parses plain text response (one text per line) from local models
+    private func parsePlainTextResponse(_ content: String) -> VLMAnalysisResponse? {
+        let lines = content
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        guard !lines.isEmpty else { return nil }
+
+        // Convert each line to a segment with placeholder bounding box
+        let segments = lines.enumerated().map { (index, text) in
+            VLMTextSegment(
+                text: text,
+                boundingBox: VLMBoundingBox(
+                    x: 0.0,
+                    y: CGFloat(index) / CGFloat(max(lines.count, 1)),
+                    width: 1.0,
+                    height: 1.0 / CGFloat(max(lines.count, 1))
+                ),
+                confidence: 1.0
+            )
+        }
+
+        return VLMAnalysisResponse(segments: segments)
     }
 
     /// Attempts to parse partial/truncated VLM content by extracting valid JSON segments

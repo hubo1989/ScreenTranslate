@@ -105,28 +105,23 @@ enum VLMPromptTemplate {
     
     /// System prompt establishing the VLM's role
     static let systemPrompt = """
-        You are a precise screen text extraction assistant. Extract visible text from screenshots.
-
-        CRITICAL RULES:
-        1. Output ONLY valid JSON, no markdown, no code blocks, no explanations
-        2. Use exactly this format: {"segments":[{"text":"...","boundingBox":{"x":0.0,"y":0.0,"width":0.0,"height":0.0},"confidence":0.95}]}
-        3. Coordinates must be 0.0-1.0 normalized to image dimensions
-        4. Group related text together (button labels as one segment, not characters)
-        5. Omit text you cannot read clearly
-        6. Do not wrap response in ```json or any other formatting
+        You are an OCR assistant. Recognize ALL text in the image.
+        Return JSON: {"segments":[{"text":"...","boundingBox":{"x":0.0,"y":0.0,"width":0.0,"height":0.0},"confidence":0.95}]}
         """
     
     /// User prompt requesting text extraction
     static let userPrompt = """
-        Extract text from this screenshot. Return ONLY compact JSON:
-        {"segments":[{"text":"...","boundingBox":{"x":0.0,"y":0.0,"width":0.0,"height":0.0},"confidence":0.95}]}
-
-        Requirements:
-        - Output raw JSON only, NO markdown, NO ```json blocks
-        - x,y: top-left corner (0.0-1.0)
+        Please recognize all text in this image and return the results in JSON format.
+        Use this format: {"segments":[{"text":"...","boundingBox":{"x":0.0,"y":0.0,"width":0.0,"height":0.0},"confidence":0.95}]}
+        
+        - x,y: top-left corner (0.0-1.0 normalized to image size)
         - width,height: box dimensions (0.0-1.0)
         - confidence: 0.0-1.0
         """
+
+    /// Local model prompts (same as cloud - use unified prompt)
+    static let localModelSystemPrompt = systemPrompt
+    static let localModelUserPrompt = userPrompt
     
     /// JSON schema description for documentation and API configuration
     /// Used to configure VLM APIs that support structured output (e.g., OpenAI's response_format)
