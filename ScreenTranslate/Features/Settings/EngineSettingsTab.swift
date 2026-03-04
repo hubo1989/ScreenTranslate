@@ -220,88 +220,33 @@ struct PaddleOCRStatusSection: View {
                             .textFieldStyle(.roundedBorder)
                             .frame(maxWidth: 300)
                     }
+
+                    GridRow {
+                        Text(localized("settings.paddleocr.cloudModelId"))
+                            .foregroundStyle(.secondary)
+                            .gridColumnAlignment(.trailing)
+                        TextField("", text: $viewModel.paddleOCRCloudModelId)
+                            .textFieldStyle(.roundedBorder)
+                            .frame(maxWidth: 300)
+                    }
                 }
 
-                // MLX-VLM settings (only show when mode is precise and not using cloud)
+                // Local model directory for vllm backend (only show when mode is precise and not using cloud)
                 if viewModel.paddleOCRMode == .precise && !viewModel.paddleOCRUseCloud {
                     Divider()
                         .gridCellUnsizedAxes(.horizontal)
 
                     GridRow {
-                        Text(localized("settings.paddleocr.useMLXVLM"))
+                        Text(localized("settings.paddleocr.localVLModelDir"))
                             .foregroundStyle(.secondary)
                             .gridColumnAlignment(.trailing)
-                        Toggle("", isOn: $viewModel.paddleOCRUseMLXVLM)
-                            .toggleStyle(.checkbox)
-                            .onChange(of: viewModel.paddleOCRUseMLXVLM) { _, newValue in
-                                if newValue {
-                                    viewModel.checkMLXVLMServerStatus()
-                                }
-                            }
-                    }
-
-                    if viewModel.paddleOCRUseMLXVLM {
-                        // MLX-VLM server status
-                        GridRow {
-                            Text(localized("settings.paddleocr.mlxVLMStatus"))
-                                .foregroundStyle(.secondary)
-                                .gridColumnAlignment(.trailing)
-                            HStack {
-                                if viewModel.isCheckingMLXVLMServer {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                    Text(localized("settings.paddleocr.mlxVLMChecking"))
-                                        .foregroundStyle(.secondary)
-                                } else {
-                                    Image(systemName: viewModel.isMLXVLMServerRunning ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                        .foregroundStyle(viewModel.isMLXVLMServerRunning ? .green : .red)
-                                    Text(viewModel.isMLXVLMServerRunning
-                                        ? localized("settings.paddleocr.mlxVLMRunning")
-                                        : localized("settings.paddleocr.mlxVLMNotRunning"))
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Button {
-                                    viewModel.checkMLXVLMServerStatus()
-                                } label: {
-                                    Image(systemName: "arrow.clockwise")
-                                }
-                                .buttonStyle(.borderless)
-                                .controlSize(.small)
-                            }
-                        }
-
-                        GridRow {
-                            Text(localized("settings.paddleocr.mlxVLMServerURL"))
-                                .foregroundStyle(.secondary)
-                                .gridColumnAlignment(.trailing)
-                            TextField("", text: $viewModel.paddleOCRMLXVLMServerURL)
+                        VStack(alignment: .leading, spacing: 4) {
+                            TextField("", text: $viewModel.paddleOCRLocalVLModelDir)
                                 .textFieldStyle(.roundedBorder)
                                 .frame(maxWidth: 300)
-                        }
-
-                        GridRow {
-                            Text(localized("settings.paddleocr.mlxVLMModelName"))
-                                .foregroundStyle(.secondary)
-                                .gridColumnAlignment(.trailing)
-                            TextField("", text: $viewModel.paddleOCRMLXVLMModelName)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(maxWidth: 300)
-                        }
-                    } else {
-                        // Local model directory for native backend (when not using MLX-VLM)
-                        GridRow {
-                            Text(localized("settings.paddleocr.localVLModelDir"))
-                                .foregroundStyle(.secondary)
-                                .gridColumnAlignment(.trailing)
-                            VStack(alignment: .leading, spacing: 4) {
-                                TextField("", text: $viewModel.paddleOCRLocalVLModelDir)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(maxWidth: 300)
-                                Text(localized("settings.paddleocr.localVLModelDir.hint"))
-                                    .font(.caption)
-                                    .foregroundStyle(.tertiary)
-                            }
+                            Text(localized("settings.paddleocr.localVLModelDir.hint"))
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
                         }
                     }
                 }
@@ -347,11 +292,5 @@ struct PaddleOCRStatusSection: View {
             }
         }
         .padding(.top, 8)
-        .onAppear {
-            // Auto-check MLX-VLM server status when section appears
-            if viewModel.paddleOCRUseMLXVLM {
-                viewModel.checkMLXVLMServerStatus()
-            }
-        }
     }
 }

@@ -54,6 +54,7 @@ final class AppSettings {
         static let strokeWidth = prefix + "strokeWidth"
         static let textSize = prefix + "textSize"
         static let rectangleFilled = prefix + "rectangleFilled"
+        static let mosaicBlockSize = prefix + "mosaicBlockSize"
         static let translationTargetLanguage = prefix + "translationTargetLanguage"
         static let translationSourceLanguage = prefix + "translationSourceLanguage"
         static let translationAutoDetect = prefix + "translationAutoDetect"
@@ -88,10 +89,7 @@ final class AppSettings {
         static let paddleOCRUseCloud = prefix + "paddleOCRUseCloud"
         static let paddleOCRCloudBaseURL = prefix + "paddleOCRCloudBaseURL"
         static let paddleOCRCloudAPIKey = prefix + "paddleOCRCloudAPIKey"
-        // MLX-VLM Configuration (for Apple Silicon optimization)
-        static let paddleOCRUseMLXVLM = prefix + "paddleOCRUseMLXVLM"
-        static let paddleOCRMLXVLMServerURL = prefix + "paddleOCRMLXVLMServerURL"
-        static let paddleOCRMLXVLMModelName = prefix + "paddleOCRMLXVLMModelName"
+        static let paddleOCRCloudModelId = prefix + "paddleOCRCloudModelId"
         static let paddleOCRLocalVLModelDir = prefix + "paddleOCRLocalVLModelDir"
     }
 
@@ -160,6 +158,11 @@ final class AppSettings {
     /// Whether rectangles are filled (solid) by default
     var rectangleFilled: Bool {
         didSet { save(rectangleFilled, forKey: Keys.rectangleFilled) }
+    }
+
+    /// Default mosaic block size (pixelation level)
+    var mosaicBlockSize: CGFloat {
+        didSet { save(Double(mosaicBlockSize), forKey: Keys.mosaicBlockSize) }
     }
 
     /// Translation target language (nil = use system default)
@@ -330,22 +333,12 @@ final class AppSettings {
         }
     }
 
-    /// Whether to use MLX-VLM inference framework (Apple Silicon optimization)
-    var paddleOCRUseMLXVLM: Bool {
-        didSet { save(paddleOCRUseMLXVLM, forKey: Keys.paddleOCRUseMLXVLM) }
+    /// Cloud API model ID (optional, for specifying which model to use)
+    var paddleOCRCloudModelId: String {
+        didSet { save(paddleOCRCloudModelId, forKey: Keys.paddleOCRCloudModelId) }
     }
 
-    /// MLX-VLM server URL (default: http://localhost:8111)
-    var paddleOCRMLXVLMServerURL: String {
-        didSet { save(paddleOCRMLXVLMServerURL, forKey: Keys.paddleOCRMLXVLMServerURL) }
-    }
-
-    /// MLX-VLM model name (default: PaddlePaddle/PaddleOCR-VL-1.5)
-    var paddleOCRMLXVLMModelName: String {
-        didSet { save(paddleOCRMLXVLMModelName, forKey: Keys.paddleOCRMLXVLMModelName) }
-    }
-
-    /// Local VL model directory (for native backend without MLX-VLM server)
+    /// Local VL model directory (for vllm backend)
     var paddleOCRLocalVLModelDir: String {
         didSet { save(paddleOCRLocalVLModelDir, forKey: Keys.paddleOCRLocalVLModelDir) }
     }
@@ -399,6 +392,7 @@ final class AppSettings {
         strokeWidth = CGFloat(defaults.object(forKey: Keys.strokeWidth) as? Double ?? 2.0)
         textSize = CGFloat(defaults.object(forKey: Keys.textSize) as? Double ?? 14.0)
         rectangleFilled = defaults.object(forKey: Keys.rectangleFilled) as? Bool ?? false
+        mosaicBlockSize = CGFloat(defaults.object(forKey: Keys.mosaicBlockSize) as? Double ?? 10.0)
 
         // Load translation settings
         translationTargetLanguage = defaults.string(forKey: Keys.translationTargetLanguage)
@@ -455,10 +449,10 @@ final class AppSettings {
         // Load PaddleOCR cloud API key from Keychain (secure storage)
         paddleOCRCloudAPIKey = Self.loadPaddleOCRAPIKeyFromKeychain()
 
-        // Load MLX-VLM configuration
-        paddleOCRUseMLXVLM = defaults.object(forKey: Keys.paddleOCRUseMLXVLM) as? Bool ?? false
-        paddleOCRMLXVLMServerURL = defaults.string(forKey: Keys.paddleOCRMLXVLMServerURL) ?? "http://localhost:8111"
-        paddleOCRMLXVLMModelName = defaults.string(forKey: Keys.paddleOCRMLXVLMModelName) ?? "PaddlePaddle/PaddleOCR-VL-1.5"
+        // Load cloud model ID
+        paddleOCRCloudModelId = defaults.string(forKey: Keys.paddleOCRCloudModelId) ?? ""
+
+        // Load vLLM model directory
         paddleOCRLocalVLModelDir = defaults.string(forKey: Keys.paddleOCRLocalVLModelDir) ?? ""
 
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
@@ -494,6 +488,7 @@ final class AppSettings {
         strokeWidth = 2.0
         textSize = 14.0
         rectangleFilled = false
+        mosaicBlockSize = 10.0
         translationTargetLanguage = nil
         translationSourceLanguage = .auto
         translationAutoDetect = true
@@ -508,6 +503,7 @@ final class AppSettings {
         paddleOCRUseCloud = false
         paddleOCRCloudBaseURL = ""
         paddleOCRCloudAPIKey = ""
+        paddleOCRCloudModelId = ""
         // Delete PaddleOCR cloud API key from Keychain
         Task.detached {
             do {
@@ -516,10 +512,7 @@ final class AppSettings {
                 Logger.settings.error("Failed to delete PaddleOCR credentials from keychain: \(error.localizedDescription)")
             }
         }
-        // Reset MLX-VLM settings
-        paddleOCRUseMLXVLM = false
-        paddleOCRMLXVLMServerURL = "http://localhost:8111"
-        paddleOCRMLXVLMModelName = "PaddlePaddle/PaddleOCR-VL-1.5"
+        // Reset vLLM model directory
         paddleOCRLocalVLModelDir = ""
         // Reset multi-engine configuration - directly create defaults, don't load from persistence
         engineSelectionMode = .primaryWithFallback

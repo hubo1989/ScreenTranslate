@@ -126,35 +126,17 @@ final class SettingsViewModel {
         set { settings.paddleOCRCloudAPIKey = newValue }
     }
 
-    /// Whether to use MLX-VLM inference framework
-    var paddleOCRUseMLXVLM: Bool {
-        get { settings.paddleOCRUseMLXVLM }
-        set { settings.paddleOCRUseMLXVLM = newValue }
+    /// Cloud API model ID
+    var paddleOCRCloudModelId: String {
+        get { settings.paddleOCRCloudModelId }
+        set { settings.paddleOCRCloudModelId = newValue }
     }
 
-    /// MLX-VLM server URL
-    var paddleOCRMLXVLMServerURL: String {
-        get { settings.paddleOCRMLXVLMServerURL }
-        set { settings.paddleOCRMLXVLMServerURL = newValue }
-    }
-
-    /// MLX-VLM model name
-    var paddleOCRMLXVLMModelName: String {
-        get { settings.paddleOCRMLXVLMModelName }
-        set { settings.paddleOCRMLXVLMModelName = newValue }
-    }
-
-    /// Local VL model directory (for native backend)
+    /// Local VL model directory (for vllm backend)
     var paddleOCRLocalVLModelDir: String {
         get { settings.paddleOCRLocalVLModelDir }
         set { settings.paddleOCRLocalVLModelDir = newValue }
     }
-
-    /// Whether MLX-VLM server is running
-    var isMLXVLMServerRunning: Bool = false
-
-    /// Whether MLX-VLM server check is in progress
-    var isCheckingMLXVLMServer: Bool = false
 
     // MARK: - VLM Test State
 
@@ -489,8 +471,20 @@ final class SettingsViewModel {
             return
         }
 
-        // If not granted, open System Settings
-        openScreenRecordingSettings()
+        // Trigger ScreenCaptureKit API to register app in permission list
+        Task {
+            do {
+                // This will trigger the system to register the app in Screen Recording permissions
+                _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            } catch {
+                // Expected when permission not granted - app is now registered
+            }
+
+            // Open System Settings after triggering the API
+            await MainActor.run {
+                openScreenRecordingSettings()
+            }
+        }
 
         // Start polling for permission status
         startPermissionCheck(for: .screenRecording)
@@ -803,11 +797,6 @@ final class SettingsViewModel {
                 isPaddleOCRInstalled = PaddleOCRChecker.isAvailable
                 paddleOCRVersion = PaddleOCRChecker.version
                 paddleOCRInstallError = nil
-
-                // Auto-check MLX-VLM server status if enabled
-                if paddleOCRUseMLXVLM {
-                    checkMLXVLMServerStatus()
-                }
             }
         }
     }
@@ -857,45 +846,6 @@ final class SettingsViewModel {
         let command = "pip3 install paddleocr paddlepaddle"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(command, forType: .string)
-    }
-
-    // MARK: - MLX-VLM Server Management
-
-    func checkMLXVLMServerStatus() {
-        guard paddleOCRUseMLXVLM else { return }
-
-        isCheckingMLXVLMServer = true
-
-        Task.detached { [serverURL = paddleOCRMLXVLMServerURL] in
-            var isRunning = false
-
-            do {
-                // MLX-VLM server uses /health endpoint for health check
-                let healthURL = serverURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                guard let url = URL(string: "\(healthURL)/health") else {
-                    await MainActor.run {
-                        self.isMLXVLMServerRunning = false
-                        self.isCheckingMLXVLMServer = false
-                    }
-                    return
-                }
-
-                // Try to connect to the server with a short timeout
-                let request = URLRequest(url: url, timeoutInterval: 3.0)
-                let (_, response) = try await URLSession.shared.data(for: request)
-
-                if let httpResponse = response as? HTTPURLResponse {
-                    isRunning = (200...299).contains(httpResponse.statusCode)
-                }
-            } catch {
-                isRunning = false
-            }
-
-            await MainActor.run {
-                self.isMLXVLMServerRunning = isRunning
-                self.isCheckingMLXVLMServer = false
-            }
-        }
     }
 
     // MARK: - VLM API Test
