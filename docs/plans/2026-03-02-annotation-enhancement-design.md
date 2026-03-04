@@ -124,6 +124,29 @@ struct CalloutAnnotation: Identifiable, Equatable, Sendable {
 }
 ```
 
+#### 穷举 Switch 同步检查清单
+
+添加新 Annotation case 时，必须更新以下位置：
+
+| 文件 | 符号/位置 | 更新内容 |
+|------|----------|----------|
+| `Models/Annotation.swift` | `enum Annotation` | 添加新 case |
+| `Models/Annotation.swift` | `var id: UUID` | 添加 switch 分支返回对应 ID |
+| `Models/Annotation.swift` | `var bounds: CGRect` | 添加 switch 分支返回对应 bounds |
+| `Features/Preview/PreviewViewModel.swift` | `enum AnnotationToolType` | 添加新工具类型 |
+| `Features/Preview/PreviewViewModel.swift` | `currentTool` switch | 添加工具创建逻辑 |
+| `Features/Preview/AnnotationCanvas.swift` | `renderAnnotation()` | 添加渲染逻辑 |
+| `Services/ImageExporter+AnnotationRendering.swift` | `renderAnnotation()` | 添加导出渲染逻辑 |
+| `Features/Preview/PreviewToolBar.swift` | 工具按钮列表 | 添加工具按钮 |
+
+新增 case 分支行为模板：
+- `ellipse`: 椭圆/圆形，支持填充
+- `line`: 直线，两点连接
+- `mosaic`: 马赛克块，基于 rect
+- `highlight`: 半透明高亮矩形
+- `numberLabel`: 编号标签，基于 position
+- `callout`: 气泡框，带箭头和文本
+
 ### 工具类型扩展
 
 ```swift
@@ -170,6 +193,25 @@ enum AnnotationToolType: String, CaseIterable, Identifiable, Sendable {
         case .callout: return "b"
         }
     }
+}
+```
+
+#### 快捷键别名映射
+
+`keyboardShortcut` 保持单一 `Character`，通过 `hotkeyAliases` 字典支持多键绑定：
+
+```swift
+extension AnnotationToolType {
+    /// 主快捷键别名映射（数字键作为字母键的备选）
+    static let hotkeyAliases: [Character: AnnotationToolType] = [
+        // 主键
+        "r": .rectangle, "d": .freehand, "a": .arrow, "t": .text,
+        "o": .ellipse, "l": .line, "m": .mosaic, "h": .highlight,
+        "n": .numberLabel, "b": .callout,
+        // 数字别名
+        "5": .ellipse, "6": .line, "7": .highlight, "8": .mosaic,
+        "9": .numberLabel, "0": .callout
+    ]
 }
 ```
 
