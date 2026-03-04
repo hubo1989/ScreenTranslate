@@ -72,12 +72,15 @@ final class PinnedWindowsManager {
 
     /// Unpins all pinned windows.
     func unpinAll() {
-        // Get all IDs first to avoid dictionary mutation during iteration
-        let windowIds = Array(pinnedWindows.keys)
-        for id in windowIds {
-            pinnedWindows[id]?.close()
-        }
+        // Collect all windows and remove from dictionary first
+        let windows = Array(pinnedWindows.values)
         pinnedWindows.removeAll()
+        
+        // Mark each as programmatic close and close
+        for window in windows {
+            window.isProgrammaticClose = true
+            window.close()
+        }
     }
 
     /// Checks if a screenshot is currently pinned.

@@ -66,8 +66,24 @@ struct AnnotationCanvas: View {
         var rectangleCount = 0, freehandCount = 0, arrowCount = 0, textCount = 0
         var ellipseCount = 0, lineCount = 0, mosaicCount = 0, highlightCount = 0, numberLabelCount = 0
 
+        // Count from existing annotations
         for annotation in annotations {
             switch annotation {
+            case .rectangle: rectangleCount += 1
+            case .freehand: freehandCount += 1
+            case .arrow: arrowCount += 1
+            case .text: textCount += 1
+            case .ellipse: ellipseCount += 1
+            case .line: lineCount += 1
+            case .mosaic: mosaicCount += 1
+            case .highlight: highlightCount += 1
+            case .numberLabel: numberLabelCount += 1
+            }
+        }
+        
+        // Also count currentAnnotation if present
+        if let current = currentAnnotation {
+            switch current {
             case .rectangle: rectangleCount += 1
             case .freehand: freehandCount += 1
             case .arrow: arrowCount += 1

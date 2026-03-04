@@ -257,27 +257,25 @@ extension ImageExporter {
         )
         
         // Try to use real pixelation if source image is available
-        if let sourceImage = context.dataProvider?.data {
-            // Get the source CGImage from the context
-            if let cgImage = context.makeImage() {
-                // Convert rect to image coordinates (origin at bottom-left)
-                let imageRect = CGRect(
-                    x: annotation.rect.origin.x,
-                    y: annotation.rect.origin.y,
-                    width: annotation.rect.width,
-                    height: annotation.rect.height
-                )
-                
-                // Create pixelated version
-                if let pixelatedCGImage = createPixelatedImage(
-                    from: cgImage,
-                    rect: imageRect,
-                    blockSize: CGFloat(annotation.blockSize)
-                ) {
-                    // Draw the pixelated image
-                    context.draw(pixelatedCGImage, in: rect)
-                    return
-                }
+        if let cgImage = context.makeImage() {
+            let imageSize = CGFloat(cgImage.height)
+            // Convert rect to image coordinates (origin at bottom-left for Core Image)
+            let imageRect = CGRect(
+                x: annotation.rect.origin.x,
+                y: imageSize - annotation.rect.origin.y - annotation.rect.height,
+                width: annotation.rect.width,
+                height: annotation.rect.height
+            )
+            
+            // Create pixelated version
+            if let pixelatedCGImage = createPixelatedImage(
+                from: cgImage,
+                rect: imageRect,
+                blockSize: CGFloat(annotation.blockSize)
+            ) {
+                // Draw the pixelated image
+                context.draw(pixelatedCGImage, in: rect)
+                return
             }
         }
         
