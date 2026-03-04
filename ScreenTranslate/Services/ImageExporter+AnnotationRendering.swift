@@ -231,12 +231,21 @@ extension ImageExporter {
             width: annotation.rect.width,
             height: annotation.rect.height
         )
-
-        var color = annotation.color.cgColor
+        
+        // Convert color to sRGB color space to safely extract RGB components
+        let color = annotation.color.cgColor
+        let srgbColor = color.converted(to: CGColorSpaceCreateSRGB(), intent: .defaultIntent, options: nil) ?? color
+        
+        // Safely extract RGB components with fallbacks
+        let components = srgbColor.components ?? [1, 1, 1, 1]
+        let red = components.count > 0 ? components[0] : 1
+        let green = components.count > 1 ? components[1] : 1
+        let blue = components.count > 2 ? components[2] : 0
+        
         let alphaColor = CGColor(
-            red: color.components?[0] ?? 1,
-            green: color.components?[1] ?? 1,
-            blue: color.components?[2] ?? 0,
+            red: red,
+            green: green,
+            blue: blue,
             alpha: annotation.opacity
         )
         context.setFillColor(alphaColor)
