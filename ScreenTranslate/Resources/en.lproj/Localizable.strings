@@ -137,6 +137,14 @@
 "preview.tooltip.dismiss" = "Dismiss (Escape)";
 "preview.tooltip.delete" = "Delete selected annotation";
 
+/* Accessibility Labels */
+"preview.accessibility.save" = "Save screenshot";
+"preview.accessibility.saving" = "Saving screenshot";
+"preview.accessibility.confirm" = "Confirm and copy to clipboard";
+"preview.accessibility.copying" = "Copying to clipboard";
+"preview.accessibility.hint.commandS" = "Command S";
+"preview.accessibility.hint.enter" = "Enter key";
+
 /* Shape Toggle */
 "preview.shape.filled" = "Filled";
 "preview.shape.hollow" = "Hollow";

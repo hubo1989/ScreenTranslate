@@ -97,7 +97,6 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
         maxAttempts: Int
     ) async throws -> VLMAnalysisResponse {
         var allSegments: [VLMTextSegment] = []
-        var lastSegmentCount = 0  // Track count before each attempt to detect duplicates
         var conversationHistory: [ClaudeMessage] = [
             ClaudeMessage(
                 role: "user",
@@ -124,9 +123,6 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
             let (content, isTruncated, stopReason) = try extractContentAndStatus(from: responseData)
 
             print("[ClaudeVLMProvider] Attempt \(attempt + 1)/\(maxAttempts): received \(content.count) chars, stop_reason=\(stopReason ?? "unknown")")
-
-            // Track segment count before parsing this response
-            lastSegmentCount = allSegments.count
 
             // Try to parse this response
             do {
@@ -202,75 +198,15 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
         existing: [VLMTextSegment],
         new: [VLMTextSegment]
     ) -> [VLMTextSegment] {
-        // Create a set of existing segment signatures (text + approximate position)
-        let existingSignatures = Set(existing.map { segmentSignature($0) })
-
-        // Filter new segments that don't match any existing signature
-        return new.filter { !existingSignatures.contains(segmentSignature($0)) }
-    }
-
-    /// Creates a unique signature for a segment based on text and approximate position
-    private func segmentSignature(_ segment: VLMTextSegment) -> String {
-        // Normalize text and round position to 2 decimal places for fuzzy matching
-        let normalizedText = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let roundedX = (segment.boundingBox.x * 100).rounded() / 100
-        let roundedY = (segment.boundingBox.y * 100).rounded() / 100
-        return "\(normalizedText)|\(roundedX)|\(roundedY)"
+        VLMTextDeduplicator.filterDuplicates(existing: existing, new: new)
     }
 
     /// Removes duplicate segments from the final result
-    /// Uses a two-pass strategy:
-    /// 1. First pass: remove segments with identical text that appear too frequently (hallucination detection)
-    /// 2. Second pass: remove segments with identical text+position signatures
     private func deduplicateSegments(_ segments: [VLMTextSegment]) -> [VLMTextSegment] {
-        guard !segments.isEmpty else { return segments }
-
-        // Count text frequency to detect hallucinations
-        var textCounts: [String: Int] = [:]
-        for segment in segments {
-            let normalizedText = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            textCounts[normalizedText, default: 0] += 1
+        VLMTextDeduplicator.deduplicate(segments) { length, count, threshold in
+            // Log only safe statistics, not plaintext content
+            print("[ClaudeVLMProvider] Detected overrepresented text: length=\(length), count=\(count), threshold=\(threshold))")
         }
-
-        // Calculate threshold: if a text appears more than 5 times or more than 10% of total segments,
-        // it's likely a hallucination and we should keep only the first occurrence
-        let total = segments.count
-        let percentageThreshold = max(5, total / 10)  // At least 5, or 10% of total
-
-        // First pass: build a set of texts that are over-represented (likely hallucinations)
-        var overrepresentedTexts = Set<String>()
-        for (text, count) in textCounts {
-            if count > percentageThreshold && count > 5 {
-                overrepresentedTexts.insert(text)
-                print("[ClaudeVLMProvider] Detected overrepresented text '\(text.prefix(30))' (count: \(count), threshold: \(percentageThreshold))")
-            }
-        }
-
-        // Second pass: deduplicate
-        var seenTexts = Set<String>()  // For overrepresented texts, only keep first
-        var seenSignatures = Set<String>()  // For normal texts, use position-based signature
-        var result: [VLMTextSegment] = []
-
-        for segment in segments {
-            let normalizedText = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
-
-            if overrepresentedTexts.contains(normalizedText) {
-                // For overrepresented texts, only keep the first occurrence
-                if !seenTexts.contains(normalizedText) {
-                    seenTexts.insert(normalizedText)
-                    result.append(segment)
-                }
-            } else {
-                // For normal texts, use position-based deduplication
-                let signature = segmentSignature(segment)
-                if !seenSignatures.contains(signature) {
-                    seenSignatures.insert(signature)
-                    result.append(segment)
-                }
-            }
-        }
-
-        return result
     }
 
     /// Extracts content text and truncation status from Claude response

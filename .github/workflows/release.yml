@@ -125,17 +125,19 @@ jobs:
       - name: Get Tag Message
         id: tag_message
         run: |
-          # Get the tag annotation message
-          TAG_MESSAGE=$(git tag -l --format='%(contents)' ${{ github.ref_name }} | head -n -1 || echo "")
+          # Get the tag annotation message (remove trailing PGP signature using POSIX-compatible sed)
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' ${{ github.ref_name }} | sed '/^-----BEGIN PGP SIGNATURE-----/,$d' || echo "")
           # If tag message is empty, use a default message
           if [ -z "$TAG_MESSAGE" ]; then
             TAG_MESSAGE="Latest release of ScreenTranslate"
           fi
-          # Escape the message for XML (basic escaping)
-          TAG_MESSAGE=$(echo "$TAG_MESSAGE" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g')
-          echo "message<<EOF" >> $GITHUB_OUTPUT
+          # Escape CDATA boundaries for safe XML wrapping (not entity escaping, since we use CDATA)
+          TAG_MESSAGE=$(echo "$TAG_MESSAGE" | sed 's/]]>/]]]]><![CDATA[>/g')
+          # Generate a unique delimiter to avoid collision with message content
+          DELIMITER="EOF_$(uuidgen | tr -d '-')"
+          echo "message<<${DELIMITER}" >> $GITHUB_OUTPUT
           echo "$TAG_MESSAGE" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          echo "${DELIMITER}" >> $GITHUB_OUTPUT
 
       - name: Generate Sparkle Appcast
         run: |

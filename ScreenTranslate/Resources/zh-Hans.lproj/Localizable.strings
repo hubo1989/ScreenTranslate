@@ -136,6 +136,14 @@
 "preview.tooltip.dismiss" = "关闭 (Escape)";
 "preview.tooltip.delete" = "删除选中的标注";
 
+/* 无障碍标签 */
+"preview.accessibility.save" = "保存截图";
+"preview.accessibility.saving" = "正在保存截图";
+"preview.accessibility.confirm" = "确定并复制到剪贴板";
+"preview.accessibility.copying" = "正在复制到剪贴板";
+"preview.accessibility.hint.commandS" = "Command S";
+"preview.accessibility.hint.enter" = "回车键";
+
 /* 形状切换 */
 "preview.shape.filled" = "填充";
 "preview.shape.hollow" = "空心";
