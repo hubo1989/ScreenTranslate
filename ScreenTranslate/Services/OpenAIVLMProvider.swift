@@ -225,7 +225,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     private func deduplicateSegments(_ segments: [VLMTextSegment]) -> [VLMTextSegment] {
         VLMTextDeduplicator.deduplicate(segments) { length, count, threshold in
             // Log only safe statistics, not plaintext content
-            print("[OpenAI] Detected overrepresented text: length=\(length), count=\(count), threshold=\(threshold))")
+            print("[OpenAI] Detected overrepresented text: length=\(length), count=\(count), threshold=\(threshold)")
         }
     }
 

@@ -156,7 +156,9 @@ jobs:
             ENCLOSURE="<enclosure url=\"${DMG_URL}\" length=\"${DMG_SIZE}\" type=\"application/octet-stream\" />"
           fi
 
-          cat > appcast.xml << EOF
+          # Generate unique delimiter to avoid collision with release notes content
+          APPCAST_DELIMITER="APPCAST_EOF_$(uuidgen | tr -d '-')"
+          cat > appcast.xml << ${APPCAST_DELIMITER}
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
             <channel>
@@ -175,7 +177,7 @@ jobs:
               </item>
             </channel>
           </rss>
-          EOF
+          ${APPCAST_DELIMITER}
           
           echo "Generated appcast.xml:"
           cat appcast.xml

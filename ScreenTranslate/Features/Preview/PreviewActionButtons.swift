@@ -135,12 +135,13 @@ struct PreviewActionButtons: View {
         .help(String(localized: "preview.tooltip.ocr"))
     }
 
-    /// Confirm button: copies to clipboard and dismisses
+    /// Confirm button: copies to clipboard and dismisses (only on success)
     /// Users who don't want to copy can close the window directly
     private var confirmButton: some View {
         Button {
-            viewModel.copyToClipboard()
-            viewModel.dismiss()
+            if viewModel.copyToClipboard() {
+                viewModel.dismiss()
+            }
         } label: {
             if viewModel.isCopying {
                 loadingIndicator

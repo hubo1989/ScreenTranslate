@@ -54,8 +54,10 @@ enum VLMTextDeduplicator {
         }
 
         // Calculate threshold: max of minCountThreshold or percentage of total
+        // Clamp percentageMultiplier to valid range (0, 1] to prevent division issues
         let total = segments.count
-        let percentageThreshold = max(config.minCountThreshold, total / Int(1.0 / config.percentageMultiplier))
+        let validatedMultiplier = max(0.01, min(1.0, config.percentageMultiplier))
+        let percentageThreshold = max(config.minCountThreshold, Int(Double(total) * validatedMultiplier))
 
         // First pass: build a set of texts that are over-represented (likely hallucinations)
         var overrepresentedTexts = Set<String>()

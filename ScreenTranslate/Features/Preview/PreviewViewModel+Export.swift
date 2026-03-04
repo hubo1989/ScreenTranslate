@@ -3,18 +3,21 @@ import SwiftUI
 import AppKit
 
 extension PreviewViewModel {
-    func copyToClipboard() {
-        guard !isCopying else { return }
+    @discardableResult
+    func copyToClipboard() -> Bool {
+        guard !isCopying else { return false }
         isCopying = true
 
         do {
             try clipboardService.copy(image, annotations: annotations)
+            isCopying = false
+            return true
         } catch {
             errorMessage = NSLocalizedString("error.clipboard.write.failed", comment: "Failed to copy to clipboard")
             clearError()
+            isCopying = false
+            return false
         }
-
-        isCopying = false
     }
 
     func saveScreenshot() {
