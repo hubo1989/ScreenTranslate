@@ -55,31 +55,35 @@ struct AnnotationCanvas: View {
             return "No annotations"
         }
 
-        let rectangleCount = annotations.filter {
-            if case .rectangle = $0 { return true }
-            return false
-        }.count
-
-        let freehandCount = annotations.filter {
-            if case .freehand = $0 { return true }
-            return false
-        }.count
-
-        let textCount = annotations.filter {
-            if case .text = $0 { return true }
-            return false
-        }.count
-
         var parts: [String] = []
-        if rectangleCount > 0 {
-            parts.append("\(rectangleCount) rectangle\(rectangleCount == 1 ? "" : "s")")
+
+        // Count each annotation type
+        var rectangleCount = 0, freehandCount = 0, arrowCount = 0, textCount = 0
+        var ellipseCount = 0, lineCount = 0, mosaicCount = 0, highlightCount = 0, numberLabelCount = 0
+
+        for annotation in annotations {
+            switch annotation {
+            case .rectangle: rectangleCount += 1
+            case .freehand: freehandCount += 1
+            case .arrow: arrowCount += 1
+            case .text: textCount += 1
+            case .ellipse: ellipseCount += 1
+            case .line: lineCount += 1
+            case .mosaic: mosaicCount += 1
+            case .highlight: highlightCount += 1
+            case .numberLabel: numberLabelCount += 1
+            }
         }
-        if freehandCount > 0 {
-            parts.append("\(freehandCount) drawing\(freehandCount == 1 ? "" : "s")")
-        }
-        if textCount > 0 {
-            parts.append("\(textCount) text\(textCount == 1 ? "" : "s")")
-        }
+
+        if rectangleCount > 0 { parts.append("\(rectangleCount) rectangle\(rectangleCount == 1 ? "" : "s")") }
+        if ellipseCount > 0 { parts.append("\(ellipseCount) ellipse\(ellipseCount == 1 ? "" : "s")") }
+        if lineCount > 0 { parts.append("\(lineCount) line\(lineCount == 1 ? "" : "s")") }
+        if arrowCount > 0 { parts.append("\(arrowCount) arrow\(arrowCount == 1 ? "" : "s")") }
+        if freehandCount > 0 { parts.append("\(freehandCount) drawing\(freehandCount == 1 ? "" : "s")") }
+        if highlightCount > 0 { parts.append("\(highlightCount) highlight\(highlightCount == 1 ? "" : "s")") }
+        if mosaicCount > 0 { parts.append("\(mosaicCount) mosaic\(mosaicCount == 1 ? "" : "s")") }
+        if textCount > 0 { parts.append("\(textCount) text\(textCount == 1 ? "" : "s")") }
+        if numberLabelCount > 0 { parts.append("\(numberLabelCount) number label\(numberLabelCount == 1 ? "" : "s")") }
 
         return "Annotations: \(parts.joined(separator: ", "))"
     }
@@ -364,11 +368,19 @@ struct AnnotationCanvas: View {
         let ciImage = CIImage(cgImage: cgImage)
 
         // Apply pixelation using CIPixellate filter
-        guard let pixellateFilter = CIFilter(name: "CIPixellate") else { return nil }
+        guard let pixellateFilter = CIFilter(name: "CIPixellate") else {
+            print("[Mosaic] Warning: CIPixellate filter not available, falling back to gray block")
+            return nil
+        }
         pixellateFilter.setValue(ciImage, forKey: kCIInputImageKey)
         pixellateFilter.setValue(max(1, blockSize), forKey: kCIInputScaleKey)
 
-        return pixellateFilter.outputImage?.cropped(to: CGRect(
+        guard let outputImage = pixellateFilter.outputImage else {
+            print("[Mosaic] Warning: Pixellation failed, falling back to gray block")
+            return nil
+        }
+
+        return outputImage.cropped(to: CGRect(
             x: rect.origin.x,
             y: canvasSize.height - rect.origin.y - rect.size.height,
             width: rect.size.width,

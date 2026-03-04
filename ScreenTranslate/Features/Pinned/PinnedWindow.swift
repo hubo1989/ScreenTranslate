@@ -47,8 +47,8 @@ final class PinnedWindow: NSPanel {
 
     @MainActor
     private func configureWindow() {
-        // Window behavior - always on top
-        level = .screenSaver
+        // Window behavior - always on top but not intrusive
+        level = .floating
         collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
 
         // Appearance
