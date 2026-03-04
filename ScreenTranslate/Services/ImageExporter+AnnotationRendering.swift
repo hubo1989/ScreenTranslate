@@ -234,7 +234,8 @@ extension ImageExporter {
         
         // Convert color to sRGB color space to safely extract RGB components
         let color = annotation.color.cgColor
-        let srgbColor = color.converted(to: CGColorSpaceCreateSRGB(), intent: .defaultIntent, options: nil) ?? color
+        let srgbColorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
+        let srgbColor = color.converted(to: srgbColorSpace, intent: .defaultIntent, options: nil) ?? color
         
         // Safely extract RGB components with fallbacks
         let components = srgbColor.components ?? [1, 1, 1, 1]
