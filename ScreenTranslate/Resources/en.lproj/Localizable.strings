@@ -131,10 +131,19 @@
 "preview.tooltip.undo" = "Undo (⌘Z)";
 "preview.tooltip.redo" = "Redo (⌘⇧Z)";
 "preview.tooltip.copy" = "Copy to Clipboard (⌘C)";
-"preview.tooltip.save" = "Save (⌘S or Enter)";
+"preview.tooltip.save" = "Save (⌘S)";
 "preview.tooltip.ocr" = "Recognize Text (OCR)";
+"preview.tooltip.confirm" = "Copy to Clipboard and Close (Enter)";
 "preview.tooltip.dismiss" = "Dismiss (Escape)";
 "preview.tooltip.delete" = "Delete selected annotation";
+
+/* Accessibility Labels */
+"preview.accessibility.save" = "Save screenshot";
+"preview.accessibility.saving" = "Saving screenshot";
+"preview.accessibility.confirm" = "Confirm and copy to clipboard";
+"preview.accessibility.copying" = "Copying to clipboard";
+"preview.accessibility.hint.commandS" = "Command S";
+"preview.accessibility.hint.enter" = "Enter key";
 
 /* Shape Toggle */
 "preview.shape.filled" = "Filled";
@@ -195,6 +204,7 @@
 "button.reset" = "Reset";
 "button.save" = "Save";
 "button.delete" = "Delete";
+"button.confirm" = "Confirm";
 
 /* Save Success */
 "save.success.title" = "Saved Successfully";

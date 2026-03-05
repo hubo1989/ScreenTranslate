@@ -24,7 +24,7 @@ struct PreviewActionButtons: View {
                 .frame(height: 16)
                 .accessibilityHidden(true)
 
-            copyAndSaveButtons
+            saveButton
 
             Divider()
                 .frame(height: 16)
@@ -36,7 +36,7 @@ struct PreviewActionButtons: View {
                 .frame(height: 16)
                 .accessibilityHidden(true)
 
-            dismissButton
+            confirmButton
         }
         .buttonStyle(.accessoryBar)
         .accessibilityElement(children: .contain)
@@ -103,37 +103,20 @@ struct PreviewActionButtons: View {
         }
     }
 
-    private var copyAndSaveButtons: some View {
-        Group {
-            Button {
-                viewModel.copyToClipboard()
-                viewModel.dismiss()
-            } label: {
-                if viewModel.isCopying {
-                    loadingIndicator
-                } else {
-                    Image(systemName: "doc.on.doc")
-                }
+    private var saveButton: some View {
+        Button {
+            viewModel.saveScreenshot()
+        } label: {
+            if viewModel.isSaving {
+                loadingIndicator
+            } else {
+                Image(systemName: "square.and.arrow.down")
             }
-            .disabled(viewModel.isCopying)
-            .help(String(localized: "preview.tooltip.copy"))
-            .accessibilityLabel(Text(viewModel.isCopying ? "Copying to clipboard" : "Copy to clipboard"))
-            .accessibilityHint(Text("Command C"))
-
-            Button {
-                viewModel.saveScreenshot()
-            } label: {
-                if viewModel.isSaving {
-                    loadingIndicator
-                } else {
-                    Image(systemName: "square.and.arrow.down")
-                }
-            }
-            .disabled(viewModel.isSaving)
-            .help(String(localized: "preview.tooltip.save"))
-            .accessibilityLabel(Text(viewModel.isSaving ? "Saving screenshot" : "Save screenshot"))
-            .accessibilityHint(Text("Command S or Enter"))
         }
+        .disabled(viewModel.isSaving)
+        .help(String(localized: "preview.tooltip.save"))
+        .accessibilityLabel(Text(String(localized: viewModel.isSaving ? "preview.accessibility.saving" : "preview.accessibility.save")))
+        .accessibilityHint(Text(String(localized: "preview.accessibility.hint.commandS")))
     }
 
     private var ocrButton: some View {
@@ -152,15 +135,25 @@ struct PreviewActionButtons: View {
         .help(String(localized: "preview.tooltip.ocr"))
     }
 
-    private var dismissButton: some View {
+    /// Confirm button: copies to clipboard and dismisses (only on success)
+    /// Users who don't want to copy can close the window directly
+    private var confirmButton: some View {
         Button {
-            viewModel.dismiss()
+            if viewModel.copyToClipboard() {
+                viewModel.dismiss()
+            }
         } label: {
-            Image(systemName: "xmark")
+            if viewModel.isCopying {
+                loadingIndicator
+            } else {
+                Text(String(localized: "button.confirm"))
+                    .fontWeight(.medium)
+            }
         }
-        .help(String(localized: "preview.tooltip.dismiss"))
-        .accessibilityLabel(Text("Dismiss preview"))
-        .accessibilityHint(Text("Escape key"))
+        .disabled(viewModel.isCopying)
+        .help(String(localized: "preview.tooltip.confirm"))
+        .accessibilityLabel(Text(String(localized: viewModel.isCopying ? "preview.accessibility.copying" : "preview.accessibility.confirm")))
+        .accessibilityHint(Text(String(localized: "preview.accessibility.hint.enter")))
     }
 
     @ViewBuilder

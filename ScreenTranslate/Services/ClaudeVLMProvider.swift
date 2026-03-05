@@ -127,13 +127,27 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
             // Try to parse this response
             do {
                 let response = try parseVLMContent(content)
-                allSegments.append(contentsOf: response.segments)
-                print("[ClaudeVLMProvider] Parsed \(response.segments.count) segments from this response")
+
+                // For continuation requests, filter out duplicates from the beginning
+                // LLM often repeats some segments when continuing
+                let newSegments: [VLMTextSegment]
+                if attempt > 0 {
+                    newSegments = filterDuplicateSegments(
+                        existing: allSegments,
+                        new: response.segments
+                    )
+                } else {
+                    newSegments = response.segments
+                }
+
+                allSegments.append(contentsOf: newSegments)
+                print("[ClaudeVLMProvider] Parsed \(response.segments.count) segments, added \(newSegments.count) new (attempt \(attempt + 1))")
 
                 if !isTruncated {
-                    // Complete - return merged result
-                    print("[ClaudeVLMProvider] Complete response received, total \(allSegments.count) segments")
-                    return VLMAnalysisResponse(segments: allSegments)
+                    // Complete - return merged result with deduplication
+                    let deduplicated = deduplicateSegments(allSegments)
+                    print("[ClaudeVLMProvider] Complete response received, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
+                    return VLMAnalysisResponse(segments: deduplicated)
                 }
             } catch {
                 print("[ClaudeVLMProvider] Parse error on attempt \(attempt + 1): \(error)")
@@ -141,8 +155,13 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
                 // Try partial parsing for truncated response
                 if isTruncated {
                     if let partial = try? parsePartialVLMContent(content) {
-                        allSegments.append(contentsOf: partial.segments)
-                        print("[ClaudeVLMProvider] Partial parse recovered \(partial.segments.count) segments")
+                        // Filter duplicates for partial parse too
+                        let newSegments = filterDuplicateSegments(
+                            existing: allSegments,
+                            new: partial.segments
+                        )
+                        allSegments.append(contentsOf: newSegments)
+                        print("[ClaudeVLMProvider] Partial parse recovered \(partial.segments.count) segments, added \(newSegments.count) new")
                     }
                 }
 
@@ -161,15 +180,33 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
                 content: [.text(content)]
             ))
 
-            // Request continuation - ask for complete output this time
+            // Request continuation - ask for remaining segments only
             conversationHistory.append(ClaudeMessage(
                 role: "user",
-                content: [.text("Continue from where you left off. Return the complete JSON with all remaining segments.")]
+                content: [.text("Continue with the remaining segments only. Do not repeat any segments you've already provided.")]
             ))
         }
 
-        print("[ClaudeVLMProvider] Max continuation attempts reached, returning \(allSegments.count) accumulated segments")
-        return VLMAnalysisResponse(segments: allSegments)
+        // Final deduplication before returning
+        let deduplicated = deduplicateSegments(allSegments)
+        print("[ClaudeVLMProvider] Max continuation attempts reached, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
+        return VLMAnalysisResponse(segments: deduplicated)
+    }
+
+    /// Filters out segments from new array that already exist in existing array
+    private func filterDuplicateSegments(
+        existing: [VLMTextSegment],
+        new: [VLMTextSegment]
+    ) -> [VLMTextSegment] {
+        VLMTextDeduplicator.filterDuplicates(existing: existing, new: new)
+    }
+
+    /// Removes duplicate segments from the final result
+    private func deduplicateSegments(_ segments: [VLMTextSegment]) -> [VLMTextSegment] {
+        VLMTextDeduplicator.deduplicate(segments) { length, count, threshold in
+            // Log only safe statistics, not plaintext content
+            print("[ClaudeVLMProvider] Detected overrepresented text: length=\(length), count=\(count), threshold=\(threshold)")
+        }
     }
 
     /// Extracts content text and truncation status from Claude response

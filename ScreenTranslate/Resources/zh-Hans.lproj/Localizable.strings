@@ -130,11 +130,19 @@
 "preview.tooltip.pin" = "钉图 (P)";
 "preview.tooltip.undo" = "撤销 (⌘Z)";
 "preview.tooltip.redo" = "重做 (⌘⇧Z)";
-"preview.tooltip.copy" = "复制到剪贴板 (⌘C)";
-"preview.tooltip.save" = "保存 (⌘S 或 回车)";
+"preview.tooltip.save" = "保存 (⌘S)";
 "preview.tooltip.ocr" = "识别文字 (OCR)";
+"preview.tooltip.confirm" = "复制到剪贴板并关闭 (回车)";
 "preview.tooltip.dismiss" = "关闭 (Escape)";
 "preview.tooltip.delete" = "删除选中的标注";
+
+/* 无障碍标签 */
+"preview.accessibility.save" = "保存截图";
+"preview.accessibility.saving" = "正在保存截图";
+"preview.accessibility.confirm" = "确定并复制到剪贴板";
+"preview.accessibility.copying" = "正在复制到剪贴板";
+"preview.accessibility.hint.commandS" = "Command S";
+"preview.accessibility.hint.enter" = "回车键";
 
 /* 形状切换 */
 "preview.shape.filled" = "填充";
@@ -195,6 +203,7 @@
 "button.reset" = "重置";
 "button.save" = "保存";
 "button.delete" = "删除";
+"button.confirm" = "确定";
 
 /* 保存成功 */
 "save.success.title" = "保存成功";

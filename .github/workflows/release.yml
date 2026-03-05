@@ -122,7 +122,28 @@ jobs:
           BUILD_NUM=$(grep -m1 'CURRENT_PROJECT_VERSION' ScreenTranslate.xcodeproj/project.pbxproj | sed 's/.*= *//;s/;//' | tr -d ' ')
           echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
 
+      - name: Get Tag Message
+        id: tag_message
+        env:
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          # Get the tag annotation message (remove trailing PGP signature using POSIX-compatible sed)
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' "$TAG_NAME" | sed '/^-----BEGIN PGP SIGNATURE-----/,$d' || echo "")
+          # If tag message is empty, use a default message
+          if [ -z "$TAG_MESSAGE" ]; then
+            TAG_MESSAGE="Latest release of ScreenTranslate"
+          fi
+          # Escape CDATA boundaries for safe XML wrapping (not entity escaping, since we use CDATA)
+          TAG_MESSAGE=$(echo "$TAG_MESSAGE" | sed 's/]]>/]]]]><![CDATA[>/g')
+          # Generate a unique delimiter to avoid collision with message content
+          DELIMITER="EOF_$(uuidgen | tr -d '-')"
+          echo "message<<${DELIMITER}" >> $GITHUB_OUTPUT
+          echo "$TAG_MESSAGE" >> $GITHUB_OUTPUT
+          echo "${DELIMITER}" >> $GITHUB_OUTPUT
+
       - name: Generate Sparkle Appcast
+        env:
+          RELEASE_NOTES: ${{ steps.tag_message.outputs.message }}
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           BUILD_NUM="${{ steps.build_number.outputs.build_num }}"
@@ -138,7 +159,9 @@ jobs:
             ENCLOSURE="<enclosure url=\"${DMG_URL}\" length=\"${DMG_SIZE}\" type=\"application/octet-stream\" />"
           fi
 
-          cat > appcast.xml << EOF
+          # Generate unique delimiter to avoid collision with release notes content
+          APPCAST_DELIMITER="APPCAST_EOF_$(uuidgen | tr -d '-')"
+          cat > appcast.xml << ${APPCAST_DELIMITER}
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
             <channel>
@@ -153,11 +176,11 @@ jobs:
                 <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
                 <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
                 ${ENCLOSURE}
-                <description><![CDATA[<p>Latest release of ScreenTranslate</p>]]></description>
+                <description><![CDATA[${RELEASE_NOTES}]]></description>
               </item>
             </channel>
           </rss>
-          EOF
+          ${APPCAST_DELIMITER}
           
           echo "Generated appcast.xml:"
           cat appcast.xml

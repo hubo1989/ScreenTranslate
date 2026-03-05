@@ -235,7 +235,9 @@ final class PreviewWindow: NSPanel {
             if viewModel.isCropMode && viewModel.cropRect != nil {
                 viewModel.applyCrop()
             } else {
-                viewModel.saveScreenshot()
+                // Match the Confirm button behavior: copy to clipboard and dismiss
+                viewModel.copyToClipboard()
+                viewModel.dismiss()
             }
         }
         return true
