@@ -127,13 +127,23 @@
 
 /* Toolbar Tooltips */
 "preview.tooltip.crop" = "Crop (C)";
+"preview.tooltip.pin" = "Pin to Screen (P)";
 "preview.tooltip.undo" = "Undo (⌘Z)";
 "preview.tooltip.redo" = "Redo (⌘⇧Z)";
 "preview.tooltip.copy" = "Copy to Clipboard (⌘C)";
-"preview.tooltip.save" = "Save (⌘S or Enter)";
+"preview.tooltip.save" = "Save (⌘S)";
 "preview.tooltip.ocr" = "Recognize Text (OCR)";
+"preview.tooltip.confirm" = "Copy to Clipboard and Close (Enter)";
 "preview.tooltip.dismiss" = "Dismiss (Escape)";
 "preview.tooltip.delete" = "Delete selected annotation";
+
+/* Accessibility Labels */
+"preview.accessibility.save" = "Save screenshot";
+"preview.accessibility.saving" = "Saving screenshot";
+"preview.accessibility.confirm" = "Confirm and copy to clipboard";
+"preview.accessibility.copying" = "Copying to clipboard";
+"preview.accessibility.hint.commandS" = "Command S";
+"preview.accessibility.hint.enter" = "Enter key";
 
 /* Shape Toggle */
 "preview.shape.filled" = "Filled";
@@ -150,7 +160,10 @@
 "tool.text" = "Text";
 "tool.arrow" = "Arrow";
 "tool.ellipse" = "Ellipse";
+"tool.line" = "Line";
 "tool.highlight" = "Highlight";
+"tool.mosaic" = "Mosaic";
+"tool.numberLabel" = "Number Label";
 
 
 /* ========================================
@@ -191,6 +204,7 @@
 "button.reset" = "Reset";
 "button.save" = "Save";
 "button.delete" = "Delete";
+"button.confirm" = "Confirm";
 
 /* Save Success */
 "save.success.title" = "Saved Successfully";
@@ -275,6 +289,7 @@
 "settings.stroke.color" = "Stroke Color";
 "settings.stroke.width" = "Stroke Width";
 "settings.text.size" = "Text Size";
+"settings.mosaic.blockSize" = "Mosaic Block Size";
 
 /* Engines */
 "settings.ocr.engine" = "OCR Engine";
@@ -594,14 +609,8 @@
 "settings.paddleocr.useCloud" = "Use Cloud API";
 "settings.paddleocr.cloudBaseURL" = "Cloud API URL";
 "settings.paddleocr.cloudAPIKey" = "API Key";
-"settings.paddleocr.useMLXVLM" = "Use MLX-VLM (Apple Silicon)";
-"settings.paddleocr.mlxVLMServerURL" = "MLX-VLM Server URL";
-"settings.paddleocr.mlxVLMModelName" = "Model Name";
-"settings.paddleocr.mlxVLMStatus" = "Server Status";
-"settings.paddleocr.mlxVLMChecking" = "Checking...";
-"settings.paddleocr.mlxVLMRunning" = "Running";
-"settings.paddleocr.mlxVLMNotRunning" = "Not Running";
-"settings.paddleocr.localVLModelDir" = "Local Model Directory";
+"settings.paddleocr.cloudModelId" = "Model ID";
+"settings.paddleocr.localVLModelDir" = "Local Model Directory (vllm)";
 "settings.paddleocr.localVLModelDir.hint" = "Path to local PaddleOCR-VL model (e.g. ~/.paddlex/official_models/PaddleOCR-VL-1.5)";
 "error.paddleocr.notInstalled" = "PaddleOCR is not installed. Install it using: pip3 install paddleocr paddlepaddle";
 
@@ -774,6 +783,7 @@
 "engine.compatible.requireApiKey" = "Requires API Key";
 "engine.compatible.add" = "Add Compatible Engine";
 "engine.compatible.delete" = "Delete this engine";
+"engine.compatible.useAsEngine" = "Use as translation engine";
 "engine.compatible.max.reached" = "Maximum 5 compatible engines reached";
 
 /* Prompt Configuration */

@@ -1,9 +1,14 @@
 import SwiftUI
 import AppKit
+import CoreImage
 
 /// SwiftUI Canvas view for drawing and displaying annotations.
 /// Renders existing annotations and in-progress drawing.
 struct AnnotationCanvas: View {
+    // MARK: - Shared CIContext for performance
+    
+    private static let sharedCIContext = CIContext()
+    
     // MARK: - Properties
 
     /// The annotations to display
@@ -20,6 +25,9 @@ struct AnnotationCanvas: View {
 
     /// Index of the selected annotation (nil = none selected)
     var selectedIndex: Int?
+
+    /// The original image for mosaic effect
+    var sourceImage: CGImage?
 
     // MARK: - Body
 
@@ -52,31 +60,51 @@ struct AnnotationCanvas: View {
             return "No annotations"
         }
 
-        let rectangleCount = annotations.filter {
-            if case .rectangle = $0 { return true }
-            return false
-        }.count
-
-        let freehandCount = annotations.filter {
-            if case .freehand = $0 { return true }
-            return false
-        }.count
-
-        let textCount = annotations.filter {
-            if case .text = $0 { return true }
-            return false
-        }.count
-
         var parts: [String] = []
-        if rectangleCount > 0 {
-            parts.append("\(rectangleCount) rectangle\(rectangleCount == 1 ? "" : "s")")
+
+        // Count each annotation type
+        var rectangleCount = 0, freehandCount = 0, arrowCount = 0, textCount = 0
+        var ellipseCount = 0, lineCount = 0, mosaicCount = 0, highlightCount = 0, numberLabelCount = 0
+
+        // Count from existing annotations
+        for annotation in annotations {
+            switch annotation {
+            case .rectangle: rectangleCount += 1
+            case .freehand: freehandCount += 1
+            case .arrow: arrowCount += 1
+            case .text: textCount += 1
+            case .ellipse: ellipseCount += 1
+            case .line: lineCount += 1
+            case .mosaic: mosaicCount += 1
+            case .highlight: highlightCount += 1
+            case .numberLabel: numberLabelCount += 1
+            }
         }
-        if freehandCount > 0 {
-            parts.append("\(freehandCount) drawing\(freehandCount == 1 ? "" : "s")")
+        
+        // Also count currentAnnotation if present
+        if let current = currentAnnotation {
+            switch current {
+            case .rectangle: rectangleCount += 1
+            case .freehand: freehandCount += 1
+            case .arrow: arrowCount += 1
+            case .text: textCount += 1
+            case .ellipse: ellipseCount += 1
+            case .line: lineCount += 1
+            case .mosaic: mosaicCount += 1
+            case .highlight: highlightCount += 1
+            case .numberLabel: numberLabelCount += 1
+            }
         }
-        if textCount > 0 {
-            parts.append("\(textCount) text\(textCount == 1 ? "" : "s")")
-        }
+
+        if rectangleCount > 0 { parts.append("\(rectangleCount) rectangle\(rectangleCount == 1 ? "" : "s")") }
+        if ellipseCount > 0 { parts.append("\(ellipseCount) ellipse\(ellipseCount == 1 ? "" : "s")") }
+        if lineCount > 0 { parts.append("\(lineCount) line\(lineCount == 1 ? "" : "s")") }
+        if arrowCount > 0 { parts.append("\(arrowCount) arrow\(arrowCount == 1 ? "" : "s")") }
+        if freehandCount > 0 { parts.append("\(freehandCount) drawing\(freehandCount == 1 ? "" : "s")") }
+        if highlightCount > 0 { parts.append("\(highlightCount) highlight\(highlightCount == 1 ? "" : "s")") }
+        if mosaicCount > 0 { parts.append("\(mosaicCount) mosaic\(mosaicCount == 1 ? "" : "s")") }
+        if textCount > 0 { parts.append("\(textCount) text\(textCount == 1 ? "" : "s")") }
+        if numberLabelCount > 0 { parts.append("\(numberLabelCount) number label\(numberLabelCount == 1 ? "" : "s")") }
 
         return "Annotations: \(parts.joined(separator: ", "))"
     }
@@ -92,12 +120,22 @@ struct AnnotationCanvas: View {
         switch annotation {
         case .rectangle(let rect):
             drawRectangle(rect, in: &context, size: size)
+        case .ellipse(let ellipse):
+            drawEllipse(ellipse, in: &context, size: size)
+        case .line(let line):
+            drawLine(line, in: &context, size: size)
         case .freehand(let freehand):
             drawFreehand(freehand, in: &context, size: size)
         case .arrow(let arrow):
             drawArrow(arrow, in: &context, size: size)
+        case .highlight(let highlight):
+            drawHighlight(highlight, in: &context, size: size)
+        case .mosaic(let mosaic):
+            drawMosaic(mosaic, in: &context, size: size)
         case .text(let text):
             drawText(text, in: &context, size: size)
+        case .numberLabel(let label):
+            drawNumberLabel(label, in: &context, size: size)
         }
     }
 
@@ -229,6 +267,186 @@ struct AnnotationCanvas: View {
             context.resolve(text),
             at: scaledPoint,
             anchor: .topLeading
+        )
+    }
+
+    /// Draws an ellipse annotation
+    private func drawEllipse(
+        _ annotation: EllipseAnnotation,
+        in context: inout GraphicsContext,
+        size: CGSize
+    ) {
+        let scaledRect = scaleRect(annotation.rect)
+        let path = Path(ellipseIn: scaledRect)
+        
+        if annotation.isFilled {
+            // Filled ellipse - solid color to hide underlying content
+            context.fill(
+                path,
+                with: .color(annotation.style.color.color)
+            )
+        } else {
+            // Hollow ellipse - outline only
+            context.stroke(
+                path,
+                with: .color(annotation.style.color.color),
+                lineWidth: annotation.style.lineWidth * scale
+            )
+        }
+    }
+
+    /// Draws a line annotation
+    private func drawLine(
+        _ annotation: LineAnnotation,
+        in context: inout GraphicsContext,
+        size: CGSize
+    ) {
+        let scaledStart = scalePoint(annotation.startPoint)
+        let scaledEnd = scalePoint(annotation.endPoint)
+
+        var path = Path()
+        path.move(to: scaledStart)
+        path.addLine(to: scaledEnd)
+
+        context.stroke(
+            path,
+            with: .color(annotation.style.color.color),
+            lineWidth: annotation.style.lineWidth * scale
+        )
+    }
+
+    /// Draws a highlight annotation
+    private func drawHighlight(
+        _ annotation: HighlightAnnotation,
+        in context: inout GraphicsContext,
+        size: CGSize
+    ) {
+        let scaledRect = scaleRect(annotation.rect)
+        let path = Path(scaledRect)
+        context.fill(
+            path,
+            with: .color(annotation.color.color.opacity(annotation.opacity))
+        )
+    }
+
+    /// Draws a mosaic annotation (pixelation effect)
+    private func drawMosaic(
+        _ annotation: MosaicAnnotation,
+        in context: inout GraphicsContext,
+        size: CGSize
+    ) {
+        let scaledRect = scaleRect(annotation.rect)
+        // Use blockSize directly, with small minimum to ensure visibility
+        let blockSize: CGFloat = max(2, CGFloat(annotation.blockSize) * scale)
+
+        // If we have source image, do real pixelation
+        if let cgImage = sourceImage {
+            let imageWidth = CGFloat(cgImage.width)
+            let imageHeight = CGFloat(cgImage.height)
+
+            // Convert scaled rect back to image coordinates
+            let imageRect = CGRect(
+                x: scaledRect.origin.x / scale,
+                y: scaledRect.origin.y / scale,
+                width: scaledRect.size.width / scale,
+                height: scaledRect.size.height / scale
+            )
+
+            // Create pixelated version by drawing scaled down then scaled up
+            if let pixelatedCI = createPixelatedImage(
+                from: cgImage,
+                rect: imageRect,
+                blockSize: blockSize / scale,
+                canvasSize: CGSize(width: imageWidth, height: imageHeight)
+            ) {
+                if let outputImage = Self.sharedCIContext.createCGImage(pixelatedCI, from: pixelatedCI.extent) {
+                    let nsImage = NSImage(cgImage: outputImage, size: NSSize(width: imageWidth, height: imageHeight))
+                    context.draw(Image(nsImage: nsImage), in: scaledRect)
+                    return
+                }
+            }
+        }
+
+        // Fallback: draw colored blocks (improved version)
+        var x = scaledRect.origin.x
+        while x < scaledRect.origin.x + scaledRect.size.width {
+            var y = scaledRect.origin.y
+            while y < scaledRect.origin.y + scaledRect.size.height {
+                let blockRect = CGRect(
+                    x: x,
+                    y: y,
+                    width: min(blockSize, scaledRect.origin.x + scaledRect.size.width - x),
+                    height: min(blockSize, scaledRect.origin.y + scaledRect.size.height - y)
+                )
+                let path = Path(blockRect)
+                // Alternate colors for checkerboard pattern
+                let isEven = Int(x / blockSize).isMultiple(of: 2) == Int(y / blockSize).isMultiple(of: 2)
+                context.fill(path, with: .color(isEven ? .gray.opacity(0.6) : .gray.opacity(0.4)))
+                y += blockSize
+            }
+            x += blockSize
+        }
+    }
+
+    /// Creates a pixelated CIImage from the source image in the specified rect
+    private func createPixelatedImage(
+        from cgImage: CGImage,
+        rect: CGRect,
+        blockSize: CGFloat,
+        canvasSize: CGSize
+    ) -> CIImage? {
+        let ciImage = CIImage(cgImage: cgImage)
+
+        // Apply pixelation using CIPixellate filter
+        guard let pixellateFilter = CIFilter(name: "CIPixellate") else {
+            print("[Mosaic] Warning: CIPixellate filter not available, falling back to gray block")
+            return nil
+        }
+        pixellateFilter.setValue(ciImage, forKey: kCIInputImageKey)
+        pixellateFilter.setValue(max(1, blockSize), forKey: kCIInputScaleKey)
+
+        guard let outputImage = pixellateFilter.outputImage else {
+            print("[Mosaic] Warning: Pixellation failed, falling back to gray block")
+            return nil
+        }
+
+        return outputImage.cropped(to: CGRect(
+            x: rect.origin.x,
+            y: canvasSize.height - rect.origin.y - rect.size.height,
+            width: rect.size.width,
+            height: rect.size.height
+        ))
+    }
+
+    /// Draws a number label annotation
+    private func drawNumberLabel(
+        _ annotation: NumberLabelAnnotation,
+        in context: inout GraphicsContext,
+        size: CGSize
+    ) {
+        let scaledPoint = scalePoint(annotation.position)
+        let scaledSize = annotation.size * scale
+        let scaledRadius = scaledSize / 2
+
+        // Draw circle background
+        let circleRect = CGRect(
+            x: scaledPoint.x - scaledRadius,
+            y: scaledPoint.y - scaledRadius,
+            width: scaledRadius * 2,
+            height: scaledRadius * 2
+        )
+        let circlePath = Path(ellipseIn: circleRect)
+        context.fill(circlePath, with: .color(annotation.color.color))
+
+        // Draw number text
+        let text = Text("\(annotation.number)")
+            .font(.system(size: scaledRadius * 1.2, weight: .bold))
+            .foregroundColor(.white)
+
+        context.draw(
+            context.resolve(text),
+            at: scaledPoint,
+            anchor: .center
         )
     }
 

@@ -2,12 +2,17 @@ import Foundation
 import CoreGraphics
 
 /// A drawing element placed on a screenshot.
-/// Supports rectangle, freehand, arrow, and text annotation types.
+/// Supports rectangle, freehand, arrow, text, ellipse, line, mosaic, highlight, and numberLabel annotation types.
 enum Annotation: Identifiable, Equatable, Sendable {
     case rectangle(RectangleAnnotation)
     case freehand(FreehandAnnotation)
     case arrow(ArrowAnnotation)
     case text(TextAnnotation)
+    case ellipse(EllipseAnnotation)
+    case line(LineAnnotation)
+    case mosaic(MosaicAnnotation)
+    case highlight(HighlightAnnotation)
+    case numberLabel(NumberLabelAnnotation)
 
     /// Unique identifier for this annotation
     var id: UUID {
@@ -19,6 +24,16 @@ enum Annotation: Identifiable, Equatable, Sendable {
         case .arrow(let annotation):
             return annotation.id
         case .text(let annotation):
+            return annotation.id
+        case .ellipse(let annotation):
+            return annotation.id
+        case .line(let annotation):
+            return annotation.id
+        case .mosaic(let annotation):
+            return annotation.id
+        case .highlight(let annotation):
+            return annotation.id
+        case .numberLabel(let annotation):
             return annotation.id
         }
     }
@@ -33,6 +48,16 @@ enum Annotation: Identifiable, Equatable, Sendable {
         case .arrow(let annotation):
             return annotation.bounds
         case .text(let annotation):
+            return annotation.bounds
+        case .ellipse(let annotation):
+            return annotation.rect
+        case .line(let annotation):
+            return annotation.bounds
+        case .mosaic(let annotation):
+            return annotation.rect
+        case .highlight(let annotation):
+            return annotation.rect
+        case .numberLabel(let annotation):
             return annotation.bounds
         }
     }
@@ -200,6 +225,175 @@ struct TextAnnotation: Identifiable, Equatable, Sendable {
     }
 }
 
+// MARK: - Ellipse Annotation
+
+/// An ellipse annotation with position, size, and stroke style.
+struct EllipseAnnotation: Identifiable, Equatable, Sendable {
+    /// Unique identifier
+    let id: UUID
+
+    /// Position and size in image coordinates
+    var rect: CGRect
+
+    /// Stroke color and line width
+    var style: StrokeStyle
+
+    /// Whether the ellipse is filled (solid) or hollow (outline only)
+    var isFilled: Bool
+
+    init(id: UUID = UUID(), rect: CGRect, style: StrokeStyle = .default, isFilled: Bool = false) {
+        self.id = id
+        self.rect = rect
+        self.style = style
+        self.isFilled = isFilled
+    }
+
+    /// Whether this annotation has meaningful size
+    var isValid: Bool {
+        rect.width >= 5 && rect.height >= 5
+    }
+}
+
+// MARK: - Line Annotation
+
+/// A line annotation with start point, end point, and stroke style.
+struct LineAnnotation: Identifiable, Equatable, Sendable {
+    /// Unique identifier
+    let id: UUID
+
+    /// Start point in image coordinates
+    var startPoint: CGPoint
+
+    /// End point in image coordinates
+    var endPoint: CGPoint
+
+    /// Stroke color and line width
+    var style: StrokeStyle
+
+    init(id: UUID = UUID(), startPoint: CGPoint, endPoint: CGPoint, style: StrokeStyle = .default) {
+        self.id = id
+        self.startPoint = startPoint
+        self.endPoint = endPoint
+        self.style = style
+    }
+
+    /// Whether this annotation has meaningful length
+    var isValid: Bool {
+        let dx = endPoint.x - startPoint.x
+        let dy = endPoint.y - startPoint.y
+        let length = sqrt(dx * dx + dy * dy)
+        return length >= 5
+    }
+
+    /// The bounding rectangle of the line
+    var bounds: CGRect {
+        let minX = min(startPoint.x, endPoint.x)
+        let minY = min(startPoint.y, endPoint.y)
+        let maxX = max(startPoint.x, endPoint.x)
+        let maxY = max(startPoint.y, endPoint.y)
+
+        let padding = style.lineWidth / 2
+        return CGRect(
+            x: minX - padding,
+            y: minY - padding,
+            width: maxX - minX + padding * 2,
+            height: maxY - minY + padding * 2
+        )
+    }
+}
+
+// MARK: - Mosaic Annotation
+
+/// A mosaic annotation that pixelates a region to hide sensitive content.
+struct MosaicAnnotation: Identifiable, Equatable, Sendable {
+    /// Unique identifier
+    let id: UUID
+
+    /// Position and size in image coordinates
+    var rect: CGRect
+
+    /// Block size for pixelation (8-32)
+    var blockSize: Int
+
+    init(id: UUID = UUID(), rect: CGRect, blockSize: Int = 10) {
+        self.id = id
+        self.rect = rect
+        self.blockSize = max(4, min(32, blockSize))
+    }
+
+    /// Whether this annotation has meaningful size
+    var isValid: Bool {
+        rect.width >= 10 && rect.height >= 10
+    }
+}
+
+// MARK: - Highlight Annotation
+
+/// A highlight annotation with semi-transparent background.
+struct HighlightAnnotation: Identifiable, Equatable, Sendable {
+    /// Unique identifier
+    let id: UUID
+
+    /// Position and size in image coordinates
+    var rect: CGRect
+
+    /// Highlight color
+    var color: CodableColor
+
+    /// Opacity (0.0 - 1.0)
+    var opacity: Double
+
+    init(id: UUID = UUID(), rect: CGRect, color: CodableColor = CodableColor(.yellow), opacity: Double = 0.4) {
+        self.id = id
+        self.rect = rect
+        self.color = color
+        self.opacity = max(0.1, min(0.8, opacity))
+    }
+
+    /// Whether this annotation has meaningful size
+    var isValid: Bool {
+        rect.width >= 5 && rect.height >= 5
+    }
+}
+
+// MARK: - Number Label Annotation
+
+/// A numbered label annotation (①②③...) for marking sequential items.
+struct NumberLabelAnnotation: Identifiable, Equatable, Sendable {
+    /// Unique identifier
+    let id: UUID
+
+    /// Center position in image coordinates
+    var position: CGPoint
+
+    /// The number to display
+    var number: Int
+
+    /// Circle size (diameter)
+    var size: CGFloat
+
+    /// Text color
+    var color: CodableColor
+
+    init(id: UUID = UUID(), position: CGPoint, number: Int, size: CGFloat = 24, color: CodableColor = CodableColor(.red)) {
+        self.id = id
+        self.position = position
+        self.number = max(1, number)
+        self.size = max(16, min(64, size))
+        self.color = color
+    }
+
+    /// The bounding rectangle centered at position
+    var bounds: CGRect {
+        CGRect(
+            x: position.x - size / 2,
+            y: position.y - size / 2,
+            width: size,
+            height: size
+        )
+    }
+}
+
 // MARK: - CGPoint Sendable Conformance
 
 extension CGPoint: @retroactive @unchecked Sendable {}
@@ -218,6 +412,16 @@ extension Annotation {
             return NSLocalizedString("tool.arrow", comment: "")
         case .text:
             return NSLocalizedString("tool.text", comment: "")
+        case .ellipse:
+            return NSLocalizedString("tool.ellipse", comment: "")
+        case .line:
+            return NSLocalizedString("tool.line", comment: "")
+        case .mosaic:
+            return NSLocalizedString("tool.mosaic", comment: "")
+        case .highlight:
+            return NSLocalizedString("tool.highlight", comment: "")
+        case .numberLabel:
+            return NSLocalizedString("tool.numberLabel", comment: "")
         }
     }
 }

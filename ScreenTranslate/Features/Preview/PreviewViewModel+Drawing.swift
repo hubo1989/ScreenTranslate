@@ -27,18 +27,31 @@ extension PreviewViewModel {
             rectangleTool.strokeStyle = strokeStyle
             rectangleTool.isFilled = settings.rectangleFilled
             rectangleTool.beginDrawing(at: point)
+        case .ellipse:
+            ellipseTool.strokeStyle = strokeStyle
+            ellipseTool.isFilled = settings.ellipseFilled
+            ellipseTool.beginDrawing(at: point)
+        case .line:
+            lineTool.strokeStyle = strokeStyle
+            lineTool.beginDrawing(at: point)
         case .freehand:
             freehandTool.strokeStyle = strokeStyle
             freehandTool.beginDrawing(at: point)
         case .arrow:
             arrowTool.strokeStyle = strokeStyle
             arrowTool.beginDrawing(at: point)
+        case .highlight:
+            highlightTool.beginDrawing(at: point)
+        case .mosaic:
+            mosaicTool.blockSize = Int(settings.mosaicBlockSize)
+            mosaicTool.beginDrawing(at: point)
         case .text:
             textTool.textStyle = textStyle
             textTool.beginDrawing(at: point)
-            // Update observable properties for text input UI
             isWaitingForTextInputInternal = true
             textInputPositionInternal = point
+        case .numberLabel:
+            numberLabelTool.beginDrawing(at: point)
         }
 
         updateCurrentAnnotation()
@@ -52,12 +65,22 @@ extension PreviewViewModel {
         switch selectedTool {
         case .rectangle:
             rectangleTool.continueDrawing(to: point)
+        case .ellipse:
+            ellipseTool.continueDrawing(to: point)
+        case .line:
+            lineTool.continueDrawing(to: point)
         case .freehand:
             freehandTool.continueDrawing(to: point)
         case .arrow:
             arrowTool.continueDrawing(to: point)
+        case .highlight:
+            highlightTool.continueDrawing(to: point)
+        case .mosaic:
+            mosaicTool.continueDrawing(to: point)
         case .text:
             textTool.continueDrawing(to: point)
+        case .numberLabel:
+            numberLabelTool.continueDrawing(to: point)
         }
 
         updateCurrentAnnotation()
@@ -73,15 +96,24 @@ extension PreviewViewModel {
         switch selectedTool {
         case .rectangle:
             annotation = rectangleTool.endDrawing(at: point)
+        case .ellipse:
+            annotation = ellipseTool.endDrawing(at: point)
+        case .line:
+            annotation = lineTool.endDrawing(at: point)
         case .freehand:
             annotation = freehandTool.endDrawing(at: point)
         case .arrow:
             annotation = arrowTool.endDrawing(at: point)
+        case .highlight:
+            annotation = highlightTool.endDrawing(at: point)
+        case .mosaic:
+            annotation = mosaicTool.endDrawing(at: point)
         case .text:
-            // Text tool doesn't finish on mouse up
             _ = textTool.endDrawing(at: point)
             updateCurrentAnnotation()
             return
+        case .numberLabel:
+            annotation = numberLabelTool.endDrawing(at: point)
         }
 
         currentAnnotationInternal = nil
@@ -95,9 +127,14 @@ extension PreviewViewModel {
     /// Cancels the current drawing operation
     func cancelCurrentDrawing() {
         rectangleTool.cancelDrawing()
+        ellipseTool.cancelDrawing()
+        lineTool.cancelDrawing()
         freehandTool.cancelDrawing()
         arrowTool.cancelDrawing()
+        highlightTool.cancelDrawing()
+        mosaicTool.cancelDrawing()
         textTool.cancelDrawing()
+        numberLabelTool.cancelDrawing()
         currentAnnotationInternal = nil
         isWaitingForTextInputInternal = false
         textInputPositionInternal = nil
@@ -112,10 +149,26 @@ extension PreviewViewModel {
 
     /// Commits the current text input and adds the annotation
     func commitTextInput() {
-        if let annotation = textTool.commitText() {
-            addAnnotation(annotation)
+        guard let position = textInputPositionInternal else { return }
+
+        let trimmedText = textInputContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedText.isEmpty else {
+            cancelCurrentDrawing()
+            return
         }
+
+        let textStyle = TextStyle(
+            color: settings.strokeColor,
+            fontSize: settings.textSize,
+            fontName: ".AppleSystemUIFont"
+        )
+        let annotation = Annotation.text(
+            TextAnnotation(position: position, content: trimmedText, style: textStyle)
+        )
+        addAnnotation(annotation)
+
         // Reset observable text input state
+        textInputContent = ""
         isWaitingForTextInputInternal = false
         textInputPositionInternal = nil
     }
@@ -177,12 +230,22 @@ extension PreviewViewModel {
         switch annotation {
         case .rectangle(let rect):
             dragOriginalPosition = rect.rect.origin
+        case .ellipse(let ellipse):
+            dragOriginalPosition = ellipse.rect.origin
+        case .line(let line):
+            dragOriginalPosition = line.bounds.origin
         case .freehand(let freehand):
             dragOriginalPosition = freehand.bounds.origin
         case .arrow(let arrow):
             dragOriginalPosition = arrow.bounds.origin
+        case .highlight(let highlight):
+            dragOriginalPosition = highlight.rect.origin
+        case .mosaic(let mosaic):
+            dragOriginalPosition = mosaic.rect.origin
         case .text(let text):
             dragOriginalPosition = text.position
+        case .numberLabel(let label):
+            dragOriginalPosition = label.position
         }
     }
 
@@ -210,8 +273,22 @@ extension PreviewViewModel {
             )
             updatedAnnotation = .rectangle(rect)
 
+        case .ellipse(var ellipse):
+            ellipse.rect.origin = CGPoint(
+                x: originalPosition.x + delta.x,
+                y: originalPosition.y + delta.y
+            )
+            updatedAnnotation = .ellipse(ellipse)
+
+        case .line(var line):
+            let bounds = line.bounds
+            let offsetX = originalPosition.x + delta.x - bounds.origin.x
+            let offsetY = originalPosition.y + delta.y - bounds.origin.y
+            line.startPoint = CGPoint(x: line.startPoint.x + offsetX, y: line.startPoint.y + offsetY)
+            line.endPoint = CGPoint(x: line.endPoint.x + offsetX, y: line.endPoint.y + offsetY)
+            updatedAnnotation = .line(line)
+
         case .freehand(var freehand):
-            // Move all points by the delta
             let bounds = freehand.bounds
             let offsetX = originalPosition.x + delta.x - bounds.origin.x
             let offsetY = originalPosition.y + delta.y - bounds.origin.y
@@ -221,7 +298,6 @@ extension PreviewViewModel {
             updatedAnnotation = .freehand(freehand)
 
         case .arrow(var arrow):
-            // Move both start and end points by the delta
             let bounds = arrow.bounds
             let offsetX = originalPosition.x + delta.x - bounds.origin.x
             let offsetY = originalPosition.y + delta.y - bounds.origin.y
@@ -235,12 +311,33 @@ extension PreviewViewModel {
             )
             updatedAnnotation = .arrow(arrow)
 
+        case .highlight(var highlight):
+            highlight.rect.origin = CGPoint(
+                x: originalPosition.x + delta.x,
+                y: originalPosition.y + delta.y
+            )
+            updatedAnnotation = .highlight(highlight)
+
+        case .mosaic(var mosaic):
+            mosaic.rect.origin = CGPoint(
+                x: originalPosition.x + delta.x,
+                y: originalPosition.y + delta.y
+            )
+            updatedAnnotation = .mosaic(mosaic)
+
         case .text(var text):
             text.position = CGPoint(
                 x: originalPosition.x + delta.x,
                 y: originalPosition.y + delta.y
             )
             updatedAnnotation = .text(text)
+
+        case .numberLabel(var label):
+            label.position = CGPoint(
+                x: originalPosition.x + delta.x,
+                y: originalPosition.y + delta.y
+            )
+            updatedAnnotation = .numberLabel(label)
         }
 
         if let updated = updatedAnnotation {
@@ -271,6 +368,14 @@ extension PreviewViewModel {
             rect.style.color = color
             updatedAnnotation = .rectangle(rect)
 
+        case .ellipse(var ellipse):
+            ellipse.style.color = color
+            updatedAnnotation = .ellipse(ellipse)
+
+        case .line(var line):
+            line.style.color = color
+            updatedAnnotation = .line(line)
+
         case .freehand(var freehand):
             freehand.style.color = color
             updatedAnnotation = .freehand(freehand)
@@ -279,9 +384,20 @@ extension PreviewViewModel {
             arrow.style.color = color
             updatedAnnotation = .arrow(arrow)
 
+        case .highlight(var highlight):
+            highlight.color = color
+            updatedAnnotation = .highlight(highlight)
+
+        case .mosaic:
+            return
+
         case .text(var text):
             text.style.color = color
             updatedAnnotation = .text(text)
+
+        case .numberLabel(var label):
+            label.color = color
+            updatedAnnotation = .numberLabel(label)
         }
 
         if let updated = updatedAnnotation {
@@ -290,7 +406,7 @@ extension PreviewViewModel {
         }
     }
 
-    /// Updates the stroke width of the selected annotation (rectangle/freehand/arrow)
+    /// Updates the stroke width of the selected annotation
     func updateSelectedAnnotationStrokeWidth(_ width: CGFloat) {
         guard let index = selectedAnnotationIndex,
               index < annotations.count else { return }
@@ -304,6 +420,14 @@ extension PreviewViewModel {
             rect.style.lineWidth = width
             updatedAnnotation = .rectangle(rect)
 
+        case .ellipse(var ellipse):
+            ellipse.style.lineWidth = width
+            updatedAnnotation = .ellipse(ellipse)
+
+        case .line(var line):
+            line.style.lineWidth = width
+            updatedAnnotation = .line(line)
+
         case .freehand(var freehand):
             freehand.style.lineWidth = width
             updatedAnnotation = .freehand(freehand)
@@ -312,8 +436,7 @@ extension PreviewViewModel {
             arrow.style.lineWidth = width
             updatedAnnotation = .arrow(arrow)
 
-        case .text:
-            // Text doesn't have stroke width
+        case .highlight, .mosaic, .text, .numberLabel:
             return
         }
 
@@ -337,17 +460,53 @@ extension PreviewViewModel {
         redoStack.removeAll()
     }
 
-    /// Updates the isFilled state of the selected rectangle annotation
+    /// Updates the isFilled state of the selected rectangle or ellipse annotation
     func updateSelectedAnnotationFilled(_ isFilled: Bool) {
         guard let index = selectedAnnotationIndex,
               index < annotations.count else { return }
 
         let annotation = annotations[index]
-        guard case .rectangle(var rect) = annotation else { return }
+        
+        // Check if the fill state is actually changing
+        let shouldUpdate: Bool
+        if case .rectangle(let rect) = annotation {
+            shouldUpdate = rect.isFilled != isFilled
+        } else if case .ellipse(let ellipse) = annotation {
+            shouldUpdate = ellipse.isFilled != isFilled
+        } else {
+            return
+        }
+        
+        guard shouldUpdate else { return }
+        
+        pushUndoState()
+        
+        if case .rectangle(var rect) = annotation {
+            rect.isFilled = isFilled
+            screenshot = screenshot.replacingAnnotation(at: index, with: .rectangle(rect))
+        } else if case .ellipse(var ellipse) = annotation {
+            ellipse.isFilled = isFilled
+            screenshot = screenshot.replacingAnnotation(at: index, with: .ellipse(ellipse))
+        }
+        
+        redoStack.removeAll()
+    }
+
+    /// Updates the block size of the selected mosaic annotation
+    func updateSelectedAnnotationBlockSize(_ blockSize: Int) {
+        guard let index = selectedAnnotationIndex,
+              index < annotations.count else { return }
+
+        let annotation = annotations[index]
+        guard case .mosaic(var mosaic) = annotation else { return }
+
+        // Enforce minimum block size of 1 to prevent rendering errors
+        let clampedBlockSize = max(1, blockSize)
+        guard mosaic.blockSize != clampedBlockSize else { return }
 
         pushUndoState()
-        rect.isFilled = isFilled
-        screenshot = screenshot.replacingAnnotation(at: index, with: .rectangle(rect))
+        mosaic.blockSize = clampedBlockSize
+        screenshot = screenshot.replacingAnnotation(at: index, with: .mosaic(mosaic))
         redoStack.removeAll()
     }
 }

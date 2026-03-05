@@ -90,6 +90,27 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         return vlmResponse.toScreenAnalysisResult(imageSize: imageSize)
     }
 
+    /// Detects if the provider is using a local endpoint (for lower max_tokens)
+    private var isLocalEndpoint: Bool {
+        let host = configuration.baseURL.host ?? ""
+        // IPv6 loopback
+        if host == "::1" { return true }
+        // IPv4 loopback
+        if host == "localhost" || host == "127.0.0.1" { return true }
+        // Private ranges: 10.x.x.x
+        if host.hasPrefix("10.") { return true }
+        // Private ranges: 192.168.x.x
+        if host.hasPrefix("192.168.") { return true }
+        // Private ranges: 172.16.x.x - 172.31.x.x
+        if host.hasPrefix("172.") {
+            let parts = host.split(separator: ".")
+            if parts.count >= 2, let second = Int(parts[1]), second >= 16, second <= 31 {
+                return true
+            }
+        }
+        return false
+    }
+
     /// Performs analysis with automatic continuation on truncation
     private func analyzeWithContinuation(
         base64Image: String,
@@ -97,6 +118,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         maxAttempts: Int
     ) async throws -> VLMAnalysisResponse {
         var allSegments: [VLMTextSegment] = []
+
         var conversationMessages: [OpenAIChatMessage] = [
             OpenAIChatMessage(
                 role: "system",
@@ -125,13 +147,27 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             // Try to parse this response
             do {
                 let response = try parseVLMContent(content)
-                allSegments.append(contentsOf: response.segments)
-                print("[OpenAI] Parsed \(response.segments.count) segments from this response")
+
+                // For continuation requests, filter out duplicates from the beginning
+                // LLM often repeats some segments when continuing
+                let newSegments: [VLMTextSegment]
+                if attempt > 0 {
+                    newSegments = filterDuplicateSegments(
+                        existing: allSegments,
+                        new: response.segments
+                    )
+                } else {
+                    newSegments = response.segments
+                }
+
+                allSegments.append(contentsOf: newSegments)
+                print("[OpenAI] Parsed \(response.segments.count) segments, added \(newSegments.count) new (attempt \(attempt + 1))")
 
                 if !isTruncated {
-                    // Complete - return merged result
-                    print("[OpenAI] Complete response received, total \(allSegments.count) segments")
-                    return VLMAnalysisResponse(segments: allSegments)
+                    // Complete - return merged result with deduplication
+                    let deduplicated = deduplicateSegments(allSegments)
+                    print("[OpenAI] Complete response received, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
+                    return VLMAnalysisResponse(segments: deduplicated)
                 }
             } catch {
                 print("[OpenAI] Parse error on attempt \(attempt + 1): \(error)")
@@ -139,8 +175,13 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 // Try partial parsing for truncated response
                 if isTruncated {
                     if let partial = try? parsePartialVLMContent(content) {
-                        allSegments.append(contentsOf: partial.segments)
-                        print("[OpenAI] Partial parse recovered \(partial.segments.count) segments")
+                        // Filter duplicates for partial parse too
+                        let newSegments = filterDuplicateSegments(
+                            existing: allSegments,
+                            new: partial.segments
+                        )
+                        allSegments.append(contentsOf: newSegments)
+                        print("[OpenAI] Partial parse recovered \(partial.segments.count) segments, added \(newSegments.count) new")
                     }
                 }
 
@@ -159,15 +200,33 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 content: .text(content)
             ))
 
-            // Request continuation - ask for complete output this time
+            // Request continuation - ask for remaining segments only
             conversationMessages.append(OpenAIChatMessage(
                 role: "user",
-                content: .text("Continue from where you left off. Return ONLY the complete JSON array of remaining segments. Do not repeat segments already returned.")
+                content: .text("Continue with the remaining segments only. Do not repeat any segments you've already provided.")
             ))
         }
 
-        print("[OpenAI] Max continuation attempts reached, returning \(allSegments.count) accumulated segments")
-        return VLMAnalysisResponse(segments: allSegments)
+        // Final deduplication before returning
+        let deduplicated = deduplicateSegments(allSegments)
+        print("[OpenAI] Max continuation attempts reached, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
+        return VLMAnalysisResponse(segments: deduplicated)
+    }
+
+    /// Filters out segments from new array that already exist in existing array
+    private func filterDuplicateSegments(
+        existing: [VLMTextSegment],
+        new: [VLMTextSegment]
+    ) -> [VLMTextSegment] {
+        VLMTextDeduplicator.filterDuplicates(existing: existing, new: new)
+    }
+
+    /// Removes duplicate segments from the final result
+    private func deduplicateSegments(_ segments: [VLMTextSegment]) -> [VLMTextSegment] {
+        VLMTextDeduplicator.deduplicate(segments) { length, count, threshold in
+            // Log only safe statistics, not plaintext content
+            print("[OpenAI] Detected overrepresented text: length=\(length), count=\(count), threshold=\(threshold)")
+        }
     }
 
     /// Extracts content text and truncation status from OpenAI response
@@ -296,8 +355,13 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         request.setValue("Bearer \(configuration.apiKey)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = timeout
 
-        // Use higher max_tokens for continuation requests
-        let maxTokens = isContinuation ? 16384 : 8192
+        // Use lower max_tokens for local models (they're slower and don't need as many)
+        let maxTokens: Int
+        if isLocalEndpoint {
+            maxTokens = isContinuation ? 2048 : 1024
+        } else {
+            maxTokens = isContinuation ? 16384 : 8192
+        }
 
         let requestBody = OpenAIChatRequest(
             model: configuration.modelName,
@@ -432,6 +496,13 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             let response = try JSONDecoder().decode(VLMAnalysisResponse.self, from: jsonData)
             return response
         } catch {
+            // JSON parsing failed - try to handle plain text response from local models
+            print("[OpenAI] JSON parsing failed, attempting plain text fallback...")
+            if let plainTextResponse = parsePlainTextResponse(content) {
+                print("[OpenAI] Successfully parsed plain text response with \(plainTextResponse.segments.count) segments")
+                return plainTextResponse
+            }
+
             if wasTruncated {
                 throw VLMProviderError.invalidResponse("Response was truncated due to token limit. Try selecting a smaller area or using a model with larger context window.")
             }
@@ -439,6 +510,45 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 "Failed to parse VLM response JSON: \(error.localizedDescription). Content: \(cleanedContent.prefix(200))..."
             )
         }
+    }
+
+    /// Parses plain text response (one text per line) from local models
+    private func parsePlainTextResponse(_ content: String) -> VLMAnalysisResponse? {
+        let rawLines = content
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+
+        // Filter out structural/noise lines
+        let lines = rawLines.filter { line in
+            guard !line.isEmpty else { return false }
+            // Skip code fence markers
+            if line == "```" || line == "`" || line.hasPrefix("```") { return false }
+            // Skip lone JSON structural tokens
+            if ["{", "}", "[", "]", "{ }", "[ ]"].contains(line) { return false }
+            // Skip JSON field names (quoted identifiers)
+            let metadataPatterns = ["\"segments\"", "\"boundingBox\"", "\"text\"", "\"confidence\"", "\"x\"", "\"y\"", "\"width\"", "\"height\""]
+            if metadataPatterns.contains(where: { line.contains($0) }) { return false }
+            return true
+        }
+
+        guard !lines.isEmpty else { return nil }
+
+        // Convert each line to a segment with placeholder bounding box
+        let segments = lines.enumerated().map { (index, text) in
+            VLMTextSegment(
+                text: text,
+                boundingBox: VLMBoundingBox(
+                    x: 0.0,
+                    y: CGFloat(index) / CGFloat(max(lines.count, 1)),
+                    width: 1.0,
+                    height: 1.0 / CGFloat(max(lines.count, 1))
+                ),
+                confidence: nil  // Unknown confidence for plain text fallback
+            )
+        }
+
+        return VLMAnalysisResponse(segments: segments)
     }
 
     /// Attempts to parse partial/truncated VLM content by extracting valid JSON segments

@@ -235,7 +235,9 @@ final class PreviewWindow: NSPanel {
             if viewModel.isCropMode && viewModel.cropRect != nil {
                 viewModel.applyCrop()
             } else {
-                viewModel.saveScreenshot()
+                // Match the Confirm button behavior: copy to clipboard and dismiss
+                viewModel.copyToClipboard()
+                viewModel.dismiss()
             }
         }
         return true
@@ -279,16 +281,34 @@ final class PreviewWindow: NSPanel {
         case "r":
             Task { @MainActor in toggleTool(.rectangle) }
             return true
+        case "o":
+            Task { @MainActor in toggleTool(.ellipse) }
+            return true
+        case "l":
+            Task { @MainActor in toggleTool(.line) }
+            return true
         case "d":
             Task { @MainActor in toggleTool(.freehand) }
             return true
         case "a":
             Task { @MainActor in toggleTool(.arrow) }
             return true
+        case "h":
+            Task { @MainActor in toggleTool(.highlight) }
+            return true
+        case "m":
+            Task { @MainActor in toggleTool(.mosaic) }
+            return true
         case "t":
             Task { @MainActor in toggleTool(.text) }
             return true
-        case "1", "2", "3", "4":
+        case "n":
+            Task { @MainActor in toggleTool(.numberLabel) }
+            return true
+        case "p":
+            Task { @MainActor in viewModel.pinScreenshot() }
+            return true
+        case "1", "2", "3", "4", "5", "6", "7", "8", "9":
             if let digit = Int(String(char)) {
                 let toolIndex = digit - 1
                 let tools = AnnotationToolType.allCases
