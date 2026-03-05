@@ -89,3 +89,6 @@ release/
 
 # Ralph TUI session data
 .ralph-tui/
+
+# OMD session data
+.omd/
