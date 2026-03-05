@@ -1,0 +1,815 @@
+/*
+  Localizable.strings (日本語)
+  ScreenTranslate
+*/
+
+/* ========================================
+   エラーメッセージ
+   ======================================== */
+
+/* 権限エラー */
+"error.permission.denied" = "スクリーンショットを撮影するにはスクリーン録画の権限が必要です。";
+"error.permission.denied.recovery" = "システム設定を開いて権限を許可してください。";
+
+/* ディスプレイエラー */
+"error.display.not.found" = "選択したディスプレイは利用できません。";
+"error.display.not.found.recovery" = "別のディスプレイを選択してください。";
+"error.display.disconnected" = "キャプチャ中にディスプレイ '%@' の接続が切断されました。";
+"error.display.disconnected.recovery" = "ディスプレイを再接続してから再試行してください。";
+
+/* キャプチャエラー */
+"error.capture.failed" = "スクリーンショットのキャプチャに失敗しました。";
+"error.capture.failed.recovery" = "もう一度お試しください。";
+
+/* 保存エラー */
+"error.save.location.invalid" = "保存場所にアクセスできません。";
+"error.save.location.invalid.recovery" = "設定で別の保存場所を選択してください。";
+"error.save.location.invalid.detail" = "%@ に保存できません。この場所にはアクセスできません。";
+"error.save.unknown" = "保存中に不明なエラーが発生しました。";
+"error.disk.full" = "ディスクの空き容量が不足しているため、スクリーンショットを保存できません。";
+"error.disk.full.recovery" = "ディスクの容量を確保してから再試行してください。";
+
+/* エクスポートエラー */
+"error.export.encoding.failed" = "画像のエンコードに失敗しました。";
+"error.export.encoding.failed.recovery" = "設定で別のフォーマットをお試しください。";
+"error.export.encoding.failed.detail" = "画像を %@ フォーマットでエンコードできませんでした。";
+
+/* クリップボードエラー */
+"error.clipboard.write.failed" = "スクリーンショットをクリップボードにコピーできませんでした。";
+"error.clipboard.write.failed.recovery" = "もう一度お試しください。";
+
+/* ホットキーエラー */
+"error.hotkey.registration.failed" = "キーボードショートカットの登録に失敗しました。";
+"error.hotkey.registration.failed.recovery" = "このショートカットは他のアプリと競合している可能性があります。別のショートカットをお試しください。";
+"error.hotkey.conflict" = "このキーボードショートカットは他のアプリケーションと競合しています。";
+"error.hotkey.conflict.recovery" = "別のキーボードショートカットを選択してください。";
+
+/* OCR エラー */
+"error.ocr.failed" = "文字認識に失敗しました。";
+"error.ocr.failed.recovery" = "より鮮明な画像でもう一度お試しください。";
+"error.ocr.no.text" = "画像内でテキストが認識されませんでした。";
+"error.ocr.no.text.recovery" = "テキストが表示されている範囲をキャプチャしてお試しください。";
+"error.ocr.cancelled" = "文字認識がキャンセルされました。";
+"error.ocr.server.unreachable" = "OCR サーバーに接続できません。";
+"error.ocr.server.unreachable.recovery" = "サーバーアドレスとネットワーク接続を確認してください。";
+
+/* 翻訳エラー */
+"error.translation.in.progress" = "翻訳が進行中です";
+"error.translation.in.progress.recovery" = "現在の翻訳が完了するまでお待ちください";
+"error.translation.empty.input" = "翻訳するテキストがありません";
+"error.translation.empty.input.recovery" = "最初にテキストを選択してください";
+"error.translation.timeout" = "翻訳がタイムアウトしました";
+"error.translation.timeout.recovery" = "もう一度お試しください";
+"error.translation.unsupported.pair" = "%@ から %@ への翻訳はサポートされていません";
+"error.translation.unsupported.pair.recovery" = "別の言語を選択してください";
+"error.translation.failed" = "翻訳に失敗しました";
+"error.translation.failed.recovery" = "もう一度お試しください";
+"error.translation.language.not.installed" = "翻訳言語 '%@' がインストールされていません";
+"error.translation.language.download.instructions" = "システム設定 > 一般 > 言語と地域 > 翻訳言語 から、必要な言語をダウンロードしてください。";
+
+/* 一般的なエラー UI */
+"error.title" = "エラー";
+"error.ok" = "OK";
+"error.dismiss" = "閉じる";
+"error.retry.capture" = "再試行";
+"error.permission.open.settings" = "システム設定を開く";
+
+
+/* ========================================
+   メニュー項目
+   ======================================== */
+
+"menu.capture.full.screen" = "フルスクリーンキャプチャ";
+"menu.capture.fullscreen" = "フルスクリーンキャプチャ";
+"menu.capture.selection" = "範囲キャプチャ";
+"menu.translation.mode" = "翻訳モード";
+"menu.translation.history" = "翻訳履歴";
+"menu.settings" = "設定...";
+"menu.about" = "ScreenTranslate について";
+"menu.quit" = "ScreenTranslate を終了";
+
+
+/* ========================================
+   ディスプレイ選択
+   ======================================== */
+
+"display.selector.title" = "ディスプレイを選択";
+"display.selector.header" = "キャプチャするディスプレイを選択：";
+"display.selector.cancel" = "キャンセル";
+
+
+/* ========================================
+   プレビューウィンドウ
+   ======================================== */
+
+"preview.window.title" = "スクリーンショットプレビュー";
+"preview.title" = "スクリーンショットプレビュー";
+"preview.dimensions" = "%d × %d ピクセル";
+"preview.file.size" = "約 %@ %@";
+"preview.screenshot" = "スクリーンショット";
+"preview.enter.text" = "テキストを入力";
+"preview.image.dimensions" = "画像サイズ";
+"preview.estimated.size" = "推定ファイルサイズ";
+"preview.edit.label" = "編集：";
+"preview.active.tool" = "現在のツール";
+"preview.crop.mode.active" = "クロップモードが有効";
+
+/* クロップ */
+"preview.crop" = "クロップ";
+"preview.crop.cancel" = "キャンセル";
+"preview.crop.apply" = "クロップを適用";
+
+/* テキスト認識 */
+"preview.recognized.text" = "認識されたテキスト：";
+"preview.translation" = "翻訳結果：";
+"preview.results.panel" = "テキスト結果";
+"preview.copy.text" = "テキストをコピー";
+
+/* ツールバーヒント */
+"preview.tooltip.crop" = "クロップ (C)";
+"preview.tooltip.pin" = "ピン留め (P)";
+"preview.tooltip.undo" = "取り消し (⌘Z)";
+"preview.tooltip.redo" = "やり直し (⌘⇧Z)";
+"preview.tooltip.copy" = "クリップボードにコピー (⌘C)";
+"preview.tooltip.save" = "保存 (⌘S)";
+"preview.tooltip.ocr" = "文字認識 (OCR)";
+"preview.tooltip.confirm" = "クリップボードにコピーして閉じる (Enter)";
+"preview.tooltip.dismiss" = "閉じる (Escape)";
+"preview.tooltip.delete" = "選択した注釈を削除";
+
+/* アクセシビリティラベル */
+"preview.accessibility.save" = "スクリーンショットを保存";
+"preview.accessibility.saving" = "スクリーンショットを保存中";
+"preview.accessibility.confirm" = "確定してクリップボードにコピー";
+"preview.accessibility.copying" = "クリップボードにコピー中";
+"preview.accessibility.hint.commandS" = "Command S";
+"preview.accessibility.hint.enter" = "Enter キー";
+
+/* 図形の切り替え */
+"preview.shape.filled" = "塗りつぶし";
+"preview.shape.hollow" = "枠線";
+"preview.shape.toggle.hint" = "クリックして塗りつぶし/枠線を切り替え";
+
+
+/* ========================================
+   注釈ツール
+   ======================================== */
+
+"tool.rectangle" = "四角形";
+"tool.freehand" = "フリーハンド";
+"tool.text" = "テキスト";
+"tool.arrow" = "矢印";
+"tool.ellipse" = "楕円";
+"tool.line" = "直線";
+"tool.highlight" = "蛍光ペン";
+"tool.mosaic" = "モザイク";
+"tool.numberLabel" = "数字ラベル";
+
+
+/* ========================================
+   色
+   ======================================== */
+
+"color.red" = "赤";
+"color.orange" = "オレンジ";
+"color.yellow" = "黄色";
+"color.green" = "緑";
+"color.blue" = "青";
+"color.purple" = "紫";
+"color.pink" = "ピンク";
+"color.white" = "白";
+"color.black" = "黒";
+"color.custom" = "カスタム";
+
+
+/* ========================================
+   アクション
+   ======================================== */
+
+"action.save" = "保存";
+"action.copy" = "コピー";
+"action.cancel" = "キャンセル";
+"action.undo" = "取り消し";
+"action.redo" = "やり直し";
+"action.delete" = "削除";
+"action.clear" = "クリア";
+"action.reset" = "リセット";
+"action.close" = "閉じる";
+"action.done" = "完了";
+
+/* ボタン */
+"button.ok" = "OK";
+"button.cancel" = "キャンセル";
+"button.clear" = "クリア";
+"button.reset" = "リセット";
+"button.save" = "保存";
+"button.delete" = "削除";
+"button.confirm" = "確認";
+
+/* 保存成功 */
+"save.success.title" = "保存しました";
+"save.success.message" = "%@ に保存しました";
+"save.with.translations.message" = "翻訳付き画像を保存する場所を選択してください";
+
+/* 翻訳なしエラー */
+"error.no.translations" = "利用可能な翻訳がありません。最初にテキストを翻訳してください。";
+
+/* コピー成功 */
+"copy.success.message" = "クリップボードにコピーしました";
+
+
+/* ========================================
+   設定ウィンドウ
+   ======================================== */
+
+"settings.window.title" = "ScreenTranslate 設定";
+"settings.title" = "ScreenTranslate 設定";
+
+/* 設定タブ/セクション */
+"settings.section.permissions" = "権限";
+"settings.section.general" = "一般";
+"settings.section.engines" = "エンジン";
+"settings.section.prompts" = "プロンプト設定";
+"settings.section.languages" = "言語";
+"settings.section.export" = "エクスポート";
+"settings.section.shortcuts" = "キーボードショートカット";
+"settings.section.text.translation" = "テキスト翻訳";
+"settings.section.annotations" = "注釈";
+
+/* 言語設定 */
+"settings.language" = "言語";
+"settings.language.system" = "システムに従う";
+"settings.language.restart.hint" = "一部の変更はアプリの再起動が必要です";
+
+/* 権限 */
+"settings.permission.screen.recording" = "スクリーン録画";
+"settings.permission.screen.recording.hint" = "スクリーンショットキャプチャに必要";
+"settings.permission.accessibility" = "アクセシビリティ";
+"settings.permission.accessibility.hint" = "グローバルショートカットに必要";
+"settings.permission.granted" = "許可済み";
+"settings.permission.not.granted" = "未許可";
+"settings.permission.grant" = "アクセスを許可";
+"settings.permission.authorization.title" = "権限の許可が必要です";
+"settings.permission.authorization.cancel" = "キャンセル";
+"settings.permission.authorization.go" = "許可する";
+"settings.permission.authorization.screen.message" = "スクリーン録画の権限が必要です。「許可する」をクリックしてシステム設定を開き、このアプリのスクリーン録画を有効にしてください。";
+"settings.permission.authorization.accessibility.message" = "アクセシビリティの権限が必要です。「許可する」をクリックしてシステム設定を開き、このアプリをアクセシビリティリストに追加してください。";
+
+/* 保存場所 */
+"settings.save.location" = "保存場所";
+"settings.save.location.choose" = "選択...";
+"settings.save.location.select" = "選択";
+"settings.save.location.message" = "スクリーンショットのデフォルト保存場所を選択してください";
+"settings.save.location.reveal" = "Finder で表示";
+
+/* エクスポートフォーマット */
+"settings.format" = "デフォルトフォーマット";
+"settings.format.png" = "PNG";
+"settings.format.jpeg" = "JPEG";
+"settings.format.heic" = "HEIC";
+"settings.jpeg.quality" = "JPEG 品質";
+"settings.jpeg.quality.hint" = "品質が高いほどファイルサイズが大きくなります";
+"settings.heic.quality" = "HEIC 品質";
+"settings.heic.quality.hint" = "HEIC はより高い圧縮率を提供します";
+
+/* キーボードショートカット */
+"settings.shortcuts" = "キーボードショートカット";
+"settings.shortcut.fullscreen" = "フルスクリーンキャプチャ";
+"settings.shortcut.selection" = "範囲キャプチャ";
+"settings.shortcut.translation.mode" = "翻訳モード";
+"settings.shortcut.text.selection.translation" = "テキスト選択翻訳";
+"settings.shortcut.translate.and.insert" = "翻訳して挿入";
+"settings.shortcut.recording" = "キーを押してください...";
+"settings.shortcut.reset" = "デフォルトに戻す";
+"settings.shortcut.error.no.modifier" = "ショートカットには Command、Control、または Option を含める必要があります";
+"settings.shortcut.error.conflict" = "このショートカットは既に使用されています";
+
+/* 注釈 */
+"settings.annotations" = "注釈のデフォルト設定";
+"settings.stroke.color" = "線の色";
+"settings.stroke.width" = "線の幅";
+"settings.text.size" = "文字サイズ";
+"settings.mosaic.blockSize" = "モザイクブロックサイズ";
+
+/* エンジン */
+"settings.ocr.engine" = "OCR エンジン";
+"settings.translation.engine" = "翻訳エンジン";
+"settings.translation.mode" = "翻訳モード";
+
+/* リセット */
+"settings.reset.all" = "すべてデフォルトに戻す";
+
+/* エラー */
+"settings.error.title" = "エラー";
+"settings.error.ok" = "OK";
+
+
+/* ========================================
+   OCR エンジン
+   ======================================== */
+
+"ocr.engine.vision" = "Apple Vision";
+"ocr.engine.vision.description" = "組み込みの macOS Vision フレームワーク、高速でプライベート";
+"ocr.engine.paddleocr" = "PaddleOCR";
+"ocr.engine.paddleocr.description" = "セルフホスト OCR サーバー、より高い認識精度";
+
+
+/* ========================================
+   翻訳エンジン
+   ======================================== */
+
+"translation.engine.apple" = "Apple 翻訳";
+"translation.engine.apple.description" = "組み込みの macOS 翻訳、設定不要";
+"translation.engine.mtran" = "MTranServer";
+"translation.engine.mtran.description" = "セルフホスト翻訳サーバー";
+
+/* 新しい翻訳エンジン */
+"translation.engine.openai" = "OpenAI";
+"translation.engine.openai.description" = "OpenAI API による GPT-4 翻訳";
+"translation.engine.claude" = "Claude";
+"translation.engine.claude.description" = "Anthropic API による Claude 翻訳";
+"translation.engine.gemini" = "Gemini";
+"translation.engine.gemini.description" = "Google AI API による Gemini 翻訳";
+"translation.engine.ollama" = "Ollama";
+"translation.engine.ollama.description" = "Ollama によるローカル LLM 翻訳";
+"translation.engine.google" = "Google 翻訳";
+"translation.engine.google.description" = "Google Cloud Translation API";
+"translation.engine.deepl" = "DeepL";
+"translation.engine.deepl.description" = "DeepL API による高品質翻訳";
+"translation.engine.baidu" = "百度翻訳";
+"translation.engine.baidu.description" = "百度翻訳 API";
+"translation.engine.custom" = "OpenAI 互換";
+"translation.engine.custom.description" = "カスタム OpenAI 互換エンドポイント";
+
+/* エンジンカテゴリ */
+"engine.category.builtin" = "組み込み";
+"engine.category.llm" = "LLM 翻訳";
+"engine.category.cloud" = "クラウドサービス";
+"engine.category.compatible" = "互換インターフェース";
+
+/* エンジン設定タイトル */
+"engine.config.title" = "翻訳エンジン設定";
+
+/* エンジン選択モード */
+"engine.selection.mode.title" = "エンジン選択モード";
+"engine.selection.mode.primary_fallback" = "プライマリ/フォールバック";
+"engine.selection.mode.primary_fallback.description" = "プライマリエンジンを使用し、失敗時はセカンダリに切り替え";
+"engine.selection.mode.parallel" = "並列";
+"engine.selection.mode.parallel.description" = "複数のエンジンを同時に実行して結果を比較";
+"engine.selection.mode.quick_switch" = "クイックスイッチ";
+"engine.selection.mode.quick_switch.description" = "プライマリから開始し、必要に応じて他のエンジンに素早く切り替え";
+"engine.selection.mode.scene_binding" = "シーン連動";
+"engine.selection.mode.scene_binding.description" = "翻訳シーンごとに異なるエンジンを使用";
+
+/* モード固有ラベル */
+"engine.config.primary" = "プライマリ";
+"engine.config.fallback" = "フォールバック";
+"engine.config.switch.order" = "切り替え順序";
+"engine.config.parallel.select" = "並列実行するエンジンを選択";
+"engine.config.replace" = "エンジンを置換";
+"engine.config.remove" = "削除";
+"engine.config.add" = "エンジンを追加";
+
+/* 翻訳シーン */
+"translation.scene.screenshot" = "スクリーンショット翻訳";
+"translation.scene.screenshot.description" = "OCR でキャプチャ範囲を認識して翻訳";
+"translation.scene.text_selection" = "テキスト選択翻訳";
+"translation.scene.text_selection.description" = "任意のアプリで選択したテキストを翻訳";
+"translation.scene.translate_and_insert" = "翻訳して挿入";
+"translation.scene.translate_and_insert.description" = "クリップボードのテキストを翻訳してカーソル位置に挿入";
+
+/* エンジン設定 */
+"engine.config.enabled" = "このエンジンを有効にする";
+"engine.config.apiKey" = "API キー";
+"engine.config.apiKey.placeholder" = "API キーを入力してください";
+"engine.config.getApiKey" = "API キーを取得";
+"engine.config.baseURL" = "Base URL";
+"engine.config.model" = "モデル名";
+"engine.config.test" = "接続をテスト";
+"engine.config.test.success" = "接続成功";
+"engine.config.test.failed" = "接続失敗";
+"engine.config.baidu.credentials" = "百度翻訳の認証情報";
+"engine.config.baidu.appID" = "アプリ ID";
+"engine.config.baidu.secretKey" = "シークレットキー";
+"engine.config.mtran.url" = "サーバー URL";
+
+/* エンジンステータス */
+"engine.status.configured" = "設定済み";
+"engine.status.unconfigured" = "未設定";
+"engine.available.title" = "利用可能なエンジン";
+"engine.parallel.title" = "並列エンジン";
+"engine.parallel.description" = "並列モードで同時に実行するエンジンを選択してください";
+"engine.scene.binding.title" = "シーンエンジン連動";
+"engine.scene.binding.description" = "各翻訳シーンで使用するエンジンを設定してください";
+"engine.scene.fallback.tooltip" = "他のエンジンへのフォールバックを有効にする";
+
+/* Keychain エラー */
+"keychain.error.item_not_found" = "キーチェーンに認証情報が見つかりません";
+"keychain.error.item_not_found.recovery" = "設定で API 認証情報を設定してください";
+"keychain.error.duplicate_item" = "キーチェーンに認証情報が既に存在します";
+"keychain.error.duplicate_item.recovery" = "最初に既存の認証情報を削除してください";
+"keychain.error.invalid_data" = "無効な認証情報データ形式";
+"keychain.error.invalid_data.recovery" = "認証情報を再入力してください";
+"keychain.error.unexpected_status" = "キーチェーン操作が失敗しました";
+"keychain.error.unexpected_status.recovery" = "キーチェーンのアクセス権限を確認してください";
+
+/* マルチエンジンエラー */
+"multiengine.error.all_failed" = "すべての翻訳エンジンが失敗しました";
+"multiengine.error.no_engines" = "翻訳エンジンが設定されていません";
+"multiengine.error.primary_unavailable" = "プライマリエンジン %@ は利用できません";
+"multiengine.error.no_results" = "翻訳結果がありません";
+
+/* レジストリエラー */
+"registry.error.already_registered" = "プロバイダーは既に登録されています";
+"registry.error.not_registered" = "%@ のプロバイダーが登録されていません";
+"registry.error.config_missing" = "%@ の設定がありません";
+"registry.error.credentials_not_found" = "%@ の認証情報が見つかりません";
+
+/* プロンプト設定 */
+"prompt.engine.title" = "エンジンプロンプト";
+"prompt.engine.description" = "各 LLM エンジンの翻訳プロンプトをカスタマイズ";
+"prompt.scene.title" = "シーンプロンプト";
+"prompt.scene.description" = "各翻訳シーンの翻訳プロンプトをカスタマイズ";
+"prompt.default.title" = "デフォルトプロンプトテンプレート";
+"prompt.default.description" = "カスタムプロンプトが設定されていない場合に使用されます";
+"prompt.button.edit" = "編集";
+"prompt.button.reset" = "リセット";
+"prompt.editor.title" = "プロンプトを編集";
+"prompt.editor.variables" = "利用可能な変数：";
+"prompt.variable.source_language" = "元の言語名";
+"prompt.variable.target_language" = "ターゲット言語名";
+"prompt.variable.text" = "翻訳するテキスト";
+
+
+/* ========================================
+   翻訳モード
+   ======================================== */
+
+"translation.mode.inline" = "インプレース置換";
+"translation.mode.inline.description" = "元のテキストを翻訳で置換";
+"translation.mode.below" = "元のテキストの下に表示";
+"translation.mode.below.description" = "元のテキストの下に翻訳を表示";
+
+
+/* ========================================
+   翻訳設定
+   ======================================== */
+
+"translation.auto" = "自動検出";
+"translation.auto.detected" = "自動検出";
+"translation.language.follow.system" = "システムに従う";
+"translation.language.source" = "元の言語";
+"translation.language.target" = "ターゲット言語";
+"translation.language.source.hint" = "翻訳するテキストの言語";
+"translation.language.target.hint" = "テキストを翻訳する言語";
+
+
+/* ========================================
+   履歴ビュー
+   ======================================== */
+
+"history.title" = "翻訳履歴";
+"history.search.placeholder" = "履歴を検索...";
+"history.clear.all" = "すべての履歴をクリア";
+"history.empty.title" = "翻訳履歴がありません";
+"history.empty.message" = "翻訳したスクリーンショットがここに表示されます";
+"history.no.results.title" = "結果がありません";
+"history.no.results.message" = "検索に一致する項目がありません";
+"history.clear.search" = "検索をクリア";
+
+"history.source" = "元のテキスト";
+"history.translation" = "翻訳";
+"history.truncated" = "省略されました";
+
+"history.copy.translation" = "翻訳をコピー";
+"history.copy.source" = "元のテキストをコピー";
+"history.copy.both" = "両方をコピー";
+"history.delete" = "削除";
+
+"history.clear.alert.title" = "履歴をクリア";
+"history.clear.alert.message" = "すべての翻訳履歴を削除してもよろしいですか？この操作は元に戻せません。";
+
+
+/* ========================================
+   権限プロンプト
+   ======================================== */
+
+"permission.prompt.title" = "スクリーン録画の権限が必要です";
+"permission.prompt.message" = "ScreenTranslate はスクリーンショットを撮影するために権限が必要です。これはスクリーンショット機能に必須です。\n\n続行をクリックすると、macOS がスクリーン録画の権限を求めます。システム設定 > プライバシーとセキュリティ > スクリーン録画で権限を許可できます。";
+"permission.prompt.continue" = "続行";
+"permission.prompt.later" = "後で";
+
+/* アクセシビリティ権限 */
+"permission.accessibility.title" = "アクセシビリティ権限が必要です";
+"permission.accessibility.message" = "ScreenTranslate は選択したテキストをキャプチャし、翻訳を挿入するためにアクセシビリティ権限が必要です。\n\nこの権限により、アプリは以下のことができます：\n• 任意のアプリから選択したテキストをコピー\n• 入力フィールドに翻訳テキストを挿入\n\nプライバシーは保護されています - ScreenTranslate はテキスト翻訳のみに使用します。";
+"permission.accessibility.grant" = "権限を許可";
+"permission.accessibility.open.settings" = "システム設定を開く";
+"permission.accessibility.denied.title" = "アクセシビリティ権限が必要です";
+"permission.accessibility.denied.message" = "テキストのキャプチャと挿入にはアクセシビリティ権限が必要です。\n\nシステム設定 > プライバシーとセキュリティ > アクセシビリティで権限を許可してください。";
+
+/* 入力モニタリング権限 */
+"permission.input.monitoring.title" = "入力モニタリング権限が必要です";
+"permission.input.monitoring.message" = "ScreenTranslate は翻訳テキストをアプリケーションに挿入するために入力モニタリング権限が必要です。\n\n以下の場所で有効にする必要があります：\nシステム設定 > プライバシーとセキュリティ > 入力モニタリング";
+"permission.input.monitoring.open.settings" = "システム設定を開く";
+"permission.input.monitoring.denied.title" = "入力モニタリング権限が必要です";
+"permission.input.monitoring.denied.message" = "テキスト挿入には入力モニタリング権限が必要です。\n\nシステム設定 > プライバシーとセキュリティ > 入力モニタリングで権限を許可してください。";
+
+/* 一般的な権限文字列 */
+"permission.open.settings" = "システム設定を開く";
+
+
+/* ========================================
+   オンボーディング
+   ======================================== */
+
+"onboarding.window.title" = "ScreenTranslate へようこそ";
+
+/* オンボーディング - ウェルカムステップ */
+"onboarding.welcome.title" = "ScreenTranslate へようこそ";
+"onboarding.welcome.message" = "スクリーンショットと翻訳機能をセットアップしましょう。1 分ほどで完了します。";
+
+"onboarding.feature.local.ocr.title" = "ローカル OCR";
+"onboarding.feature.local.ocr.description" = "macOS Vision フレームワークによる高速でプライベートな文字認識";
+"onboarding.feature.local.translation.title" = "ローカル翻訳";
+"onboarding.feature.local.translation.description" = "Apple 翻訳による瞬時のオフライン翻訳";
+"onboarding.feature.shortcuts.title" = "グローバルショートカット";
+"onboarding.feature.shortcuts.description" = "キーボードショートカットでどこからでもキャプチャと翻訳";
+
+/* オンボーディング - 権限ステップ */
+"onboarding.permissions.title" = "権限";
+"onboarding.permissions.message" = "ScreenTranslate を正常に動作させるにはいくつかの権限が必要です。以下の権限を許可してください：";
+"onboarding.permissions.hint" = "権限を許可すると、ステータスが自動的に更新されます。";
+
+"onboarding.permission.screen.recording" = "スクリーン録画";
+"onboarding.permission.accessibility" = "アクセシビリティ";
+"onboarding.permission.granted" = "許可済み";
+"onboarding.permission.not.granted" = "未許可";
+"onboarding.permission.grant" = "権限を許可";
+
+/* オンボーディング - 設定ステップ */
+"onboarding.configuration.title" = "オプション設定";
+"onboarding.configuration.message" = "ローカル OCR と翻訳機能は既に有効です。外部サービスを設定することもできます：";
+"onboarding.configuration.paddleocr" = "PaddleOCR サーバーアドレス";
+"onboarding.configuration.paddleocr.hint" = "空欄の場合は macOS Vision OCR を使用";
+"onboarding.configuration.mtran" = "MTranServer アドレス";
+"onboarding.configuration.mtran.hint" = "空欄の場合は Apple 翻訳を使用";
+"onboarding.configuration.placeholder" = "http://localhost:8080";
+"onboarding.configuration.placeholder.address" = "localhost";
+"onboarding.configuration.test" = "翻訳をテスト";
+"onboarding.configuration.test.button" = "翻訳をテスト";
+"onboarding.configuration.testing" = "テスト中...";
+"onboarding.test.success" = "翻訳テスト成功：\"%@\" → \"%@\"";
+"onboarding.test.failed" = "翻訳テスト失敗：%@";
+
+/* オンボーディング - 完了ステップ */
+"onboarding.complete.title" = "セットアップ完了！";
+"onboarding.complete.message" = "ScreenTranslate の準備ができました。使い方：";
+"onboarding.complete.shortcuts" = "⌘⇧F でフルスクリーンキャプチャ";
+"onboarding.complete.selection" = "⌘⇧A で範囲キャプチャと翻訳";
+"onboarding.complete.settings" = "メニューバーから設定を開いてオプションをカスタマイズ";
+"onboarding.complete.start" = "ScreenTranslate の使用を開始";
+
+/* オンボーディング - ナビゲーション */
+"onboarding.back" = "戻る";
+"onboarding.continue" = "続行";
+"onboarding.next" = "次へ";
+"onboarding.skip" = "スキップ";
+"onboarding.complete" = "完了";
+
+/* オンボーディング - PaddleOCR */
+"onboarding.paddleocr.title" = "PaddleOCR（オプション）";
+"onboarding.paddleocr.description" = "強化された OCR エンジン、より高い文字認識精度、特に中国語に最適。";
+"onboarding.paddleocr.installed" = "インストール済み";
+"onboarding.paddleocr.not.installed" = "未インストール";
+"onboarding.paddleocr.install" = "インストール";
+"onboarding.paddleocr.installing" = "インストール中...";
+"onboarding.paddleocr.install.hint" = "Python 3 と pip が必要です。コマンド実行：pip3 install paddleocr paddlepaddle";
+"onboarding.paddleocr.copy.command" = "コマンドをコピー";
+"onboarding.paddleocr.refresh" = "ステータスを更新";
+"onboarding.paddleocr.version" = "バージョン：%@";
+
+/* 設定 - PaddleOCR */
+"settings.paddleocr.installed" = "インストール済み";
+"settings.paddleocr.not.installed" = "未インストール";
+"settings.paddleocr.install" = "インストール";
+"settings.paddleocr.installing" = "インストール中...";
+"settings.paddleocr.install.hint" = "システムに Python 3 と pip がインストールされている必要があります。";
+"settings.paddleocr.copy.command" = "コマンドをコピー";
+"settings.paddleocr.refresh" = "ステータスを更新";
+"settings.paddleocr.ready" = "PaddleOCR の準備ができました";
+"settings.paddleocr.not.installed.message" = "PaddleOCR がインストールされていません";
+"settings.paddleocr.description" = "PaddleOCR はローカル OCR エンジンです。無料、オフラインで使用可能、API キーは不要です。";
+"settings.paddleocr.install.button" = "PaddleOCR をインストール";
+"settings.paddleocr.copy.command.button" = "インストールコマンドをコピー";
+"settings.paddleocr.mode" = "モード";
+"settings.paddleocr.mode.fast" = "高速";
+"settings.paddleocr.mode.precise" = "高精度";
+"settings.paddleocr.mode.fast.description" = "約1秒、高速 OCR と行の結合";
+"settings.paddleocr.mode.precise.description" = "約12秒、VL-1.5 モデル、より高い精度";
+"settings.paddleocr.useCloud" = "クラウド API を使用";
+"settings.paddleocr.cloudBaseURL" = "クラウド API URL";
+"settings.paddleocr.cloudAPIKey" = "API キー";
+"settings.paddleocr.cloudModelId" = "モデル ID";
+"settings.paddleocr.localVLModelDir" = "ローカルモデルディレクトリ (vllm)";
+"settings.paddleocr.localVLModelDir.hint" = "ローカル PaddleOCR-VL モデルのパス（例：~/.paddlex/official_models/PaddleOCR-VL-1.5）";
+"error.paddleocr.notInstalled" = "PaddleOCR がインストールされていません。以下のコマンドでインストールしてください：pip3 install paddleocr paddlepaddle";
+
+
+/* ========================================
+   VLM 設定
+   ======================================== */
+
+"settings.vlm.title" = "VLM 設定";
+"settings.vlm.provider" = "プロバイダー";
+"settings.vlm.apiKey" = "API キー";
+"settings.vlm.apiKey.optional" = "ローカルプロバイダーの場合は API キーは不要です";
+"settings.vlm.baseURL" = "Base URL";
+"settings.vlm.model" = "モデル名";
+"settings.vlm.test.button" = "接続をテスト";
+"settings.vlm.test.success" = "接続成功！モデル：%@";
+"settings.vlm.test.ollama.success" = "サーバーが実行中です。モデル '%@' が利用可能";
+"settings.vlm.test.ollama.available" = "サーバーが実行中です。利用可能：%@";
+
+"vlm.provider.openai" = "OpenAI";
+"vlm.provider.claude" = "Claude";
+"vlm.provider.ollama" = "Ollama";
+"vlm.provider.paddleocr" = "PaddleOCR";
+"vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
+"vlm.provider.claude.description" = "Anthropic Claude Vision API";
+"vlm.provider.ollama.description" = "ローカル Ollama サーバー";
+"vlm.provider.paddleocr.description" = "ローカル OCR エンジン（無料、オフライン）";
+
+
+/* ========================================
+   翻訳ワークフロー設定
+   ======================================== */
+
+"settings.translation.workflow.title" = "翻訳エンジン";
+"settings.translation.preferred" = "優先エンジン";
+"settings.translation.mtran.url" = "MTransServer URL";
+"settings.translation.mtran.test.button" = "接続をテスト";
+"settings.translation.mtran.test.success" = "接続成功";
+"settings.translation.mtran.test.failed" = "接続失敗：%@";
+"settings.translation.fallback" = "フォールバック";
+"settings.translation.fallback.description" = "優先エンジンが失敗した場合、Apple 翻訳をフォールバックとして使用";
+
+"translation.preferred.apple.description" = "組み込み macOS 翻訳、オフラインで動作";
+"translation.preferred.mtran.description" = "セルフホスト翻訳サーバー、より高い品質";
+
+
+/* ========================================
+   アクセシビリティラベル
+   ======================================== */
+
+"accessibility.close.button" = "閉じる";
+"accessibility.settings.button" = "設定";
+"accessibility.capture.button" = "キャプチャ";
+"accessibility.translate.button" = "翻訳";
+
+
+/* ========================================
+   バイリンガル結果ウィンドウ
+   ======================================== */
+
+/* ========================================
+   翻訳フロー
+   ======================================== */
+
+"translationFlow.phase.idle" = "準備完了";
+"translationFlow.phase.analyzing" = "画像を解析中...";
+"translationFlow.phase.translating" = "翻訳中...";
+"translationFlow.phase.rendering" = "レンダリング中...";
+"translationFlow.phase.completed" = "完了";
+"translationFlow.phase.failed" = "失敗";
+
+"translationFlow.error.title" = "翻訳エラー";
+"translationFlow.error.title.analysis" = "画像認識失敗";
+"translationFlow.error.title.translation" = "翻訳失敗";
+"translationFlow.error.title.rendering" = "レンダリング失敗";
+"translationFlow.error.unknown" = "不明なエラーが発生しました。";
+"translationFlow.error.analysis" = "解析失敗：%@";
+"translationFlow.error.translation" = "翻訳失敗：%@";
+"translationFlow.error.rendering" = "レンダリング失敗：%@";
+"translationFlow.error.cancelled" = "翻訳がキャンセルされました。";
+"translationFlow.error.noTextFound" = "選択範囲にテキストが見つかりませんでした。";
+"translationFlow.error.translation.engine" = "翻訳エンジン";
+
+"translationFlow.recovery.analysis" = "より鮮明な画像でもう一度お試しください。または、VLM プロバイダー設定を確認してください。";
+"translationFlow.recovery.translation" = "翻訳エンジン設定とネットワーク接続を確認してから再試行してください。";
+"translationFlow.recovery.rendering" = "もう一度お試しください。";
+"translationFlow.recovery.noTextFound" = "テキストが表示されている範囲を選択してお試しください。";
+
+"common.ok" = "OK";
+
+
+/* ========================================
+   バイリンガル結果ウィンドウ
+   ======================================== */
+
+"bilingualResult.window.title" = "バイリンガル翻訳";
+"bilingualResult.loading" = "翻訳中...";
+"bilingualResult.loading.analyzing" = "画像を解析中...";
+"bilingualResult.loading.translating" = "テキストを翻訳中...";
+"bilingualResult.loading.rendering" = "結果をレンダリング中...";
+"bilingualResult.copyImage" = "画像をコピー";
+"bilingualResult.copyText" = "テキストをコピー";
+"bilingualResult.save" = "保存";
+"bilingualResult.zoomIn" = "拡大";
+"bilingualResult.zoomOut" = "縮小";
+"bilingualResult.resetZoom" = "ズームをリセット";
+"bilingualResult.copySuccess" = "クリップボードにコピーしました";
+"bilingualResult.copyTextSuccess" = "翻訳テキストをコピーしました";
+"bilingualResult.saveSuccess" = "保存しました";
+"bilingualResult.copyFailed" = "画像のコピーに失敗しました";
+"bilingualResult.saveFailed" = "画像の保存に失敗しました";
+"bilingualResult.noTextToCopy" = "コピーする翻訳テキストがありません";
+
+
+/* ========================================
+   テキスト翻訳 (US-003 から US-010)
+   ======================================== */
+
+/* テキスト翻訳フロー */
+"textTranslation.phase.idle" = "準備完了";
+"textTranslation.phase.translating" = "翻訳中...";
+"textTranslation.phase.completed" = "完了";
+"textTranslation.phase.failed" = "失敗";
+
+"textTranslation.error.emptyInput" = "翻訳するテキストがありません";
+"textTranslation.error.translationFailed" = "翻訳失敗：%@";
+"textTranslation.error.cancelled" = "翻訳がキャンセルされました";
+"textTranslation.error.serviceUnavailable" = "翻訳サービスが利用できません";
+
+"textTranslation.recovery.emptyInput" = "最初にテキストを選択してください";
+"textTranslation.recovery.translationFailed" = "もう一度お試しください";
+"textTranslation.recovery.serviceUnavailable" = "ネットワーク接続を確認してから再試行してください";
+
+"textTranslation.loading" = "翻訳中...";
+"textTranslation.noSelection.title" = "テキストが選択されていません";
+"textTranslation.noSelection.message" = "任意のアプリケーションでテキストを選択してから再試行してください。";
+
+/* 翻訳して挿入 */
+"translateAndInsert.emptyClipboard.title" = "クリップボードが空です";
+"translateAndInsert.emptyClipboard.message" = "最初にテキストをクリップボードにコピーしてから、このショートカットを使用してください。";
+"translateAndInsert.success.title" = "翻訳が挿入されました";
+"translateAndInsert.success.message" = "翻訳されたテキストがフォーカスされた入力フィールドに挿入されました。";
+
+/* 言語表示 */
+"language.auto" = "自動検出";
+
+/* 一般的なテキスト翻訳 UI */
+"common.copy" = "コピー";
+"common.copied" = "コピーしました";
+"common.insert" = "挿入";
+
+/* テキスト翻訳ウィンドウ */
+"textTranslation.window.title" = "テキスト翻訳";
+
+/* 翻訳して挿入言語設定 */
+"settings.translateAndInsert.language.section" = "翻訳して挿入の言語";
+"settings.translateAndInsert.language.source" = "元の言語";
+"settings.translateAndInsert.language.target" = "ターゲット言語";
+
+
+/* ========================================
+   マルチ OpenAI 互換エンジン設定
+   ======================================== */
+
+/* 互換エンジン設定 */
+"engine.compatible.new" = "新しい互換エンジン";
+"engine.compatible.description" = "OpenAI 互換 API エンドポイント";
+"engine.compatible.displayName" = "表示名";
+"engine.compatible.displayName.placeholder" = "例：マイ LLM サーバー";
+"engine.compatible.requireApiKey" = "API キーが必要";
+"engine.compatible.add" = "互換エンジンを追加";
+"engine.compatible.delete" = "このエンジンを削除";
+"engine.compatible.useAsEngine" = "翻訳エンジンとして使用";
+"engine.compatible.max.reached" = "最大 5 つの互換エンジンに達しました";
+
+/* プロンプト設定 */
+"prompt.compatible.title" = "互換エンジン";
+
+
+/* ========================================
+   アバウトウィンドウ
+   ======================================== */
+
+"about.title" = "ScreenTranslate について";
+"about.app.name" = "ScreenTranslate";
+"about.version.format" = "バージョン %@ (%@)";
+"about.copyright" = "著作権";
+"about.copyright.value" = "© 2026 全著作権所有";
+"about.license" = "ライセンス";
+"about.license.value" = "MIT ライセンス";
+"about.github.link" = "GitHub: hubo1989/ScreenTranslate";
+"about.check.for.updates" = "更新を確認";
+"about.update.checking" = "確認中...";
+"about.update.available" = "更新が利用可能";
+"about.update.uptodate" = "最新版です";
+"about.update.failed" = "確認失敗";
+"about.acknowledgements" = "謝辞";
+"about.acknowledgements.title" = "謝辞";
+"about.acknowledgements.intro" = "本ソフトウェアは以下のオープンソースライブラリを使用しています：";
+"about.acknowledgements.upstream" = "ベース";
+"about.acknowledgements.author.format" = "作者: %@";
+"about.close" = "閉じる";

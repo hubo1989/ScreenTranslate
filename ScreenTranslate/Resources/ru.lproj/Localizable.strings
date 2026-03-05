@@ -1,0 +1,815 @@
+/*
+  Localizable.strings (Русский)
+  ScreenTranslate
+*/
+
+/* ========================================
+   Сообщения об ошибках
+   ======================================== */
+
+/* Ошибки разрешений */
+"error.permission.denied" = "Требуется разрешение на запись экрана для создания скриншотов.";
+"error.permission.denied.recovery" = "Откройте Системные настройки для предоставления разрешения.";
+
+/* Ошибки дисплея */
+"error.display.not.found" = "Выбранный дисплей больше не доступен.";
+"error.display.not.found.recovery" = "Выберите другой дисплей.";
+"error.display.disconnected" = "Дисплей '%@' был отключён во время захвата.";
+"error.display.disconnected.recovery" = "Подключите дисплей повторно и попробуйте снова.";
+
+/* Ошибки захвата */
+"error.capture.failed" = "Не удалось захватить экран.";
+"error.capture.failed.recovery" = "Попробуйте снова.";
+
+/* Ошибки сохранения */
+"error.save.location.invalid" = "Место сохранения недоступно.";
+"error.save.location.invalid.recovery" = "Выберите другое место сохранения в Настройках.";
+"error.save.location.invalid.detail" = "Невозможно сохранить в %@. Место недоступно.";
+"error.save.unknown" = "Произошла непредвиденная ошибка при сохранении.";
+"error.disk.full" = "Недостаточно места на диске для сохранения скриншота.";
+"error.disk.full.recovery" = "Освободите место на диске и попробуйте снова.";
+
+/* Ошибки экспорта */
+"error.export.encoding.failed" = "Не удалось закодировать изображение.";
+"error.export.encoding.failed.recovery" = "Попробуйте другой формат в Настройках.";
+"error.export.encoding.failed.detail" = "Не удалось закодировать изображение в формат %@.";
+
+/* Ошибки буфера обмена */
+"error.clipboard.write.failed" = "Не удалось скопировать скриншот в буфер обмена.";
+"error.clipboard.write.failed.recovery" = "Попробуйте снова.";
+
+/* Ошибки горячих клавиш */
+"error.hotkey.registration.failed" = "Не удалось зарегистрировать сочетание клавиш.";
+"error.hotkey.registration.failed.recovery" = "Сочетание может конфликтовать с другим приложением. Попробуйте другое.";
+"error.hotkey.conflict" = "Это сочетание клавиш конфликтует с другим приложением.";
+"error.hotkey.conflict.recovery" = "Выберите другое сочетание клавиш.";
+
+/* Ошибки OCR */
+"error.ocr.failed" = "Распознавание текста не удалось.";
+"error.ocr.failed.recovery" = "Попробуйте снова с более чётким изображением.";
+"error.ocr.no.text" = "Текст на изображении не распознан.";
+"error.ocr.no.text.recovery" = "Попробуйте захватить область с видимым текстом.";
+"error.ocr.cancelled" = "Распознавание текста отменено.";
+"error.ocr.server.unreachable" = "Не удаётся подключиться к серверу OCR.";
+"error.ocr.server.unreachable.recovery" = "Проверьте адрес сервера и сетевое подключение.";
+
+/* Ошибки перевода */
+"error.translation.in.progress" = "Перевод уже выполняется";
+"error.translation.in.progress.recovery" = "Подождите завершения текущего перевода";
+"error.translation.empty.input" = "Нет текста для перевода";
+"error.translation.empty.input.recovery" = "Сначала выберите текст";
+"error.translation.timeout" = "Истекло время ожидания перевода";
+"error.translation.timeout.recovery" = "Попробуйте снова";
+"error.translation.unsupported.pair" = "Перевод с %@ на %@ не поддерживается";
+"error.translation.unsupported.pair.recovery" = "Выберите другие языки";
+"error.translation.failed" = "Перевод не удался";
+"error.translation.failed.recovery" = "Попробуйте снова";
+"error.translation.language.not.installed" = "Язык перевода '%@' не установлен";
+"error.translation.language.download.instructions" = "Перейдите в Системные настройки > Основные > Язык и регион > Языки перевода, затем скачайте необходимый язык.";
+
+/* Общий интерфейс ошибок */
+"error.title" = "Ошибка";
+"error.ok" = "ОК";
+"error.dismiss" = "Закрыть";
+"error.retry.capture" = "Повторить";
+"error.permission.open.settings" = "Открыть настройки системы";
+
+
+/* ========================================
+   Пункты меню
+   ======================================== */
+
+"menu.capture.full.screen" = "Захватить весь экран";
+"menu.capture.fullscreen" = "Захватить весь экран";
+"menu.capture.selection" = "Захватить область";
+"menu.translation.mode" = "Режим перевода";
+"menu.translation.history" = "История переводов";
+"menu.settings" = "Настройки...";
+"menu.about" = "О ScreenTranslate";
+"menu.quit" = "Выйти из ScreenTranslate";
+
+
+/* ========================================
+   Выбор дисплея
+   ======================================== */
+
+"display.selector.title" = "Выбрать дисплей";
+"display.selector.header" = "Выберите дисплей для захвата:";
+"display.selector.cancel" = "Отмена";
+
+
+/* ========================================
+   Окно предпросмотра
+   ======================================== */
+
+"preview.window.title" = "Предпросмотр скриншота";
+"preview.title" = "Предпросмотр скриншота";
+"preview.dimensions" = "%d × %d пикселей";
+"preview.file.size" = "≈%@ %@";
+"preview.screenshot" = "Скриншот";
+"preview.enter.text" = "Введите текст";
+"preview.image.dimensions" = "Размер изображения";
+"preview.estimated.size" = "Оценочный размер файла";
+"preview.edit.label" = "Редактировать:";
+"preview.active.tool" = "Активный инструмент";
+"preview.crop.mode.active" = "Режим обрезки активен";
+
+/* Обрезка */
+"preview.crop" = "Обрезать";
+"preview.crop.cancel" = "Отмена";
+"preview.crop.apply" = "Применить обрезку";
+
+/* Распознанный текст */
+"preview.recognized.text" = "Распознанный текст:";
+"preview.translation" = "Перевод:";
+"preview.results.panel" = "Результаты текста";
+"preview.copy.text" = "Копировать текст";
+
+/* Всплывающие подсказки панели инструментов */
+"preview.tooltip.crop" = "Обрезать (C)";
+"preview.tooltip.pin" = "Закрепить на экране (P)";
+"preview.tooltip.undo" = "Отменить (⌘Z)";
+"preview.tooltip.redo" = "Повторить (⌘⇧Z)";
+"preview.tooltip.copy" = "Копировать в буфер обмена (⌘C)";
+"preview.tooltip.save" = "Сохранить (⌘S)";
+"preview.tooltip.ocr" = "Распознать текст (OCR)";
+"preview.tooltip.confirm" = "Копировать в буфер и закрыть (Enter)";
+"preview.tooltip.dismiss" = "Закрыть (Escape)";
+"preview.tooltip.delete" = "Удалить выбранную аннотацию";
+
+/* Метки доступности */
+"preview.accessibility.save" = "Сохранить скриншот";
+"preview.accessibility.saving" = "Сохранение скриншота";
+"preview.accessibility.confirm" = "Подтвердить и копировать в буфер";
+"preview.accessibility.copying" = "Копирование в буфер";
+"preview.accessibility.hint.commandS" = "Command S";
+"preview.accessibility.hint.enter" = "Клавиша Enter";
+
+/* Переключение фигуры */
+"preview.shape.filled" = "Заполненная";
+"preview.shape.hollow" = "Контурная";
+"preview.shape.toggle.hint" = "Нажмите для переключения между заполненной и контурной";
+
+
+/* ========================================
+   Инструменты аннотаций
+   ======================================== */
+
+"tool.rectangle" = "Прямоугольник";
+"tool.freehand" = "Кисть";
+"tool.text" = "Текст";
+"tool.arrow" = "Стрелка";
+"tool.ellipse" = "Эллипс";
+"tool.line" = "Линия";
+"tool.highlight" = "Выделение";
+"tool.mosaic" = "Мозаика";
+"tool.numberLabel" = "Номер";
+
+
+/* ========================================
+   Цвета
+   ======================================== */
+
+"color.red" = "Красный";
+"color.orange" = "Оранжевый";
+"color.yellow" = "Жёлтый";
+"color.green" = "Зелёный";
+"color.blue" = "Синий";
+"color.purple" = "Фиолетовый";
+"color.pink" = "Розовый";
+"color.white" = "Белый";
+"color.black" = "Чёрный";
+"color.custom" = "Другой";
+
+
+/* ========================================
+   Действия
+   ======================================== */
+
+"action.save" = "Сохранить";
+"action.copy" = "Копировать";
+"action.cancel" = "Отмена";
+"action.undo" = "Отменить";
+"action.redo" = "Повторить";
+"action.delete" = "Удалить";
+"action.clear" = "Очистить";
+"action.reset" = "Сбросить";
+"action.close" = "Закрыть";
+"action.done" = "Готово";
+
+/* Кнопки */
+"button.ok" = "ОК";
+"button.cancel" = "Отмена";
+"button.clear" = "Очистить";
+"button.reset" = "Сбросить";
+"button.save" = "Сохранить";
+"button.delete" = "Удалить";
+"button.confirm" = "Подтвердить";
+
+/* Успешное сохранение */
+"save.success.title" = "Успешно сохранено";
+"save.success.message" = "Сохранено в %@";
+"save.with.translations.message" = "Выберите место сохранения изображения с переводом";
+
+/* Ошибка отсутствия перевода */
+"error.no.translations" = "Нет доступных переводов. Сначала выполните перевод текста.";
+
+/* Успешное копирование */
+"copy.success.message" = "Скопировано в буфер обмена";
+
+
+/* ========================================
+   Окно настроек
+   ======================================== */
+
+"settings.window.title" = "Настройки ScreenTranslate";
+"settings.title" = "Настройки ScreenTranslate";
+
+/* Разделы настроек */
+"settings.section.permissions" = "Разрешения";
+"settings.section.general" = "Основные";
+"settings.section.engines" = "Движки";
+"settings.section.prompts" = "Конфигурация промптов";
+"settings.section.languages" = "Языки";
+"settings.section.export" = "Экспорт";
+"settings.section.shortcuts" = "Сочетания клавиш";
+"settings.section.text.translation" = "Перевод текста";
+"settings.section.annotations" = "Аннотации";
+
+/* Языковые настройки */
+"settings.language" = "Язык";
+"settings.language.system" = "Системный";
+"settings.language.restart.hint" = "Некоторые изменения могут требовать перезапуска";
+
+/* Разрешения */
+"settings.permission.screen.recording" = "Запись экрана";
+"settings.permission.screen.recording.hint" = "Требуется для захвата скриншотов";
+"settings.permission.accessibility" = "Универсальный доступ";
+"settings.permission.accessibility.hint" = "Требуется для глобальных сочетаний клавиш";
+"settings.permission.granted" = "Предоставлено";
+"settings.permission.not.granted" = "Не предоставлено";
+"settings.permission.grant" = "Предоставить доступ";
+"settings.permission.authorization.title" = "Требуется авторизация";
+"settings.permission.authorization.cancel" = "Отмена";
+"settings.permission.authorization.go" = "Авторизовать";
+"settings.permission.authorization.screen.message" = "Требуется разрешение на запись экрана. Нажмите «Авторизовать» для открытия Системных настроек и включения ScreenCapture для этого приложения.";
+"settings.permission.authorization.accessibility.message" = "Требуется разрешение универсального доступа. Нажмите «Авторизовать» для открытия Системных настроек и добавления этого приложения в список универсального доступа.";
+
+/* Место сохранения */
+"settings.save.location" = "Место сохранения";
+"settings.save.location.choose" = "Выбрать...";
+"settings.save.location.select" = "Выбрать";
+"settings.save.location.message" = "Выберите место по умолчанию для сохранения скриншотов";
+"settings.save.location.reveal" = "Показать в Finder";
+
+/* Формат экспорта */
+"settings.format" = "Формат по умолчанию";
+"settings.format.png" = "PNG";
+"settings.format.jpeg" = "JPEG";
+"settings.format.heic" = "HEIC";
+"settings.jpeg.quality" = "Качество JPEG";
+"settings.jpeg.quality.hint" = "Более высокое качество увеличивает размер файла";
+"settings.heic.quality" = "Качество HEIC";
+"settings.heic.quality.hint" = "HEIC обеспечивает лучшее сжатие";
+
+/* Сочетания клавиш */
+"settings.shortcuts" = "Сочетания клавиш";
+"settings.shortcut.fullscreen" = "Захват полного экрана";
+"settings.shortcut.selection" = "Захват области";
+"settings.shortcut.translation.mode" = "Режим перевода";
+"settings.shortcut.text.selection.translation" = "Перевод выбранного текста";
+"settings.shortcut.translate.and.insert" = "Перевести и вставить";
+"settings.shortcut.recording" = "Нажмите клавиши...";
+"settings.shortcut.reset" = "Сбросить по умолчанию";
+"settings.shortcut.error.no.modifier" = "Сочетания должны включать Command, Control или Option";
+"settings.shortcut.error.conflict" = "Это сочетание уже используется";
+
+/* Аннотации */
+"settings.annotations" = "Параметры аннотаций по умолчанию";
+"settings.stroke.color" = "Цвет штриха";
+"settings.stroke.width" = "Толщина штриха";
+"settings.text.size" = "Размер текста";
+"settings.mosaic.blockSize" = "Размер блока мозаики";
+
+/* Движки */
+"settings.ocr.engine" = "Движок OCR";
+"settings.translation.engine" = "Движок перевода";
+"settings.translation.mode" = "Режим перевода";
+
+/* Сброс */
+"settings.reset.all" = "Сбросить всё по умолчанию";
+
+/* Ошибки */
+"settings.error.title" = "Ошибка";
+"settings.error.ok" = "ОК";
+
+
+/* ========================================
+   Движки OCR
+   ======================================== */
+
+"ocr.engine.vision" = "Apple Vision";
+"ocr.engine.vision.description" = "Встроенный фреймворк macOS Vision, быстро и конфиденциально";
+"ocr.engine.paddleocr" = "PaddleOCR";
+"ocr.engine.paddleocr.description" = "Самостоятельный OCR-сервер для лучшей точности";
+
+
+/* ========================================
+   Движки перевода
+   ======================================== */
+
+"translation.engine.apple" = "Apple Перевод";
+"translation.engine.apple.description" = "Встроенный перевод macOS, настройка не требуется";
+"translation.engine.mtran" = "MTranServer";
+"translation.engine.mtran.description" = "Самостоятельный сервер перевода";
+
+/* Новые движки перевода */
+"translation.engine.openai" = "OpenAI";
+"translation.engine.openai.description" = "Перевод через GPT-4 API OpenAI";
+"translation.engine.claude" = "Claude";
+"translation.engine.claude.description" = "Перевод через Claude API Anthropic";
+"translation.engine.gemini" = "Gemini";
+"translation.engine.gemini.description" = "Перевод через Gemini API Google AI";
+"translation.engine.ollama" = "Ollama";
+"translation.engine.ollama.description" = "Локальная LLM-перевод через Ollama";
+"translation.engine.google" = "Google Перевод";
+"translation.engine.google.description" = "API облачного перевода Google";
+"translation.engine.deepl" = "DeepL";
+"translation.engine.deepl.description" = "Высококачественный перевод через API DeepL";
+"translation.engine.baidu" = "Baidu Перевод";
+"translation.engine.baidu.description" = "API перевода Baidu";
+"translation.engine.custom" = "Совместимый с OpenAI";
+"translation.engine.custom.description" = "Пользовательская конечная точка, совместимая с OpenAI";
+
+/* Категории движков */
+"engine.category.builtin" = "Встроенный";
+"engine.category.llm" = "LLM-перевод";
+"engine.category.cloud" = "Облачные сервисы";
+"engine.category.compatible" = "Совместимый";
+
+/* Заголовок конфигурации движка */
+"engine.config.title" = "Конфигурация движка перевода";
+
+/* Режимы выбора движка */
+"engine.selection.mode.title" = "Режим выбора движка";
+"engine.selection.mode.primary_fallback" = "Основной/резервный";
+"engine.selection.mode.primary_fallback.description" = "Использовать основной движок, переключаться на резервный при ошибке";
+"engine.selection.mode.parallel" = "Параллельный";
+"engine.selection.mode.parallel.description" = "Запускать несколько движков одновременно и сравнивать результаты";
+"engine.selection.mode.quick_switch" = "Быстрое переключение";
+"engine.selection.mode.quick_switch.description" = "Начать с основного, быстро переключаться на другие движки";
+"engine.selection.mode.scene_binding" = "Привязка к сцене";
+"engine.selection.mode.scene_binding.description" = "Использовать разные движки для разных сценариев перевода";
+
+/* Метки для режимов */
+"engine.config.primary" = "Основной";
+"engine.config.fallback" = "Резервный";
+"engine.config.switch.order" = "Порядок переключения";
+"engine.config.parallel.select" = "Выберите движки для параллельного запуска";
+"engine.config.replace" = "Заменить движок";
+"engine.config.remove" = "Удалить";
+"engine.config.add" = "Добавить движок";
+
+/* Сцены перевода */
+"translation.scene.screenshot" = "Перевод скриншотов";
+"translation.scene.screenshot.description" = "OCR и перевод захваченных областей скриншота";
+"translation.scene.text_selection" = "Перевод выбранного текста";
+"translation.scene.text_selection.description" = "Перевод выбранного текста из любого приложения";
+"translation.scene.translate_and_insert" = "Перевести и вставить";
+"translation.scene.translate_and_insert.description" = "Перевести текст из буфера и вставить в позицию курсора";
+
+/* Конфигурация движка */
+"engine.config.enabled" = "Включить этот движок";
+"engine.config.apiKey" = "API-ключ";
+"engine.config.apiKey.placeholder" = "Введите ваш API-ключ";
+"engine.config.getApiKey" = "Получить API-ключ";
+"engine.config.baseURL" = "Базовый URL";
+"engine.config.model" = "Название модели";
+"engine.config.test" = "Проверить подключение";
+"engine.config.test.success" = "Подключение успешно";
+"engine.config.test.failed" = "Сбой подключения";
+"engine.config.baidu.credentials" = "Учётные данные Baidu";
+"engine.config.baidu.appID" = "ID приложения";
+"engine.config.baidu.secretKey" = "Секретный ключ";
+"engine.config.mtran.url" = "URL сервера";
+
+/* Состояние движка */
+"engine.status.configured" = "Настроен";
+"engine.status.unconfigured" = "Не настроен";
+"engine.available.title" = "Доступные движки";
+"engine.parallel.title" = "Параллельные движки";
+"engine.parallel.description" = "Выберите движки для одновременной работы в параллельном режиме";
+"engine.scene.binding.title" = "Привязка движка к сцене";
+"engine.scene.binding.description" = "Настройте, какой движок использовать для каждого сценария перевода";
+"engine.scene.fallback.tooltip" = "Включить переключение на другие движки";
+
+/* Ошибки Keychain */
+"keychain.error.item_not_found" = "Учётные данные не найдены в связке ключей";
+"keychain.error.item_not_found.recovery" = "Настройте ваши API-учётные данные в Настройках";
+"keychain.error.duplicate_item" = "Учётные данные уже существуют в связке ключей";
+"keychain.error.duplicate_item.recovery" = "Сначала удалите существующие учётные данные";
+"keychain.error.invalid_data" = "Неверный формат данных учётных данных";
+"keychain.error.invalid_data.recovery" = "Повторно введите ваши учётные данные";
+"keychain.error.unexpected_status" = "Ошибка операции связки ключей";
+"keychain.error.unexpected_status.recovery" = "Проверьте права доступа к связке ключей";
+
+/* Ошибки мультим Movка */
+"multiengine.error.all_failed" = "Все движки перевода завершились ошибкой";
+"multiengine.error.no_engines" = "Не настроено ни одного движка перевода";
+"multiengine.error.primary_unavailable" = "Основной движок %@ недоступен";
+"multiengine.error.no_results" = "Нет результатов перевода";
+
+/* Ошибки реестра */
+"registry.error.already_registered" = "Поставщик уже зарегистрирован";
+"registry.error.not_registered" = "Нет зарегистрированного поставщика для %@";
+"registry.error.config_missing" = "Отсутствует конфигурация для %@";
+"registry.error.credentials_not_found" = "Учётные данные не найдены для %@";
+
+/* Конфигурация промптов */
+"prompt.engine.title" = "Промпты движков";
+"prompt.engine.description" = "Настройте промпты перевода для каждого LLM-движка";
+"prompt.scene.title" = "Промпты сцен";
+"prompt.scene.description" = "Настройте промпты перевода для каждого сценария перевода";
+"prompt.default.title" = "Шаблон промпта по умолчанию";
+"prompt.default.description" = "Этот шаблон используется, когда пользовательский промпт не настроен";
+"prompt.button.edit" = "Редактировать";
+"prompt.button.reset" = "Сбросить";
+"prompt.editor.title" = "Редактировать промпт";
+"prompt.editor.variables" = "Доступные переменные:";
+"prompt.variable.source_language" = "Название исходного языка";
+"prompt.variable.target_language" = "Название целевого языка";
+"prompt.variable.text" = "Текст для перевода";
+
+
+/* ========================================
+   Режимы перевода
+   ======================================== */
+
+"translation.mode.inline" = "Замена на месте";
+"translation.mode.inline.description" = "Заменить исходный текст переводом";
+"translation.mode.below" = "Под оригиналом";
+"translation.mode.below.description" = "Показать перевод под исходным текстом";
+
+
+/* ========================================
+   Настройки перевода
+   ======================================== */
+
+"translation.auto" = "Автоопределение";
+"translation.auto.detected" = "Автоопределено";
+"translation.language.follow.system" = "Как в системе";
+"translation.language.source" = "Исходный язык";
+"translation.language.target" = "Целевой язык";
+"translation.language.source.hint" = "Язык текста, который нужно перевести";
+"translation.language.target.hint" = "Язык, на который нужно перевести текст";
+
+
+/* ========================================
+   История переводов
+   ======================================== */
+
+"history.title" = "История переводов";
+"history.search.placeholder" = "Поиск в истории...";
+"history.clear.all" = "Очистить всю историю";
+"history.empty.title" = "Нет истории переводов";
+"history.empty.message" = "Ваши переведённые скриншоты появятся здесь";
+"history.no.results.title" = "Нет результатов";
+"history.no.results.message" = "Нет записей, соответствующих поиску";
+"history.clear.search" = "Очистить поиск";
+
+"history.source" = "Исходный";
+"history.translation" = "Перевод";
+"history.truncated" = "усечено";
+
+"history.copy.translation" = "Копировать перевод";
+"history.copy.source" = "Копировать исходный";
+"history.copy.both" = "Копировать оба";
+"history.delete" = "Удалить";
+
+"history.clear.alert.title" = "Очистить историю";
+"history.clear.alert.message" = "Вы уверены, что хотите удалить всю историю переводов? Это действие нельзя отменить.";
+
+
+/* ========================================
+   Запросы разрешений
+   ======================================== */
+
+"permission.prompt.title" = "Требуется разрешение на запись экрана";
+"permission.prompt.message" = "ScreenTranslate требуется разрешение для захвата экрана. Это необходимо для создания скриншотов.\n\nПосле нажатия «Продолжить» macOS запросит разрешение на запись экрана. Вы можете предоставить его в Системные настройки > Конфиденциальность и безопасность > Запись экрана.";
+"permission.prompt.continue" = "Продолжить";
+"permission.prompt.later" = "Позже";
+
+/* Разрешение универсального доступа */
+"permission.accessibility.title" = "Требуется разрешение универсального доступа";
+"permission.accessibility.message" = "ScreenTranslate требуется разрешение универсального доступа для захвата выбранного текста и вставки переводов.\n\nЭто позволяет приложению:\n• Копировать выбранный текст из любого приложения\n• Вставлять переведённый текст в поля ввода\n\nВаша конфиденциальность защищена — ScreenTranslate использует это только для перевода текста.";
+"permission.accessibility.grant" = "Предоставить разрешение";
+"permission.accessibility.open.settings" = "Открыть настройки системы";
+"permission.accessibility.denied.title" = "Требуется разрешение универсального доступа";
+"permission.accessibility.denied.message" = "Захват и вставка текста требуют разрешения универсального доступа.\n\nПредоставьте разрешение в Системные настройки > Конфиденциальность и безопасность > Универсальный доступ.";
+
+/* Разрешение мониторинга ввода */
+"permission.input.monitoring.title" = "Требуется разрешение на мониторинг ввода";
+"permission.input.monitoring.message" = "ScreenTranslate требуется разрешение на мониторинг ввода для вставки переведённого текста в приложения.\n\nВам нужно включить это в:\nСистемные настройки > Конфиденциальность и безопасность > Мониторинг ввода";
+"permission.input.monitoring.open.settings" = "Открыть настройки системы";
+"permission.input.monitoring.denied.title" = "Требуется разрешение на мониторинг ввода";
+"permission.input.monitoring.denied.message" = "Вставка текста требует разрешения на мониторинг ввода.\n\nПредоставьте разрешение в Системные настройки > Конфиденциальность и безопасность > Мониторинг ввода.";
+
+/* Общие строки разрешений */
+"permission.open.settings" = "Открыть настройки системы";
+
+
+/* ========================================
+   Приветствие
+   ======================================== */
+
+"onboarding.window.title" = "Добро пожаловать в ScreenTranslate";
+
+/* Приветствие - этап приветствия */
+"onboarding.welcome.title" = "Добро пожаловать в ScreenTranslate";
+"onboarding.welcome.message" = "Настроим захват экрана и перевод. Это займёт всего минуту.";
+
+"onboarding.feature.local.ocr.title" = "Локальный OCR";
+"onboarding.feature.local.ocr.description" = "Фреймворк macOS Vision для быстрого и конфиденциального распознавания текста";
+"onboarding.feature.local.translation.title" = "Локальный перевод";
+"onboarding.feature.local.translation.description" = "Apple Перевод для мгновенного перевода без сети";
+"onboarding.feature.shortcuts.title" = "Глобальные сочетания";
+"onboarding.feature.shortcuts.description" = "Захватывайте и переводите отовсюду с помощью сочетаний клавиш";
+
+/* Приветствие - этап разрешений */
+"onboarding.permissions.title" = "Разрешения";
+"onboarding.permissions.message" = "Для работы ScreenTranslate требуются некоторые разрешения. Предоставьте следующие разрешения:";
+"onboarding.permissions.hint" = "После предоставления разрешений статус обновится автоматически.";
+
+"onboarding.permission.screen.recording" = "Запись экрана";
+"onboarding.permission.accessibility" = "Универсальный доступ";
+"onboarding.permission.granted" = "Предоставлено";
+"onboarding.permission.not.granted" = "Не предоставлено";
+"onboarding.permission.grant" = "Предоставить разрешение";
+
+/* Приветствие - этап конфигурации */
+"onboarding.configuration.title" = "Дополнительная конфигурация";
+"onboarding.configuration.message" = "Ваши локальные OCR и перевод уже включены. Дополнительно настройте внешние сервисы:";
+"onboarding.configuration.paddleocr" = "Адрес сервера PaddleOCR";
+"onboarding.configuration.paddleocr.hint" = "Оставьте пустым для использования macOS Vision OCR";
+"onboarding.configuration.mtran" = "Адрес MTranServer";
+"onboarding.configuration.mtran.hint" = "Оставьте пустым для использования Apple Перевод";
+"onboarding.configuration.placeholder" = "http://localhost:8080";
+"onboarding.configuration.placeholder.address" = "localhost";
+"onboarding.configuration.test" = "Проверить перевод";
+"onboarding.configuration.test.button" = "Проверить перевод";
+"onboarding.configuration.testing" = "Проверка...";
+"onboarding.test.success" = "Тест перевода успешен: \"%@\" → \"%@\"";
+"onboarding.test.failed" = "Тест перевода не удался: %@";
+
+/* Приветствие - этап завершения */
+"onboarding.complete.title" = "Всё готово!";
+"onboarding.complete.message" = "ScreenTranslate готов к работе. Как начать:";
+"onboarding.complete.shortcuts" = "Используйте ⌘⇧F для захвата полного экрана";
+"onboarding.complete.selection" = "Используйте ⌘⇧A для захвата области и перевода";
+"onboarding.complete.settings" = "Откройте Настройки из меню для настройки параметров";
+"onboarding.complete.start" = "Начать работу с ScreenTranslate";
+
+/* Приветствие - навигация */
+"onboarding.back" = "Назад";
+"onboarding.continue" = "Продолжить";
+"onboarding.next" = "Далее";
+"onboarding.skip" = "Пропустить";
+"onboarding.complete" = "Завершить";
+
+/* Приветствие - PaddleOCR */
+"onboarding.paddleocr.title" = "PaddleOCR (опционально)";
+"onboarding.paddleocr.description" = "Улучшенный движок OCR для лучшей точности распознавания текста, особенно китайского.";
+"onboarding.paddleocr.installed" = "Установлен";
+"onboarding.paddleocr.not.installed" = "Не установлен";
+"onboarding.paddleocr.install" = "Установить";
+"onboarding.paddleocr.installing" = "Установка...";
+"onboarding.paddleocr.install.hint" = "Требуется Python 3 и pip. Выполните: pip3 install paddleocr paddlepaddle";
+"onboarding.paddleocr.copy.command" = "Копировать команду";
+"onboarding.paddleocr.refresh" = "Обновить статус";
+"onboarding.paddleocr.version" = "Версия: %@";
+
+/* Настройки - PaddleOCR */
+"settings.paddleocr.installed" = "Установлен";
+"settings.paddleocr.not.installed" = "Не установлен";
+"settings.paddleocr.install" = "Установить";
+"settings.paddleocr.installing" = "Установка...";
+"settings.paddleocr.install.hint" = "Требуется установленный Python 3 и pip в системе.";
+"settings.paddleocr.copy.command" = "Копировать команду";
+"settings.paddleocr.refresh" = "Обновить статус";
+"settings.paddleocr.ready" = "PaddleOCR готов";
+"settings.paddleocr.not.installed.message" = "PaddleOCR не установлен";
+"settings.paddleocr.description" = "PaddleOCR — это локальный движок OCR. Бесплатный, работает без сети, не требует API-ключа.";
+"settings.paddleocr.install.button" = "Установить PaddleOCR";
+"settings.paddleocr.copy.command.button" = "Копировать команду установки";
+"settings.paddleocr.mode" = "Режим";
+"settings.paddleocr.mode.fast" = "Быстрый";
+"settings.paddleocr.mode.precise" = "Точный";
+"settings.paddleocr.mode.fast.description" = "~1с, быстрый OCR с группировкой строк";
+"settings.paddleocr.mode.precise.description" = "~12с, модель VL-1.5 с более высокой точностью";
+"settings.paddleocr.useCloud" = "Использовать облачный API";
+"settings.paddleocr.cloudBaseURL" = "URL облачного API";
+"settings.paddleocr.cloudAPIKey" = "API-ключ";
+"settings.paddleocr.cloudModelId" = "ID модели";
+"settings.paddleocr.localVLModelDir" = "Каталог локальной модели (vllm)";
+"settings.paddleocr.localVLModelDir.hint" = "Путь к локальной модели PaddleOCR-VL (например ~/.paddlex/official_models/PaddleOCR-VL-1.5)";
+"error.paddleocr.notInstalled" = "PaddleOCR не установлен. Установите с помощью: pip3 install paddleocr paddlepaddle";
+
+
+/* ========================================
+   Конфигурация VLM
+   ======================================== */
+
+"settings.vlm.title" = "Конфигурация VLM";
+"settings.vlm.provider" = "Поставщик";
+"settings.vlm.apiKey" = "API-ключ";
+"settings.vlm.apiKey.optional" = "API-ключ необязателен для локальных поставщиков";
+"settings.vlm.baseURL" = "Базовый URL";
+"settings.vlm.model" = "Название модели";
+"settings.vlm.test.button" = "Проверить подключение";
+"settings.vlm.test.success" = "Подключение успешно! Модель: %@";
+"settings.vlm.test.ollama.success" = "Сервер запущен. Модель '%@' доступна";
+"settings.vlm.test.ollama.available" = "Сервер запущен. Доступно: %@";
+
+"vlm.provider.openai" = "OpenAI";
+"vlm.provider.claude" = "Claude";
+"vlm.provider.ollama" = "Ollama";
+"vlm.provider.paddleocr" = "PaddleOCR";
+"vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
+"vlm.provider.claude.description" = "Anthropic Claude Vision API";
+"vlm.provider.ollama.description" = "Локальный сервер Ollama";
+"vlm.provider.paddleocr.description" = "Локальный движок OCR (бесплатный, работает без сети)";
+
+
+/* ========================================
+   Конфигурация рабочего процесса перевода
+   ======================================== */
+
+"settings.translation.workflow.title" = "Движок перевода";
+"settings.translation.preferred" = "Предпочитаемый движок";
+"settings.translation.mtran.url" = "URL MTransServer";
+"settings.translation.mtran.test.button" = "Проверить подключение";
+"settings.translation.mtran.test.success" = "Подключение успешно";
+"settings.translation.mtran.test.failed" = "Сбой подключения: %@";
+"settings.translation.fallback" = "Резервный";
+"settings.translation.fallback.description" = "Использовать Apple Перевод как резервный при сбое предпочитаемого движка";
+
+"translation.preferred.apple.description" = "Встроенный перевод macOS, работает без сети";
+"translation.preferred.mtran.description" = "Самостоятельный сервер перевода для лучшего качества";
+
+
+/* ========================================
+   Метки доступности
+   ======================================== */
+
+"accessibility.close.button" = "Закрыть";
+"accessibility.settings.button" = "Настройки";
+"accessibility.capture.button" = "Захватить";
+"accessibility.translate.button" = "Перевести";
+
+
+/* ========================================
+   Окно двуязычного результата
+   ======================================== */
+
+/* ========================================
+   Рабочий процесс перевода
+   ======================================== */
+
+"translationFlow.phase.idle" = "Готов";
+"translationFlow.phase.analyzing" = "Анализ изображения...";
+"translationFlow.phase.translating" = "Перевод...";
+"translationFlow.phase.rendering" = "Отрисовка...";
+"translationFlow.phase.completed" = "Завершено";
+"translationFlow.phase.failed" = "Ошибка";
+
+"translationFlow.error.title" = "Ошибка перевода";
+"translationFlow.error.title.analysis" = "Ошибка распознавания изображения";
+"translationFlow.error.title.translation" = "Ошибка перевода";
+"translationFlow.error.title.rendering" = "Ошибка отрисовки";
+"translationFlow.error.unknown" = "Произошла неизвестная ошибка.";
+"translationFlow.error.analysis" = "Ошибка анализа: %@";
+"translationFlow.error.translation" = "Ошибка перевода: %@";
+"translationFlow.error.rendering" = "Ошибка отрисовки: %@";
+"translationFlow.error.cancelled" = "Перевод отменён.";
+"translationFlow.error.noTextFound" = "Текст не найден в выбранной области.";
+"translationFlow.error.translation.engine" = "Движок перевода";
+
+"translationFlow.recovery.analysis" = "Попробуйте снова с более чётким изображением или проверьте настройки поставщика VLM.";
+"translationFlow.recovery.translation" = "Проверьте настройки движка перевода и сетевое подключение, затем попробуйте снова.";
+"translationFlow.recovery.rendering" = "Попробуйте снова.";
+"translationFlow.recovery.noTextFound" = "Выберите область с видимым текстом.";
+
+"common.ok" = "ОК";
+
+
+/* ========================================
+   Окно двуязычного результата
+   ======================================== */
+
+"bilingualResult.window.title" = "Двуязычный перевод";
+"bilingualResult.loading" = "Перевод...";
+"bilingualResult.loading.analyzing" = "Анализ изображения...";
+"bilingualResult.loading.translating" = "Перевод текста...";
+"bilingualResult.loading.rendering" = "Отрисовка результата...";
+"bilingualResult.copyImage" = "Копировать изображение";
+"bilingualResult.copyText" = "Копировать текст";
+"bilingualResult.save" = "Сохранить";
+"bilingualResult.zoomIn" = "Увеличить";
+"bilingualResult.zoomOut" = "Уменьшить";
+"bilingualResult.resetZoom" = "Сбросить масштаб";
+"bilingualResult.copySuccess" = "Скопировано в буфер";
+"bilingualResult.copyTextSuccess" = "Текст перевода скопирован";
+"bilingualResult.saveSuccess" = "Успешно сохранено";
+"bilingualResult.copyFailed" = "Не удалось скопировать изображение";
+"bilingualResult.saveFailed" = "Не удалось сохранить изображение";
+"bilingualResult.noTextToCopy" = "Нет текста перевода для копирования";
+
+
+/* ========================================
+   Перевод текста (US-003 до US-010)
+   ======================================== */
+
+/* Рабочий процесс перевода текста */
+"textTranslation.phase.idle" = "Готов";
+"textTranslation.phase.translating" = "Перевод...";
+"textTranslation.phase.completed" = "Завершено";
+"textTranslation.phase.failed" = "Ошибка";
+
+"textTranslation.error.emptyInput" = "Нет текста для перевода";
+"textTranslation.error.translationFailed %@" = "Ошибка перевода: %@";
+"textTranslation.error.cancelled" = "Перевод отменён";
+"textTranslation.error.serviceUnavailable" = "Сервис перевода недоступен";
+
+"textTranslation.recovery.emptyInput" = "Сначала выберите текст";
+"textTranslation.recovery.translationFailed" = "Попробуйте снова";
+"textTranslation.recovery.serviceUnavailable" = "Проверьте сетевое подключение и попробуйте снова";
+
+"textTranslation.loading" = "Перевод...";
+"textTranslation.noSelection.title" = "Текст не выбран";
+"textTranslation.noSelection.message" = "Выберите текст в любом приложении и попробуйте снова.";
+
+/* Перевести и вставить */
+"translateAndInsert.emptyClipboard.title" = "Буфер обмена пуст";
+"translateAndInsert.emptyClipboard.message" = "Сначала скопируйте текст в буфер обмена, затем используйте это сочетание.";
+"translateAndInsert.success.title" = "Перевод вставлен";
+"translateAndInsert.success.message" = "Переведённый текст вставлен в активное поле ввода.";
+
+/* Отображение языка */
+"language.auto" = "Автоопределено";
+
+/* Общий интерфейс перевода текста */
+"common.copy" = "Копировать";
+"common.copied" = "Скопировано";
+"common.insert" = "Вставить";
+
+/* Окно перевода текста */
+"textTranslation.window.title" = "Перевод текста";
+
+/* Настройки языка для перевода и вставки */
+"settings.translateAndInsert.language.section" = "Языки перевода и вставки";
+"settings.translateAndInsert.language.source" = "Исходный язык";
+"settings.translateAndInsert.language.target" = "Целевой язык";
+
+
+/* ========================================
+   Несколько движков, совместимых с OpenAI
+   ======================================== */
+
+/* Конфигурация совместимого движка */
+"engine.compatible.new" = "Новый совместимый движок";
+"engine.compatible.description" = "Конечная точка API, совместимая с OpenAI";
+"engine.compatible.displayName" = "Отображаемое имя";
+"engine.compatible.displayName.placeholder" = "например, мой LLM-сервер";
+"engine.compatible.requireApiKey" = "Требуется API-ключ";
+"engine.compatible.add" = "Добавить совместимый движок";
+"engine.compatible.delete" = "Удалить этот движок";
+"engine.compatible.useAsEngine" = "Использовать как движок перевода";
+"engine.compatible.max.reached" = "Достигнуто максимальное количество 5 совместимых движков";
+
+/* Конфигурация промптов */
+"prompt.compatible.title" = "Совместимые движки";
+
+
+/* ========================================
+   Окно о программе
+   ======================================== */
+
+"about.title" = "О ScreenTranslate";
+"about.app.name" = "ScreenTranslate";
+"about.version.format" = "Версия %@ (%@)";
+"about.copyright" = "Авторское право";
+"about.copyright.value" = "© 2026 Все права защищены";
+"about.license" = "Лицензия";
+"about.license.value" = "Лицензия MIT";
+"about.github.link" = "GitHub: hubo1989/ScreenTranslate";
+"about.check.for.updates" = "Проверить обновления";
+"about.update.checking" = "Проверка...";
+"about.update.available" = "Доступно обновление";
+"about.update.uptodate" = "Актуальная версия";
+"about.update.failed" = "Проверка не удалась";
+"about.acknowledgements" = "Благодарности";
+"about.acknowledgements.title" = "Благодарности";
+"about.acknowledgements.intro" = "В этом программном обеспечении использованы следующие библиотеки с открытым исходным кодом:";
+"about.acknowledgements.upstream" = "Основано на";
+"about.acknowledgements.author.format" = "автор: %@";
+"about.close" = "Закрыть";
