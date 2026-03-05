@@ -533,7 +533,7 @@
 "onboarding.feature.local.translation.title" = "Traduzione Locale";
 "onboarding.feature.local.translation.description" = "Traduzione Apple per traduzione istantanea offline";
 "onboarding.feature.shortcuts.title" = "Scorciatoie Globali";
-"onboarding.feature.shortcuts.description" = "Cattura e tradova da ovunque con le scorciatoie da tastiera";
+"onboarding.feature.shortcuts.description" = "Cattura e traduci da ovunque con le scorciatoie da tastiera";
 
 /* Onboarding - Passo permessi */
 "onboarding.permissions.title" = "Permessi";

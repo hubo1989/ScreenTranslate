@@ -204,7 +204,7 @@
 "button.reset" = "リセット";
 "button.save" = "保存";
 "button.delete" = "削除";
-"button.confirm" = "确定";
+"button.confirm" = "確認";
 
 /* 保存成功 */
 "save.success.title" = "保存しました";
@@ -567,7 +567,7 @@
 "onboarding.complete.shortcuts" = "⌘⇧F でフルスクリーンキャプチャ";
 "onboarding.complete.selection" = "⌘⇧A で範囲キャプチャと翻訳";
 "onboarding.complete.settings" = "メニューバーから設定を開いてオプションをカスタマイズ";
-"onboarding.complete.start" = "ScreenTranslate を开始使用";
+"onboarding.complete.start" = "ScreenTranslate を開始使用";
 
 /* オンボーディング - ナビゲーション */
 "onboarding.back" = "戻る";
@@ -798,7 +798,7 @@
 "about.app.name" = "ScreenTranslate";
 "about.version.format" = "バージョン %@ (%@)";
 "about.copyright" = "著作権";
-"about.copyright.value" = "© 2026 All rights reserved";
+"about.copyright.value" = "© 2026 全著作権所有";
 "about.license" = "ライセンス";
 "about.license.value" = "MIT ライセンス";
 "about.github.link" = "GitHub: hubo1989/ScreenTranslate";
@@ -811,5 +811,5 @@
 "about.acknowledgements.title" = "謝辞";
 "about.acknowledgements.intro" = "本ソフトウェアは以下のオープンソースライブラリを使用しています：";
 "about.acknowledgements.upstream" = "ベース";
-"about.acknowledgements.author.format" = "by %@";
+"about.acknowledgements.author.format" = "作者: %@";
 "about.close" = "閉じる";

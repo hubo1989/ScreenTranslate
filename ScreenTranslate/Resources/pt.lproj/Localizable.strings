@@ -573,7 +573,7 @@ Conceda permissão em Configurações do Sistema > Privacidade e Segurança > Mo
 "onboarding.configuration.test" = "Testar Tradução";
 "onboarding.configuration.test.button" = "Testar Tradução";
 "onboarding.configuration.testing" = "Testando...";
-"onboarding.test.success" = "Translation test successful: \"%@\" → \"%@\"";
+"onboarding.test.success" = "Teste de tradução bem-sucedido: \"%@\" → \"%@\"";
 "onboarding.test.failed" = "Teste de tradução falhou: %@";
 
 /* Onboarding - Complete Step */

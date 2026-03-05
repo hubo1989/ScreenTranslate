@@ -718,7 +718,7 @@
 "bilingualResult.zoomOut" = "Verkleinern";
 "bilingualResult.resetZoom" = "Zoom zurücksetzen";
 "bilingualResult.copySuccess" = "In die Zwischenablage kopiert";
-"bilingualResult.copyTextSuccess" = "Üetzungstext kopiert";
+"bilingualResult.copyTextSuccess" = "Übersetzungstext kopiert";
 "bilingualResult.saveSuccess" = "Erfolgreich gespeichert";
 "bilingualResult.copyFailed" = "Fehler beim Kopieren des Bildes";
 "bilingualResult.saveFailed" = "Fehler beim Speichern des Bildes";

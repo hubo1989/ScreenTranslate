@@ -156,7 +156,7 @@
    ======================================== */
 
 "tool.rectangle" = "직사각형";
-"tool.freehand" = "自由형";
+"tool.freehand" = "자유형";
 "tool.text" = "텍스트";
 "tool.arrow" = "화살표";
 "tool.ellipse" = "타원";
