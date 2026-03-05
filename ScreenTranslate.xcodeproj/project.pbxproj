@@ -109,8 +109,16 @@
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
-				en,
 				Base,
+				de,
+				en,
+				es,
+				fr,
+				it,
+				ja,
+				ko,
+				pt,
+				ru,
 				"zh-Hans",
 			);
 			mainGroup = SC000004;

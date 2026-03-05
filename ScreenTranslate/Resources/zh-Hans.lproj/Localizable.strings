@@ -130,6 +130,7 @@
 "preview.tooltip.pin" = "钉图 (P)";
 "preview.tooltip.undo" = "撤销 (⌘Z)";
 "preview.tooltip.redo" = "重做 (⌘⇧Z)";
+"preview.tooltip.copy" = "复制到剪贴板 (⌘C)";
 "preview.tooltip.save" = "保存 (⌘S)";
 "preview.tooltip.ocr" = "识别文字 (OCR)";
 "preview.tooltip.confirm" = "复制到剪贴板并关闭 (回车)";

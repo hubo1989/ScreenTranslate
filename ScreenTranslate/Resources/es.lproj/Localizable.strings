@@ -1,0 +1,815 @@
+/*
+  Localizable.strings (Español)
+  ScreenTranslate
+*/
+
+/* ========================================
+   Mensajes de Error
+   ======================================== */
+
+/* Errores de Permiso */
+"error.permission.denied" = "Se requiere permiso de grabación de pantalla para capturar pantallas.";
+"error.permission.denied.recovery" = "Abra Configuración del Sistema para otorgar permiso.";
+
+/* Errores de Pantalla */
+"error.display.not.found" = "La pantalla seleccionada ya no está disponible.";
+"error.display.not.found.recovery" = "Seleccione una pantalla diferente.";
+"error.display.disconnected" = "La pantalla '%@' se desconectó durante la captura.";
+"error.display.disconnected.recovery" = "Vuelva a conectar la pantalla e inténtelo de nuevo.";
+
+/* Errores de Captura */
+"error.capture.failed" = "Error al capturar la pantalla.";
+"error.capture.failed.recovery" = "Inténtelo de nuevo.";
+
+/* Errores de Guardado */
+"error.save.location.invalid" = "La ubicación de guardado no es accesible.";
+"error.save.location.invalid.recovery" = "Elija una ubicación diferente en Configuración.";
+"error.save.location.invalid.detail" = "No se puede guardar en %@. La ubicación no es accesible.";
+"error.save.unknown" = "Ocurrió un error inesperado al guardar.";
+"error.disk.full" = "No hay suficiente espacio en disco para guardar la captura.";
+"error.disk.full.recovery" = "Libere espacio en disco e inténtelo de nuevo.";
+
+/* Errores de Exportación */
+"error.export.encoding.failed" = "Error al codificar la imagen.";
+"error.export.encoding.failed.recovery" = "Pruebe un formato diferente en Configuración.";
+"error.export.encoding.failed.detail" = "Error al codificar la imagen como %@.";
+
+/* Errores del Portapapeles */
+"error.clipboard.write.failed" = "Error al copiar la captura al portapapeles.";
+"error.clipboard.write.failed.recovery" = "Inténtelo de nuevo.";
+
+/* Errores de Atajos de Teclado */
+"error.hotkey.registration.failed" = "Error al registrar el atajo de teclado.";
+"error.hotkey.registration.failed.recovery" = "El atajo puede entrar en conflicto con otra aplicación. Pruebe un atajo diferente.";
+"error.hotkey.conflict" = "Este atajo de teclado entra en conflicto con otra aplicación.";
+"error.hotkey.conflict.recovery" = "Elija un atajo de teclado diferente.";
+
+/* Errores de OCR */
+"error.ocr.failed" = "Error en el reconocimiento de texto.";
+"error.ocr.failed.recovery" = "Inténtelo de nuevo con una imagen más clara.";
+"error.ocr.no.text" = "No se reconoció texto en la imagen.";
+"error.ocr.no.text.recovery" = "Intente capturar un área con texto visible.";
+"error.ocr.cancelled" = "El reconocimiento de texto fue cancelado.";
+"error.ocr.server.unreachable" = "No se puede conectar al servidor OCR.";
+"error.ocr.server.unreachable.recovery" = "Verifique la dirección del servidor y la conexión de red.";
+
+/* Errores de Traducción */
+"error.translation.in.progress" = "Ya hay una traducción en progreso";
+"error.translation.in.progress.recovery" = "Espere a que se complete la traducción actual";
+"error.translation.empty.input" = "No hay texto para traducir";
+"error.translation.empty.input.recovery" = "Seleccione algo de texto primero";
+"error.translation.timeout" = "Tiempo de espera de traducción agotado";
+"error.translation.timeout.recovery" = "Inténtelo de nuevo";
+"error.translation.unsupported.pair" = "No se admite la traducción de %@ a %@";
+"error.translation.unsupported.pair.recovery" = "Seleccione idiomas diferentes";
+"error.translation.failed" = "Error en la traducción";
+"error.translation.failed.recovery" = "Inténtelo de nuevo";
+"error.translation.language.not.installed" = "El idioma de traducción '%@' no está instalado";
+"error.translation.language.download.instructions" = "Vaya a Configuración del Sistema > General > Idioma y Región > Idiomas de Traducción, luego descargue el idioma requerido.";
+
+/* UI de Error Genérico */
+"error.title" = "Error";
+"error.ok" = "OK";
+"error.dismiss" = "Descartar";
+"error.retry.capture" = "Reintentar";
+"error.permission.open.settings" = "Abrir Configuración del Sistema";
+
+
+/* ========================================
+   Elementos del Menú
+   ======================================== */
+
+"menu.capture.full.screen" = "Capturar Pantalla Completa";
+"menu.capture.fullscreen" = "Capturar Pantalla Completa";
+"menu.capture.selection" = "Capturar Selección";
+"menu.translation.mode" = "Modo de Traducción";
+"menu.translation.history" = "Historial de Traducciones";
+"menu.settings" = "Configuración...";
+"menu.about" = "Acerca de ScreenTranslate";
+"menu.quit" = "Salir de ScreenTranslate";
+
+
+/* ========================================
+   Selector de Pantalla
+   ======================================== */
+
+"display.selector.title" = "Seleccionar Pantalla";
+"display.selector.header" = "Elija la pantalla para capturar:";
+"display.selector.cancel" = "Cancelar";
+
+
+/* ========================================
+   Ventana de Vista Previa
+   ======================================== */
+
+"preview.window.title" = "Vista Previa de Captura";
+"preview.title" = "Vista Previa de Captura";
+"preview.dimensions" = "%d x %d píxeles";
+"preview.file.size" = "~%@ %@";
+"preview.screenshot" = "Captura";
+"preview.enter.text" = "Introducir texto";
+"preview.image.dimensions" = "Dimensiones de imagen";
+"preview.estimated.size" = "Tamaño estimado";
+"preview.edit.label" = "Editar:";
+"preview.active.tool" = "Herramienta activa";
+"preview.crop.mode.active" = "Modo de recorte activo";
+
+/* Recortar */
+"preview.crop" = "Recortar";
+"preview.crop.cancel" = "Cancelar";
+"preview.crop.apply" = "Aplicar Recorte";
+
+/* Texto Reconocido */
+"preview.recognized.text" = "Texto Reconocido:";
+"preview.translation" = "Traducción:";
+"preview.results.panel" = "Resultados de Texto";
+"preview.copy.text" = "Copiar texto";
+
+/* Descripciones de Herramientas */
+"preview.tooltip.crop" = "Recortar (C)";
+"preview.tooltip.pin" = "Fijar a Pantalla (P)";
+"preview.tooltip.undo" = "Deshacer (⌘Z)";
+"preview.tooltip.redo" = "Rehacer (⌘⇧Z)";
+"preview.tooltip.copy" = "Copiar al Portapapeles (⌘C)";
+"preview.tooltip.save" = "Guardar (⌘S)";
+"preview.tooltip.ocr" = "Reconocer Texto (OCR)";
+"preview.tooltip.confirm" = "Copiar al Portapapeles y Cerrar (Enter)";
+"preview.tooltip.dismiss" = "Descartar (Escape)";
+"preview.tooltip.delete" = "Eliminar anotación seleccionada";
+
+/* Etiquetas de Accesibilidad */
+"preview.accessibility.save" = "Guardar captura";
+"preview.accessibility.saving" = "Guardando captura";
+"preview.accessibility.confirm" = "Confirmar y copiar al portapapeles";
+"preview.accessibility.copying" = "Copiando al portapapeles";
+"preview.accessibility.hint.commandS" = "Comando S";
+"preview.accessibility.hint.enter" = "Tecla Enter";
+
+/* Alternar Forma */
+"preview.shape.filled" = "Relleno";
+"preview.shape.hollow" = "Hueco";
+"preview.shape.toggle.hint" = "Haga clic para alternar entre relleno y hueco";
+
+
+/* ========================================
+   Herramientas de Anotación
+   ======================================== */
+
+"tool.rectangle" = "Rectángulo";
+"tool.freehand" = "Mano Alzada";
+"tool.text" = "Texto";
+"tool.arrow" = "Flecha";
+"tool.ellipse" = "Elipse";
+"tool.line" = "Línea";
+"tool.highlight" = "Resaltar";
+"tool.mosaic" = "Mosaico";
+"tool.numberLabel" = "Etiqueta Numérica";
+
+
+/* ========================================
+   Colores
+   ======================================== */
+
+"color.red" = "Rojo";
+"color.orange" = "Naranja";
+"color.yellow" = "Amarillo";
+"color.green" = "Verde";
+"color.blue" = "Azul";
+"color.purple" = "Púrpura";
+"color.pink" = "Rosa";
+"color.white" = "Blanco";
+"color.black" = "Negro";
+"color.custom" = "Personalizado";
+
+
+/* ========================================
+   Acciones
+   ======================================== */
+
+"action.save" = "Guardar";
+"action.copy" = "Copiar";
+"action.cancel" = "Cancelar";
+"action.undo" = "Deshacer";
+"action.redo" = "Rehacer";
+"action.delete" = "Eliminar";
+"action.clear" = "Limpiar";
+"action.reset" = "Restablecer";
+"action.close" = "Cerrar";
+"action.done" = "Hecho";
+
+/* Botones */
+"button.ok" = "OK";
+"button.cancel" = "Cancelar";
+"button.clear" = "Limpiar";
+"button.reset" = "Restablecer";
+"button.save" = "Guardar";
+"button.delete" = "Eliminar";
+"button.confirm" = "Confirmar";
+
+/* Guardado Exitoso */
+"save.success.title" = "Guardado Exitosamente";
+"save.success.message" = "Guardado en %@";
+"save.with.translations.message" = "Elija dónde guardar la imagen traducida";
+
+/* Error Sin Traducciones */
+"error.no.translations" = "No hay traducciones disponibles. Traduzca el texto primero.";
+
+/* Copia Exitosa */
+"copy.success.message" = "Copiado al portapapeles";
+
+
+/* ========================================
+   Ventana de Configuración
+   ======================================== */
+
+"settings.window.title" = "Configuración de ScreenTranslate";
+"settings.title" = "Configuración de ScreenTranslate";
+
+/* Pestañas/Secciones de Configuración */
+"settings.section.permissions" = "Permisos";
+"settings.section.general" = "General";
+"settings.section.engines" = "Motores";
+"settings.section.prompts" = "Configuración de Prompts";
+"settings.section.languages" = "Idiomas";
+"settings.section.export" = "Exportar";
+"settings.section.shortcuts" = "Atajos de Teclado";
+"settings.section.text.translation" = "Traducción de Texto";
+"settings.section.annotations" = "Anotaciones";
+
+/* Configuración de Idioma */
+"settings.language" = "Idioma";
+"settings.language.system" = "Predeterminado del Sistema";
+"settings.language.restart.hint" = "Algunos cambios pueden requerir reinicio";
+
+/* Permisos */
+"settings.permission.screen.recording" = "Grabación de Pantalla";
+"settings.permission.screen.recording.hint" = "Necesario para capturar pantallas";
+"settings.permission.accessibility" = "Accesibilidad";
+"settings.permission.accessibility.hint" = "Necesario para atajos globales";
+"settings.permission.granted" = "Otorgado";
+"settings.permission.not.granted" = "No Otorgado";
+"settings.permission.grant" = "Otorgar Acceso";
+"settings.permission.authorization.title" = "Autorización Requerida";
+"settings.permission.authorization.cancel" = "Cancelar";
+"settings.permission.authorization.go" = "Autorizar";
+"settings.permission.authorization.screen.message" = "Se requiere permiso de grabación de pantalla. Haga clic en 'Autorizar' para abrir Configuración del Sistema y habilitar ScreenCapture para esta aplicación.";
+"settings.permission.authorization.accessibility.message" = "Se requiere permiso de accesibilidad. Haga clic en 'Autorizar' para abrir Configuración del Sistema y agregar esta aplicación a la lista de accesibilidad.";
+
+/* Ubicación de Guardado */
+"settings.save.location" = "Ubicación de Guardado";
+"settings.save.location.choose" = "Elegir...";
+"settings.save.location.select" = "Seleccionar";
+"settings.save.location.message" = "Elija la ubicación predeterminada para guardar capturas";
+"settings.save.location.reveal" = "Mostrar en Finder";
+
+/* Formato de Exportación */
+"settings.format" = "Formato Predeterminado";
+"settings.format.png" = "PNG";
+"settings.format.jpeg" = "JPEG";
+"settings.format.heic" = "HEIC";
+"settings.jpeg.quality" = "Calidad JPEG";
+"settings.jpeg.quality.hint" = "Mayor calidad resulta en archivos más grandes";
+"settings.heic.quality" = "Calidad HEIC";
+"settings.heic.quality.hint" = "HEIC ofrece mejor compresión";
+
+/* Atajos de Teclado */
+"settings.shortcuts" = "Atajos de Teclado";
+"settings.shortcut.fullscreen" = "Captura de Pantalla Completa";
+"settings.shortcut.selection" = "Captura de Selección";
+"settings.shortcut.translation.mode" = "Modo de Traducción";
+"settings.shortcut.text.selection.translation" = "Traducción de Selección de Texto";
+"settings.shortcut.translate.and.insert" = "Traducir e Insertar";
+"settings.shortcut.recording" = "Presione teclas...";
+"settings.shortcut.reset" = "Restablecer a predeterminados";
+"settings.shortcut.error.no.modifier" = "Los atajos deben incluir Comando, Control u Opción";
+"settings.shortcut.error.conflict" = "Este atajo ya está en uso";
+
+/* Anotaciones */
+"settings.annotations" = "Valores Predeterminados de Anotación";
+"settings.stroke.color" = "Color del Trazo";
+"settings.stroke.width" = "Ancho del Trazo";
+"settings.text.size" = "Tamaño de Texto";
+"settings.mosaic.blockSize" = "Tamaño de Bloque de Mosaico";
+
+/* Motores */
+"settings.ocr.engine" = "Motor OCR";
+"settings.translation.engine" = "Motor de Traducción";
+"settings.translation.mode" = "Modo de Traducción";
+
+/* Restablecer */
+"settings.reset.all" = "Restablecer Todo a Valores Predeterminados";
+
+/* Errores */
+"settings.error.title" = "Error";
+"settings.error.ok" = "OK";
+
+
+/* ========================================
+   Motores OCR
+   ======================================== */
+
+"ocr.engine.vision" = "Apple Vision";
+"ocr.engine.vision.description" = "Framework Vision de macOS integrado, rápido y privado";
+"ocr.engine.paddleocr" = "PaddleOCR";
+"ocr.engine.paddleocr.description" = "Servidor OCR autohospedado para mayor precisión";
+
+
+/* ========================================
+   Motores de Traducción
+   ======================================== */
+
+"translation.engine.apple" = "Traducción de Apple";
+"translation.engine.apple.description" = "Traducción de macOS integrada, no requiere configuración";
+"translation.engine.mtran" = "MTranServer";
+"translation.engine.mtran.description" = "Servidor de traducción autohospedado";
+
+/* Nuevos Motores de Traducción */
+"translation.engine.openai" = "OpenAI";
+"translation.engine.openai.description" = "Traducción GPT-4 a través de la API de OpenAI";
+"translation.engine.claude" = "Claude";
+"translation.engine.claude.description" = "Traducción Claude a través de la API de Anthropic";
+"translation.engine.gemini" = "Gemini";
+"translation.engine.gemini.description" = "Traducción Gemini a través de la API de Google AI";
+"translation.engine.ollama" = "Ollama";
+"translation.engine.ollama.description" = "Traducción LLM local a través de Ollama";
+"translation.engine.google" = "Google Translate";
+"translation.engine.google.description" = "API de Google Cloud Translation";
+"translation.engine.deepl" = "DeepL";
+"translation.engine.deepl.description" = "Traducción de alta calidad a través de la API de DeepL";
+"translation.engine.baidu" = "Baidu Translate";
+"translation.engine.baidu.description" = "API de Traducción Baidu";
+"translation.engine.custom" = "Compatible con OpenAI";
+"translation.engine.custom.description" = "Endpoint personalizado compatible con OpenAI";
+
+/* Categorías de Motores */
+"engine.category.builtin" = "Integrado";
+"engine.category.llm" = "Traducción LLM";
+"engine.category.cloud" = "Servicios en la Nube";
+"engine.category.compatible" = "Compatible";
+
+/* Título de Configuración del Motor */
+"engine.config.title" = "Configuración del Motor de Traducción";
+
+/* Modos de Selección del Motor */
+"engine.selection.mode.title" = "Modo de Selección del Motor";
+"engine.selection.mode.primary_fallback" = "Principal/Respaldo";
+"engine.selection.mode.primary_fallback.description" = "Usar motor principal, cambiar al secundario si falla";
+"engine.selection.mode.parallel" = "Paralelo";
+"engine.selection.mode.parallel.description" = "Ejecutar múltiples motores simultáneamente y comparar resultados";
+"engine.selection.mode.quick_switch" = "Cambio Rápido";
+"engine.selection.mode.quick_switch.description" = "Comenzar con el principal, cambiar rápidamente a otros motores bajo demanda";
+"engine.selection.mode.scene_binding" = "Vinculación de Escena";
+"engine.selection.mode.scene_binding.description" = "Usar diferentes motores para diferentes escenarios de traducción";
+
+/* Etiquetas Específicas del Modo */
+"engine.config.primary" = "Principal";
+"engine.config.fallback" = "Respaldo";
+"engine.config.switch.order" = "Orden de Cambio";
+"engine.config.parallel.select" = "Seleccionar motores para ejecutar en paralelo";
+"engine.config.replace" = "Reemplazar motor";
+"engine.config.remove" = "Eliminar";
+"engine.config.add" = "Agregar Motor";
+
+/* Escenas de Traducción */
+"translation.scene.screenshot" = "Traducción de Captura";
+"translation.scene.screenshot.description" = "OCR y traducción de regiones de captura";
+"translation.scene.text_selection" = "Traducción de Selección de Texto";
+"translation.scene.text_selection.description" = "Traducir texto seleccionado de cualquier aplicación";
+"translation.scene.translate_and_insert" = "Traducir e Insertar";
+"translation.scene.translate_and_insert.description" = "Traducir texto del portapapeles e insertar en el cursor";
+
+/* Configuración del Motor */
+"engine.config.enabled" = "Habilitar este motor";
+"engine.config.apiKey" = "Clave API";
+"engine.config.apiKey.placeholder" = "Ingrese su clave API";
+"engine.config.getApiKey" = "Obtener Clave API";
+"engine.config.baseURL" = "URL Base";
+"engine.config.model" = "Nombre del Modelo";
+"engine.config.test" = "Probar Conexión";
+"engine.config.test.success" = "Conexión exitosa";
+"engine.config.test.failed" = "Conexión fallida";
+"engine.config.baidu.credentials" = "Credenciales Baidu";
+"engine.config.baidu.appID" = "ID de Aplicación";
+"engine.config.baidu.secretKey" = "Clave Secreta";
+"engine.config.mtran.url" = "URL del Servidor";
+
+/* Estado del Motor */
+"engine.status.configured" = "Configurado";
+"engine.status.unconfigured" = "No configurado";
+"engine.available.title" = "Motores Disponibles";
+"engine.parallel.title" = "Motores Paralelos";
+"engine.parallel.description" = "Seleccionar motores para ejecutar simultáneamente en modo paralelo";
+"engine.scene.binding.title" = "Vinculación de Motor de Escena";
+"engine.scene.binding.description" = "Configurar qué motor usar para cada escenario de traducción";
+"engine.scene.fallback.tooltip" = "Habilitar respaldo a otros motores";
+
+/* Errores de Keychain */
+"keychain.error.item_not_found" = "Credenciales no encontradas en el Llavero";
+"keychain.error.item_not_found.recovery" = "Configure sus credenciales API en Configuración";
+"keychain.error.duplicate_item" = "Las credenciales ya existen en el Llavero";
+"keychain.error.duplicate_item.recovery" = "Intente eliminar las credenciales existentes primero";
+"keychain.error.invalid_data" = "Formato de datos de credencial no válido";
+"keychain.error.invalid_data.recovery" = "Intente volver a ingresar sus credenciales";
+"keychain.error.unexpected_status" = "Error en la operación del Llavero";
+"keychain.error.unexpected_status.recovery" = "Verifique sus permisos de acceso al Llavero";
+
+/* Errores de Multimotor */
+"multiengine.error.all_failed" = "Todos los motores de traducción fallaron";
+"multiengine.error.no_engines" = "No hay motores de traducción configurados";
+"multiengine.error.primary_unavailable" = "El motor principal %@ no está disponible";
+"multiengine.error.no_results" = "No hay resultados de traducción disponibles";
+
+/* Errores del Registro */
+"registry.error.already_registered" = "El proveedor ya está registrado";
+"registry.error.not_registered" = "No hay proveedor registrado para %@";
+"registry.error.config_missing" = "Falta configuración para %@";
+"registry.error.credentials_not_found" = "Credenciales no encontradas para %@";
+
+/* Configuración de Prompts */
+"prompt.engine.title" = "Prompts del Motor";
+"prompt.engine.description" = "Personalice los prompts de traducción para cada motor LLM";
+"prompt.scene.title" = "Prompts de Escena";
+"prompt.scene.description" = "Personalice los prompts de traducción para cada escenario de traducción";
+"prompt.default.title" = "Plantilla de Prompt Predeterminada";
+"prompt.default.description" = "Esta plantilla se usa cuando no hay un prompt personalizado configurado";
+"prompt.button.edit" = "Editar";
+"prompt.button.reset" = "Restablecer";
+"prompt.editor.title" = "Editar Prompt";
+"prompt.editor.variables" = "Variables Disponibles:";
+"prompt.variable.source_language" = "Nombre del idioma de origen";
+"prompt.variable.target_language" = "Nombre del idioma de destino";
+"prompt.variable.text" = "Texto para traducir";
+
+
+/* ========================================
+   Modos de Traducción
+   ======================================== */
+
+"translation.mode.inline" = "Reemplazo In Situ";
+"translation.mode.inline.description" = "Reemplazar el texto original con la traducción";
+"translation.mode.below" = "Debajo del Original";
+"translation.mode.below.description" = "Mostrar la traducción debajo del texto original";
+
+
+/* ========================================
+   Configuración de Traducción
+   ======================================== */
+
+"translation.auto" = "Detectar Automáticamente";
+"translation.auto.detected" = "Detectado Automáticamente";
+"translation.language.follow.system" = "Seguir el Sistema";
+"translation.language.source" = "Idioma de Origen";
+"translation.language.target" = "Idioma de Destino";
+"translation.language.source.hint" = "El idioma del texto que desea traducir";
+"translation.language.target.hint" = "El idioma al que desea traducir el texto";
+
+
+/* ========================================
+   Vista del Historial
+   ======================================== */
+
+"history.title" = "Historial de Traducciones";
+"history.search.placeholder" = "Buscar historial...";
+"history.clear.all" = "Limpiar todo el historial";
+"history.empty.title" = "Sin Historial de Traducciones";
+"history.empty.message" = "Sus capturas traducidas aparecerán aquí";
+"history.no.results.title" = "Sin Resultados";
+"history.no.results.message" = "No hay entradas que coincidan con su búsqueda";
+"history.clear.search" = "Limpiar Búsqueda";
+
+"history.source" = "Origen";
+"history.translation" = "Traducción";
+"history.truncated" = "truncado";
+
+"history.copy.translation" = "Copiar Traducción";
+"history.copy.source" = "Copiar Origen";
+"history.copy.both" = "Copiar Ambos";
+"history.delete" = "Eliminar";
+
+"history.clear.alert.title" = "Limpiar Historial";
+"history.clear.alert.message" = "¿Está seguro de que desea eliminar todo el historial de traducciones? Esta acción no se puede deshacer.";
+
+
+/* ========================================
+   Prompt de Permiso
+   ======================================== */
+
+"permission.prompt.title" = "Permiso de Grabación de Pantalla Requerido";
+"permission.prompt.message" = "ScreenTranslate necesita permiso para capturar su pantalla. Esto es necesario para tomar capturas.\n\nDespués de hacer clic en Continuar, macOS le pedirá que otorgue el permiso de Grabación de Pantalla. Puede otorgarlo en Configuración del Sistema > Privacidad y Seguridad > Grabación de Pantalla.";
+"permission.prompt.continue" = "Continuar";
+"permission.prompt.later" = "Más tarde";
+
+/* Permiso de Accesibilidad */
+"permission.accessibility.title" = "Permiso de Accesibilidad Requerido";
+"permission.accessibility.message" = "ScreenTranslate necesita permiso de accesibilidad para capturar texto seleccionado e insertar traducciones.\n\nEsto permite que la aplicación:\n• Copie texto seleccionado de cualquier aplicación\n• Inserte texto traducido en campos de entrada\n\nSu privacidad está protegida - ScreenTranslate solo usa esto para la traducción de texto.";
+"permission.accessibility.grant" = "Otorgar Permiso";
+"permission.accessibility.open.settings" = "Abrir Configuración del Sistema";
+"permission.accessibility.denied.title" = "Permiso de Accesibilidad Requerido";
+"permission.accessibility.denied.message" = "La captura e inserción de texto requiere permiso de accesibilidad.\n\nOtorgue permiso en Configuración del Sistema > Privacidad y Seguridad > Accesibilidad.";
+
+/* Permiso de Monitoreo de Entrada */
+"permission.input.monitoring.title" = "Permiso de Monitoreo de Entrada Requerido";
+"permission.input.monitoring.message" = "ScreenTranslate necesita permiso de monitoreo de entrada para insertar texto traducido en aplicaciones.\n\nNecesitará habilitar esto en:\nConfiguración del Sistema > Privacidad y Seguridad > Monitoreo de Entrada";
+"permission.input.monitoring.open.settings" = "Abrir Configuración del Sistema";
+"permission.input.monitoring.denied.title" = "Permiso de Monitoreo de Entrada Requerido";
+"permission.input.monitoring.denied.message" = "La inserción de texto requiere permiso de monitoreo de entrada.\n\nOtorgue permiso en Configuración del Sistema > Privacidad y Seguridad > Monitoreo de Entrada.";
+
+/* Cadenas Comunes de Permiso */
+"permission.open.settings" = "Abrir Configuración del Sistema";
+
+
+/* ========================================
+   Configuración Inicial
+   ======================================== */
+
+"onboarding.window.title" = "Bienvenido a ScreenTranslate";
+
+/* Configuración Inicial - Paso de Bienvenida */
+"onboarding.welcome.title" = "Bienvenido a ScreenTranslate";
+"onboarding.welcome.message" = "Configuremos las funciones de captura de pantalla y traducción. Solo tomará un minuto.";
+
+"onboarding.feature.local.ocr.title" = "OCR Local";
+"onboarding.feature.local.ocr.description" = "Framework Vision de macOS para reconocimiento de texto rápido y privado";
+"onboarding.feature.local.translation.title" = "Traducción Local";
+"onboarding.feature.local.translation.description" = "Traducción de Apple para traducción instantánea sin conexión";
+"onboarding.feature.shortcuts.title" = "Atajos Globales";
+"onboarding.feature.shortcuts.description" = "Capture y traduzca desde cualquier lugar con atajos de teclado";
+
+/* Configuración Inicial - Paso de Permisos */
+"onboarding.permissions.title" = "Permisos";
+"onboarding.permissions.message" = "ScreenTranslate necesita algunos permisos para funcionar correctamente. Otorgue los siguientes permisos:";
+"onboarding.permissions.hint" = "Después de otorgar permisos, el estado se actualizará automáticamente.";
+
+"onboarding.permission.screen.recording" = "Grabación de Pantalla";
+"onboarding.permission.accessibility" = "Accesibilidad";
+"onboarding.permission.granted" = "Otorgado";
+"onboarding.permission.not.granted" = "No Otorgado";
+"onboarding.permission.grant" = "Otorgar Permiso";
+
+/* Configuración Inicial - Paso de Configuración */
+"onboarding.configuration.title" = "Configuración Opcional";
+"onboarding.configuration.message" = "Sus funciones OCR y traducción local ya están habilitadas. Opcionalmente configure servicios externos:";
+"onboarding.configuration.paddleocr" = "Dirección del Servidor PaddleOCR";
+"onboarding.configuration.paddleocr.hint" = "Déjelo vacío para usar macOS Vision OCR";
+"onboarding.configuration.mtran" = "Dirección de MTranServer";
+"onboarding.configuration.mtran.hint" = "Déjelo vacío para usar Traducción de Apple";
+"onboarding.configuration.placeholder" = "http://localhost:8080";
+"onboarding.configuration.placeholder.address" = "localhost";
+"onboarding.configuration.test" = "Probar Traducción";
+"onboarding.configuration.test.button" = "Probar Traducción";
+"onboarding.configuration.testing" = "Probando...";
+"onboarding.test.success" = "Prueba de traducción exitosa: \"%@\" → \"%@\"";
+"onboarding.test.failed" = "Prueba de traducción fallida: %@";
+
+/* Configuración Inicial - Paso de Finalización */
+"onboarding.complete.title" = "¡Todo Listo!";
+"onboarding.complete.message" = "ScreenTranslate está listo para usar. Así es cómo comenzar:";
+"onboarding.complete.shortcuts" = "Use ⌘⇧F para capturar la pantalla completa";
+"onboarding.complete.selection" = "Use ⌘⇧A para capturar una selección y traducir";
+"onboarding.complete.settings" = "Abra Configuración desde la barra de menú para personalizar opciones";
+"onboarding.complete.start" = "Comenzar a Usar ScreenTranslate";
+
+/* Configuración Inicial - Navegación */
+"onboarding.back" = "Atrás";
+"onboarding.continue" = "Continuar";
+"onboarding.next" = "Siguiente";
+"onboarding.skip" = "Omitir";
+"onboarding.complete" = "Completar";
+
+/* Configuración Inicial - PaddleOCR */
+"onboarding.paddleocr.title" = "PaddleOCR (Opcional)";
+"onboarding.paddleocr.description" = "Motor OCR mejorado para mayor precisión en el reconocimiento de texto, especialmente para chino.";
+"onboarding.paddleocr.installed" = "Instalado";
+"onboarding.paddleocr.not.installed" = "No Instalado";
+"onboarding.paddleocr.install" = "Instalar";
+"onboarding.paddleocr.installing" = "Instalando...";
+"onboarding.paddleocr.install.hint" = "Requiere Python 3 y pip. Ejecute: pip3 install paddleocr paddlepaddle";
+"onboarding.paddleocr.copy.command" = "Copiar Comando";
+"onboarding.paddleocr.refresh" = "Actualizar Estado";
+"onboarding.paddleocr.version" = "Versión: %@";
+
+/* Configuración - PaddleOCR */
+"settings.paddleocr.installed" = "Instalado";
+"settings.paddleocr.not.installed" = "No Instalado";
+"settings.paddleocr.install" = "Instalar";
+"settings.paddleocr.installing" = "Instalando...";
+"settings.paddleocr.install.hint" = "Requiere Python 3 y pip instalado en su sistema.";
+"settings.paddleocr.copy.command" = "Copiar Comando";
+"settings.paddleocr.refresh" = "Actualizar Estado";
+"settings.paddleocr.ready" = "PaddleOCR está listo";
+"settings.paddleocr.not.installed.message" = "PaddleOCR no está instalado";
+"settings.paddleocr.description" = "PaddleOCR es un motor OCR local. Es gratuito, funciona sin conexión y no requiere una clave API.";
+"settings.paddleocr.install.button" = "Instalar PaddleOCR";
+"settings.paddleocr.copy.command.button" = "Copiar Comando de Instalación";
+"settings.paddleocr.mode" = "Modo";
+"settings.paddleocr.mode.fast" = "Rápido";
+"settings.paddleocr.mode.precise" = "Preciso";
+"settings.paddleocr.mode.fast.description" = "~1s, OCR rápido con agrupación de líneas";
+"settings.paddleocr.mode.precise.description" = "~12s, modelo VL-1.5 con mayor precisión";
+"settings.paddleocr.useCloud" = "Usar API en la Nube";
+"settings.paddleocr.cloudBaseURL" = "URL de API en la Nube";
+"settings.paddleocr.cloudAPIKey" = "Clave API";
+"settings.paddleocr.cloudModelId" = "ID del Modelo";
+"settings.paddleocr.localVLModelDir" = "Directorio de Modelo Local (vllm)";
+"settings.paddleocr.localVLModelDir.hint" = "Ruta al modelo PaddleOCR-VL local (ej. ~/.paddlex/official_models/PaddleOCR-VL-1.5)";
+"error.paddleocr.notInstalled" = "PaddleOCR no está instalado. Instálelo usando: pip3 install paddleocr paddlepaddle";
+
+
+/* ========================================
+   Configuración VLM
+   ======================================== */
+
+"settings.vlm.title" = "Configuración VLM";
+"settings.vlm.provider" = "Proveedor";
+"settings.vlm.apiKey" = "Clave API";
+"settings.vlm.apiKey.optional" = "La clave API es opcional para proveedores locales";
+"settings.vlm.baseURL" = "URL Base";
+"settings.vlm.model" = "Nombre del Modelo";
+"settings.vlm.test.button" = "Probar Conexión";
+"settings.vlm.test.success" = "¡Conexión exitosa! Modelo: %@";
+"settings.vlm.test.ollama.success" = "Servidor en ejecución. Modelo '%@' disponible";
+"settings.vlm.test.ollama.available" = "Servidor en ejecución. Disponible: %@";
+
+"vlm.provider.openai" = "OpenAI";
+"vlm.provider.claude" = "Claude";
+"vlm.provider.ollama" = "Ollama";
+"vlm.provider.paddleocr" = "PaddleOCR";
+"vlm.provider.openai.description" = "API de OpenAI GPT-4 Vision";
+"vlm.provider.claude.description" = "API de Anthropic Claude Vision";
+"vlm.provider.ollama.description" = "Servidor Ollama local";
+"vlm.provider.paddleocr.description" = "Motor OCR local (gratis, sin conexión)";
+
+
+/* ========================================
+   Configuración del Flujo de Traducción
+   ======================================== */
+
+"settings.translation.workflow.title" = "Motor de Traducción";
+"settings.translation.preferred" = "Motor Preferido";
+"settings.translation.mtran.url" = "URL de MTransServer";
+"settings.translation.mtran.test.button" = "Probar Conexión";
+"settings.translation.mtran.test.success" = "Conexión exitosa";
+"settings.translation.mtran.test.failed" = "Conexión fallida: %@";
+"settings.translation.fallback" = "Respaldo";
+"settings.translation.fallback.description" = "Usar Traducción de Apple como respaldo cuando falla el motor preferido";
+
+"translation.preferred.apple.description" = "Traducción de macOS integrada, funciona sin conexión";
+"translation.preferred.mtran.description" = "Servidor de traducción autohospedado para mejor calidad";
+
+
+/* ========================================
+   Etiquetas de Accesibilidad
+   ======================================== */
+
+"accessibility.close.button" = "Cerrar";
+"accessibility.settings.button" = "Configuración";
+"accessibility.capture.button" = "Capturar";
+"accessibility.translate.button" = "Traducir";
+
+
+/* ========================================
+   Ventana de Resultados Bilingües
+   ======================================== */
+
+/* ========================================
+   Flujo de Traducción
+   ======================================== */
+
+"translationFlow.phase.idle" = "Listo";
+"translationFlow.phase.analyzing" = "Analizando imagen...";
+"translationFlow.phase.translating" = "Traduciendo...";
+"translationFlow.phase.rendering" = "Renderizando...";
+"translationFlow.phase.completed" = "Completado";
+"translationFlow.phase.failed" = "Fallido";
+
+"translationFlow.error.title" = "Error de Traducción";
+"translationFlow.error.title.analysis" = "Reconocimiento de Imagen Fallido";
+"translationFlow.error.title.translation" = "Traducción Fallida";
+"translationFlow.error.title.rendering" = "Renderizado Fallido";
+"translationFlow.error.unknown" = "Ocurrió un error desconocido.";
+"translationFlow.error.analysis" = "Análisis fallido: %@";
+"translationFlow.error.translation" = "Traducción fallida: %@";
+"translationFlow.error.rendering" = "Renderizado fallido: %@";
+"translationFlow.error.cancelled" = "La traducción fue cancelada.";
+"translationFlow.error.noTextFound" = "No se encontró texto en el área seleccionada.";
+"translationFlow.error.translation.engine" = "Motor de Traducción";
+
+"translationFlow.recovery.analysis" = "Inténtelo de nuevo con una imagen más clara, o verifique la configuración del proveedor VLM.";
+"translationFlow.recovery.translation" = "Verifique la configuración del motor de traducción y la conexión de red, luego inténtelo de nuevo.";
+"translationFlow.recovery.rendering" = "Inténtelo de nuevo.";
+"translationFlow.recovery.noTextFound" = "Intente seleccionar un área con texto visible.";
+
+"common.ok" = "OK";
+
+
+/* ========================================
+   Ventana de Resultados Bilingües
+   ======================================== */
+
+"bilingualResult.window.title" = "Traducción Bilingüe";
+"bilingualResult.loading" = "Traduciendo...";
+"bilingualResult.loading.analyzing" = "Analizando imagen...";
+"bilingualResult.loading.translating" = "Traduciendo texto...";
+"bilingualResult.loading.rendering" = "Renderizando resultado...";
+"bilingualResult.copyImage" = "Copiar Imagen";
+"bilingualResult.copyText" = "Copiar Texto";
+"bilingualResult.save" = "Guardar";
+"bilingualResult.zoomIn" = "Acercar";
+"bilingualResult.zoomOut" = "Alejar";
+"bilingualResult.resetZoom" = "Restablecer Zoom";
+"bilingualResult.copySuccess" = "Copiado al portapapeles";
+"bilingualResult.copyTextSuccess" = "Texto de traducción copiado";
+"bilingualResult.saveSuccess" = "Guardado exitosamente";
+"bilingualResult.copyFailed" = "Error al copiar la imagen";
+"bilingualResult.saveFailed" = "Error al guardar la imagen";
+"bilingualResult.noTextToCopy" = "No hay texto de traducción para copiar";
+
+
+/* ========================================
+   Traducción de Texto (US-003 a US-010)
+   ======================================== */
+
+/* Flujo de Traducción de Texto */
+"textTranslation.phase.idle" = "Listo";
+"textTranslation.phase.translating" = "Traduciendo...";
+"textTranslation.phase.completed" = "Completado";
+"textTranslation.phase.failed" = "Fallido";
+
+"textTranslation.error.emptyInput" = "No hay texto para traducir";
+"textTranslation.error.translationFailed %@" = "Traducción fallida: %@";
+"textTranslation.error.cancelled" = "La traducción fue cancelada";
+"textTranslation.error.serviceUnavailable" = "El servicio de traducción no está disponible";
+
+"textTranslation.recovery.emptyInput" = "Seleccione algo de texto primero";
+"textTranslation.recovery.translationFailed" = "Inténtelo de nuevo";
+"textTranslation.recovery.serviceUnavailable" = "Verifique su conexión de red e inténtelo de nuevo";
+
+"textTranslation.loading" = "Traduciendo...";
+"textTranslation.noSelection.title" = "Ningún Texto Seleccionado";
+"textTranslation.noSelection.message" = "Seleccione algo de texto en cualquier aplicación e inténtelo de nuevo.";
+
+/* Traducir e Insertar */
+"translateAndInsert.emptyClipboard.title" = "El Portapapeles Está Vacío";
+"translateAndInsert.emptyClipboard.message" = "Copie algo de texto al portapapeles primero, luego use este atajo.";
+"translateAndInsert.success.title" = "Traducción Insertada";
+"translateAndInsert.success.message" = "El texto traducido ha sido insertado en el campo de entrada enfocado.";
+
+/* Visualización de Idioma */
+"language.auto" = "Detectado Automáticamente";
+
+/* UI Común de Traducción de Texto */
+"common.copy" = "Copiar";
+"common.copied" = "Copiado";
+"common.insert" = "Insertar";
+
+/* Ventana de Traducción de Texto */
+"textTranslation.window.title" = "Traducción de Texto";
+
+/* Configuración de Idioma para Traducir e Insertar */
+"settings.translateAndInsert.language.section" = "Idiomas para Traducir e Insertar";
+"settings.translateAndInsert.language.source" = "Idioma de Origen";
+"settings.translateAndInsert.language.target" = "Idioma de Destino";
+
+
+/* ========================================
+   Múltiples Motores Compatibles con OpenAI
+   ======================================== */
+
+/* Configuración de Motor Compatible */
+"engine.compatible.new" = "Nuevo Motor Compatible";
+"engine.compatible.description" = "Endpoint de API compatible con OpenAI";
+"engine.compatible.displayName" = "Nombre para Mostrar";
+"engine.compatible.displayName.placeholder" = "ej., Mi Servidor LLM";
+"engine.compatible.requireApiKey" = "Requiere Clave API";
+"engine.compatible.add" = "Agregar Motor Compatible";
+"engine.compatible.delete" = "Eliminar este motor";
+"engine.compatible.useAsEngine" = "Usar como motor de traducción";
+"engine.compatible.max.reached" = "Máximo de 5 motores compatibles alcanzado";
+
+/* Configuración de Prompts */
+"prompt.compatible.title" = "Motores Compatibles";
+
+
+/* ========================================
+   Ventana Acerca De
+   ======================================== */
+
+"about.title" = "Acerca de ScreenTranslate";
+"about.app.name" = "ScreenTranslate";
+"about.version.format" = "Versión %@ (%@)";
+"about.copyright" = "Derechos de Autor";
+"about.copyright.value" = "© 2026 Todos los derechos reservados";
+"about.license" = "Licencia";
+"about.license.value" = "Licencia MIT";
+"about.github.link" = "GitHub: hubo1989/ScreenTranslate";
+"about.check.for.updates" = "Buscar Actualizaciones";
+"about.update.checking" = "Verificando...";
+"about.update.available" = "Actualización disponible";
+"about.update.uptodate" = "Está actualizado";
+"about.update.failed" = "Verificación fallida";
+"about.acknowledgements" = "Reconocimientos";
+"about.acknowledgements.title" = "Reconocimientos";
+"about.acknowledgements.intro" = "Este software utiliza las siguientes bibliotecas de código abierto:";
+"about.acknowledgements.upstream" = "Basado en";
+"about.acknowledgements.author.format" = "por %@";
+"about.close" = "Cerrar";
