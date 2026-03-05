@@ -191,9 +191,8 @@ final class OnboardingViewModel {
             }
 
             // Open System Settings after triggering the API
-            await MainActor.run {
-                openScreenRecordingSettings()
-            }
+            // Class is @MainActor so no explicit MainActor.run needed
+            openScreenRecordingSettings()
         }
 
         // Start polling for permission status
