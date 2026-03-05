@@ -62,7 +62,7 @@ enum VLMTextDeduplicator {
         // First pass: build a set of texts that are over-represented (likely hallucinations)
         var overrepresentedTexts = Set<String>()
         for (text, count) in textCounts {
-            if count > percentageThreshold && count > config.minCountThreshold {
+            if count > percentageThreshold {
                 overrepresentedTexts.insert(text)
                 // Log only safe statistics: length, count, threshold
                 logger?(text.count, count, percentageThreshold)

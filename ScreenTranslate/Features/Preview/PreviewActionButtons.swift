@@ -115,8 +115,8 @@ struct PreviewActionButtons: View {
         }
         .disabled(viewModel.isSaving)
         .help(String(localized: "preview.tooltip.save"))
-        .accessibilityLabel(Text(viewModel.isSaving ? "preview.accessibility.saving" : "preview.accessibility.save"))
-        .accessibilityHint(Text("preview.accessibility.hint.commandS"))
+        .accessibilityLabel(Text(String(localized: viewModel.isSaving ? "preview.accessibility.saving" : "preview.accessibility.save")))
+        .accessibilityHint(Text(String(localized: "preview.accessibility.hint.commandS")))
     }
 
     private var ocrButton: some View {
@@ -152,8 +152,8 @@ struct PreviewActionButtons: View {
         }
         .disabled(viewModel.isCopying)
         .help(String(localized: "preview.tooltip.confirm"))
-        .accessibilityLabel(Text(viewModel.isCopying ? "preview.accessibility.copying" : "preview.accessibility.confirm"))
-        .accessibilityHint(Text("preview.accessibility.hint.enter"))
+        .accessibilityLabel(Text(String(localized: viewModel.isCopying ? "preview.accessibility.copying" : "preview.accessibility.confirm")))
+        .accessibilityHint(Text(String(localized: "preview.accessibility.hint.enter")))
     }
 
     @ViewBuilder

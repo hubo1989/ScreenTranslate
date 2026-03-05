@@ -140,6 +140,8 @@ jobs:
           echo "${DELIMITER}" >> $GITHUB_OUTPUT
 
       - name: Generate Sparkle Appcast
+        env:
+          RELEASE_NOTES: ${{ steps.tag_message.outputs.message }}
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           BUILD_NUM="${{ steps.build_number.outputs.build_num }}"
@@ -147,7 +149,6 @@ jobs:
           PUBDATE="${{ steps.pubdate.outputs.date }}"
           DMG_SIZE="${{ steps.create_dmg.outputs.dmg_size }}"
           SIGNATURE="${{ steps.sign_dmg.outputs.signature }}"
-          RELEASE_NOTES="${{ steps.tag_message.outputs.message }}"
           
           # Build enclosure tag with or without signature
           if [ -n "$SIGNATURE" ]; then
