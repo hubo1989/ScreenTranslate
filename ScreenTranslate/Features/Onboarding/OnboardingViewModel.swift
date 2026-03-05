@@ -181,8 +181,20 @@ final class OnboardingViewModel {
             return
         }
 
-        // If not granted, open System Settings
-        openScreenRecordingSettings()
+        // Trigger ScreenCaptureKit API to register app in permission list
+        Task {
+            do {
+                // This will trigger the system to register the app in Screen Recording permissions
+                _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
+            } catch {
+                // Expected when permission not granted - app is now registered
+            }
+
+            // Open System Settings after triggering the API
+            await MainActor.run {
+                openScreenRecordingSettings()
+            }
+        }
 
         // Start polling for permission status
         startPermissionCheck(for: .screenRecording)

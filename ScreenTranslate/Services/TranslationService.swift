@@ -385,9 +385,25 @@ actor TranslationService {
 
     /// Test connection to a specific engine
     func testConnection(for engine: TranslationEngineType) async -> Bool {
-        guard let provider = await registry.provider(for: engine) else {
+        // First try to get existing provider
+        if let provider = await registry.provider(for: engine) {
+            return await provider.checkConnection()
+        }
+
+        // If provider doesn't exist, create it for engines that need credentials
+        // (Google, DeepL, Baidu, LLM providers, etc.)
+        guard engine.requiresAPIKey else {
+            // Built-in engines should already be registered
             return false
         }
-        return await provider.checkConnection()
+
+        do {
+            let config = TranslationEngineConfig.default(for: engine)
+            let provider = try await registry.createProvider(for: engine, config: config)
+            return await provider.checkConnection()
+        } catch {
+            logger.error("Failed to create provider for \(engine.rawValue): \(error.localizedDescription)")
+            return false
+        }
     }
 }
