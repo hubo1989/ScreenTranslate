@@ -124,9 +124,11 @@ jobs:
 
       - name: Get Tag Message
         id: tag_message
+        env:
+          TAG_NAME: ${{ github.ref_name }}
         run: |
           # Get the tag annotation message (remove trailing PGP signature using POSIX-compatible sed)
-          TAG_MESSAGE=$(git tag -l --format='%(contents)' ${{ github.ref_name }} | sed '/^-----BEGIN PGP SIGNATURE-----/,$d' || echo "")
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' "$TAG_NAME" | sed '/^-----BEGIN PGP SIGNATURE-----/,$d' || echo "")
           # If tag message is empty, use a default message
           if [ -z "$TAG_MESSAGE" ]; then
             TAG_MESSAGE="Latest release of ScreenTranslate"

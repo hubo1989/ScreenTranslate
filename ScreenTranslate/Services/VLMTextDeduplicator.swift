@@ -118,8 +118,10 @@ enum VLMTextDeduplicator {
     /// - Returns: A unique signature string
     private static func segmentSignature(_ segment: VLMTextSegment, precision: Double) -> String {
         let normalizedText = segment.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let roundedX = (segment.boundingBox.x * precision).rounded() / precision
-        let roundedY = (segment.boundingBox.y * precision).rounded() / precision
+        // Guard against zero or negative precision to prevent division issues
+        let safePrecision = max(1.0, precision)
+        let roundedX = (segment.boundingBox.x * safePrecision).rounded() / safePrecision
+        let roundedY = (segment.boundingBox.y * safePrecision).rounded() / safePrecision
         return "\(normalizedText)|\(roundedX)|\(roundedY)"
     }
 }
