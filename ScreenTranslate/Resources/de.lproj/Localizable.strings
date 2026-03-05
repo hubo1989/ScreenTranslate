@@ -736,7 +736,7 @@
 "textTranslation.phase.failed" = "Fehlgeschlagen";
 
 "textTranslation.error.emptyInput" = "Kein Text zum Übersetzen";
-"textTranslation.error.translationFailed %@" = "Übersetzung fehlgeschlagen: %@";
+"textTranslation.error.translationFailed" = "Übersetzung fehlgeschlagen: %@";
 "textTranslation.error.cancelled" = "Übersetzung wurde abgebrochen";
 "textTranslation.error.serviceUnavailable" = "Übersetzungsdienst nicht verfügbar";
 

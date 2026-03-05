@@ -567,7 +567,7 @@
 "onboarding.complete.shortcuts" = "⌘⇧F でフルスクリーンキャプチャ";
 "onboarding.complete.selection" = "⌘⇧A で範囲キャプチャと翻訳";
 "onboarding.complete.settings" = "メニューバーから設定を開いてオプションをカスタマイズ";
-"onboarding.complete.start" = "ScreenTranslate を開始使用";
+"onboarding.complete.start" = "ScreenTranslate の使用を開始";
 
 /* オンボーディング - ナビゲーション */
 "onboarding.back" = "戻る";
@@ -736,7 +736,7 @@
 "textTranslation.phase.failed" = "失敗";
 
 "textTranslation.error.emptyInput" = "翻訳するテキストがありません";
-"textTranslation.error.translationFailed %@" = "翻訳失敗：%@";
+"textTranslation.error.translationFailed" = "翻訳失敗：%@";
 "textTranslation.error.cancelled" = "翻訳がキャンセルされました";
 "textTranslation.error.serviceUnavailable" = "翻訳サービスが利用できません";
 
