@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.4.1-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B-brightgreen.svg" alt="macOS"></a>
   <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift"></a>
@@ -164,6 +164,13 @@ xcodebuild -project ScreenTranslate.xcodeproj -scheme ScreenTranslate
 ```
 
 ## 📝 Changelog
+
+### v1.4.1
+- 🐛 Fixed duplicate text segments in VLM responses
+- 🐛 Simplified toolbar UI
+- 🐛 Fixed CGColorSpace compatibility for older macOS versions
+- ✨ Added new annotation tools (shapes, highlighter)
+- ✨ Added pinned window feature for annotation mode
 
 ### v1.3.0
 - ✨ Added About menu with version, license, and acknowledgements
