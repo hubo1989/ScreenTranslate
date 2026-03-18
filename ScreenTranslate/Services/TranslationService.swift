@@ -406,11 +406,6 @@ actor TranslationService {
             return false
         }
 
-        do {
-            return await provider.checkConnection()
-        } catch {
-            logger.error("Failed to check connection for \(engine.rawValue): \(error.localizedDescription)")
-            return false
-        }
+        return await provider.checkConnection()
     }
 }
