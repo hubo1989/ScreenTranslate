@@ -3,6 +3,16 @@ import XCTest
 @testable import ScreenTranslate
 
 final class TranslationPipelineRegressionTests: XCTestCase {
+    @available(macOS 13.0, *)
+    func testTranslationEngineSourceLocaleLanguageUsesNilForAutoDetect() {
+        XCTAssertNil(TranslationEngine.sourceLocaleLanguage(for: nil))
+        XCTAssertNil(TranslationEngine.sourceLocaleLanguage(for: .auto))
+        XCTAssertEqual(
+            TranslationEngine.sourceLocaleLanguage(for: .japanese)?.minimalIdentifier,
+            Locale.Language(identifier: "ja").minimalIdentifier
+        )
+    }
+
     func testPromptDisplayNameUsesHumanReadableLanguageNames() {
         XCTAssertEqual(TranslationLanguage.promptDisplayName(for: nil), "Auto Detect")
         XCTAssertEqual(TranslationLanguage.promptDisplayName(for: "auto"), "Auto Detect")

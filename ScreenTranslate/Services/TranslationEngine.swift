@@ -212,7 +212,8 @@ actor TranslationEngine {
         // Check language availability before attempting translation
         try await validateLanguageAvailability(
             for: effectiveTargetLanguage,
-            sourceLanguage: config.sourceLanguage
+            sourceLanguage: config.sourceLanguage,
+            text: text
         )
 
         // Perform translation with signpost for profiling
@@ -273,18 +274,30 @@ actor TranslationEngine {
 
     /// Validates if the target language is available and installed
     private func validateLanguageAvailability(for language: TranslationLanguage) async throws {
-        try await validateLanguageAvailability(for: language, sourceLanguage: nil)
+        try await validateLanguageAvailability(for: language, sourceLanguage: nil, text: nil)
     }
 
     /// Validates if the target language is available and installed for the selected source language.
     private func validateLanguageAvailability(
         for language: TranslationLanguage,
-        sourceLanguage: TranslationLanguage?
+        sourceLanguage: TranslationLanguage?,
+        text: String?
     ) async throws {
-        let languageStatus = await Self.checkLanguageAvailability(
-            source: sourceLanguage?.localeLanguage ?? Locale.Language(identifier: "en"),
-            target: language.localeLanguage
-        )
+        let languageStatus: LanguageAvailabilityStatus
+
+        if let sourceLocaleLanguage = Self.sourceLocaleLanguage(for: sourceLanguage) {
+            languageStatus = await Self.checkLanguageAvailability(
+                source: sourceLocaleLanguage,
+                target: language.localeLanguage
+            )
+        } else if let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            languageStatus = await Self.checkLanguageAvailability(
+                text: text,
+                target: language.localeLanguage
+            )
+        } else {
+            return
+        }
 
         switch languageStatus {
         case .installed:
@@ -317,6 +330,8 @@ actor TranslationEngine {
         ) { group in
             group.addTask { [text, source, target] in
                 do {
+                    // The current TranslationSession initializer exposed by this SDK
+                    // still requires an installed source language.
                     let session = TranslationSession(
                         installedSource: (source ?? .english).localeLanguage,
                         target: target.localeLanguage
@@ -412,13 +427,40 @@ actor TranslationEngine {
     /// Checks if the target language is available for translation
     /// - Parameter target: The target language to check
     /// - Returns: The availability status of the language
+    static func sourceLocaleLanguage(for sourceLanguage: TranslationLanguage?) -> Locale.Language? {
+        guard let sourceLanguage, sourceLanguage != .auto else {
+            return nil
+        }
+        return sourceLanguage.localeLanguage
+    }
+
     private static func checkLanguageAvailability(
         source: Locale.Language,
         target: Locale.Language
     ) async -> LanguageAvailabilityStatus {
         let availability = LanguageAvailability()
         let status = await availability.status(from: source, to: target)
+        return languageAvailabilityStatus(from: status, target: target)
+    }
 
+    private static func checkLanguageAvailability(
+        text: String,
+        target: Locale.Language
+    ) async -> LanguageAvailabilityStatus {
+        let availability = LanguageAvailability()
+        let status: LanguageAvailability.Status
+        do {
+            status = try await availability.status(for: text, to: target)
+        } catch {
+            return .unsupported(languageName: target.minimalIdentifier)
+        }
+        return languageAvailabilityStatus(from: status, target: target)
+    }
+
+    private static func languageAvailabilityStatus(
+        from status: LanguageAvailability.Status,
+        target: Locale.Language
+    ) -> LanguageAvailabilityStatus {
         let languageName = target.minimalIdentifier
 
         switch status {
