@@ -385,9 +385,27 @@ actor TranslationService {
 
     /// Test connection to a specific engine
     func testConnection(for engine: TranslationEngineType) async -> Bool {
-        guard let provider = await registry.provider(for: engine) else {
+        // First try to get existing provider
+        if let provider = await registry.provider(for: engine) {
+            return await provider.checkConnection()
+        }
+
+        // If provider doesn't exist, create it for engines that need credentials
+        // (Google, DeepL, Baidu, LLM providers, etc.)
+        guard engine.requiresAPIKey else {
+            // Built-in engines (apple, mtranServer) should already be registered in init
+            // If missing, log warning but return true to avoid false failure in UI
+            logger.warning("Built-in engine \(engine.rawValue) provider not found in registry")
+            return true
+        }
+
+        do {
+            let config = TranslationEngineConfig.default(for: engine)
+            let provider = try await registry.createProvider(for: engine, config: config)
+            return await provider.checkConnection()
+        } catch {
+            logger.error("Failed to create provider for \(engine.rawValue): \(error.localizedDescription)")
             return false
         }
-        return await provider.checkConnection()
     }
 }
