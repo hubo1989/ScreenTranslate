@@ -38,7 +38,7 @@ final class TranslationPipelineRegressionTests: XCTestCase {
         let segments = [
             TextSegment(text: "100", boundingBox: .zero, confidence: 0.99),
             TextSegment(text: "Q4 Revenue increased significantly", boundingBox: .zero, confidence: 0.99),
-            TextSegment(text: "25%", boundingBox: .zero, confidence: 0.99),
+            TextSegment(text: "25%", boundingBox: .zero, confidence: 0.99)
         ]
 
         let result = ScreenAnalysisResult(segments: segments, imageSize: CGSize(width: 1000, height: 800))
@@ -59,7 +59,7 @@ final class TranslationPipelineRegressionTests: XCTestCase {
                 text: "2024",
                 boundingBox: CGRect(x: 0.95, y: 0.40, width: 0.03, height: 0.02),
                 confidence: 0.99
-            ),
+            )
         ]
 
         let result = ScreenAnalysisResult(segments: segments, imageSize: CGSize(width: 1200, height: 800))
