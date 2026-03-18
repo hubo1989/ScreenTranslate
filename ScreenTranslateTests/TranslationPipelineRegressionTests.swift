@@ -3,6 +3,61 @@ import XCTest
 @testable import ScreenTranslate
 
 final class TranslationPipelineRegressionTests: XCTestCase {
+    func testPromptLeakageHeuristicIdentifiesSchemaInstructions() {
+        let leakage = TextSegment(
+            text: "- x, y: 左上角 (0.0-1.0) - 宽度, 高度: 箱形尺寸 (0.0-1.0)",
+            boundingBox: .zero,
+            confidence: 0.99
+        )
+        let realUI = TextSegment(
+            text: "ScreenTranslate",
+            boundingBox: .zero,
+            confidence: 0.99
+        )
+
+        XCTAssertTrue(leakage.isLikelyOCRPromptLeakage)
+        XCTAssertFalse(realUI.isLikelyOCRPromptLeakage)
+    }
+
+    func testRecoverAnalysisResultFallsBackToOCRWhenVLMOutputIsOnlyPromptLeakage() async throws {
+        let leakedAnalysis = ScreenAnalysisResult(
+            segments: [
+                TextSegment(
+                    text: "置信度: 0.0-1.0",
+                    boundingBox: .zero,
+                    confidence: 0.99
+                ),
+                TextSegment(
+                    text: "- x, y: 左上角 (0.0-1.0)",
+                    boundingBox: .zero,
+                    confidence: 0.99
+                ),
+            ],
+            imageSize: CGSize(width: 1200, height: 800)
+        )
+        let ocrFallback = OCRResult(
+            observations: [
+                OCRText(
+                    text: "ScreenTranslate",
+                    boundingBox: CGRect(x: 0.1, y: 0.1, width: 0.3, height: 0.05),
+                    confidence: 0.95
+                ),
+                OCRText(
+                    text: "Superset",
+                    boundingBox: CGRect(x: 0.1, y: 0.2, width: 0.2, height: 0.05),
+                    confidence: 0.94
+                ),
+            ],
+            imageSize: CGSize(width: 1200, height: 800)
+        )
+
+        let recovered = try await TranslationFlowController.recoverAnalysisResultIfNeeded(leakedAnalysis) {
+            ocrFallback
+        }
+
+        XCTAssertEqual(recovered.segments.map(\.text), ["ScreenTranslate", "Superset"])
+    }
+
     @available(macOS 13.0, *)
     func testTranslationEngineSourceLocaleLanguageUsesNilForAutoDetect() {
         XCTAssertNil(TranslationEngine.sourceLocaleLanguage(for: nil))
