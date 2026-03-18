@@ -736,7 +736,7 @@
 "textTranslation.phase.failed" = "Failed";
 
 "textTranslation.error.emptyInput" = "No text to translate";
-"textTranslation.error.translationFailed %@" = "Translation failed: %@";
+"textTranslation.error.translationFailed" = "Translation failed: %@";
 "textTranslation.error.cancelled" = "Translation was cancelled";
 "textTranslation.error.serviceUnavailable" = "Translation service is unavailable";
 
@@ -813,4 +813,3 @@
 "about.acknowledgements.upstream" = "Based on";
 "about.acknowledgements.author.format" = "by %@";
 "about.close" = "Close";
-

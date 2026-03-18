@@ -31,9 +31,13 @@ actor AppleTranslationProvider: TranslationProvider {
         guard let target = TranslationLanguage(rawValue: targetLanguage) else {
             throw TranslationProviderError.unsupportedLanguage(targetLanguage)
         }
-        
+
+        var config = TranslationEngine.Configuration.default
+        config.targetLanguage = target
+        config.sourceLanguage = TranslationLanguage.fromTranslationCode(sourceLanguage)
+
         do {
-            return try await engine.translate(text, to: target)
+            return try await engine.translate(text, config: config)
         } catch let error as TranslationEngineError {
             throw mapEngineError(error)
         }

@@ -50,16 +50,74 @@ enum TranslationLanguage: String, CaseIterable, Sendable, Codable {
 
     /// Localized display name
     var localizedName: String {
-        if self == .auto {
-            return NSLocalizedString("translation.auto", comment: "")
-        }
-        let languageCode = rawValue.components(separatedBy: "-").first ?? rawValue
-        return Locale.current.localizedString(forLanguageCode: languageCode) ?? rawValue
+        Self.displayName(
+            for: rawValue,
+            locale: .current,
+            autoDisplayName: NSLocalizedString("translation.auto", comment: "")
+        )
     }
 
     /// BCP 47 language tag
     var bcp47Tag: String {
         rawValue
+    }
+
+    static func fromTranslationCode(_ code: String?) -> TranslationLanguage? {
+        guard let code,
+              !code.isEmpty,
+              code.lowercased() != TranslationLanguage.auto.rawValue else {
+            return nil
+        }
+        return TranslationLanguage(rawValue: code)
+    }
+
+    static func promptDisplayName(for code: String?) -> String {
+        displayName(
+            for: code,
+            locale: Locale(identifier: "en"),
+            autoDisplayName: "Auto Detect"
+        )
+    }
+
+    static func displayName(
+        for code: String?,
+        locale: Locale,
+        autoDisplayName: String
+    ) -> String {
+        guard let code,
+              !code.isEmpty,
+              code.lowercased() != TranslationLanguage.auto.rawValue else {
+            return autoDisplayName
+        }
+
+        let normalized = code.replacingOccurrences(of: "_", with: "-")
+
+        if let fullName = locale.localizedString(forIdentifier: normalized), !fullName.isEmpty {
+            return normalizedDisplayName(fullName)
+        }
+
+        let baseLanguageCode = normalized.components(separatedBy: "-").first ?? normalized
+        if let languageName = locale.localizedString(forLanguageCode: baseLanguageCode),
+           !languageName.isEmpty {
+            return normalizedDisplayName(languageName)
+        }
+
+        return normalized
+    }
+
+    private static func normalizedDisplayName(_ name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let commaSeparatedParts = trimmed
+            .split(separator: ",", maxSplits: 1, omittingEmptySubsequences: true)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+        guard commaSeparatedParts.count == 2,
+              !commaSeparatedParts[0].isEmpty,
+              !commaSeparatedParts[1].isEmpty else {
+            return trimmed
+        }
+
+        return "\(commaSeparatedParts[0]) (\(commaSeparatedParts[1]))"
     }
 }
 
@@ -95,6 +153,9 @@ actor TranslationEngine {
 
     /// Translation configuration options
     struct Configuration: Sendable {
+        /// Explicit source language for translation. nil means fallback behavior.
+        var sourceLanguage: TranslationLanguage?
+
         /// Target language for translation (nil for system default)
         var targetLanguage: TranslationLanguage?
 
@@ -105,6 +166,7 @@ actor TranslationEngine {
         var autoDetectSourceLanguage: Bool
 
         static let `default` = Configuration(
+            sourceLanguage: nil,
             targetLanguage: nil,
             timeout: 10.0,
             autoDetectSourceLanguage: true
@@ -148,7 +210,11 @@ actor TranslationEngine {
         }
 
         // Check language availability before attempting translation
-        try await validateLanguageAvailability(for: effectiveTargetLanguage)
+        try await validateLanguageAvailability(
+            for: effectiveTargetLanguage,
+            sourceLanguage: config.sourceLanguage,
+            text: text
+        )
 
         // Perform translation with signpost for profiling
         os_signpost(.begin, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
@@ -157,6 +223,7 @@ actor TranslationEngine {
         do {
             let response = try await performTranslation(
                 text: text,
+                source: config.sourceLanguage,
                 target: effectiveTargetLanguage,
                 timeout: config.timeout
             )
@@ -207,9 +274,30 @@ actor TranslationEngine {
 
     /// Validates if the target language is available and installed
     private func validateLanguageAvailability(for language: TranslationLanguage) async throws {
-        let languageStatus = await Self.checkLanguageAvailability(
-            target: language.localeLanguage
-        )
+        try await validateLanguageAvailability(for: language, sourceLanguage: nil, text: nil)
+    }
+
+    /// Validates if the target language is available and installed for the selected source language.
+    private func validateLanguageAvailability(
+        for language: TranslationLanguage,
+        sourceLanguage: TranslationLanguage?,
+        text: String?
+    ) async throws {
+        let languageStatus: LanguageAvailabilityStatus
+
+        if let sourceLocaleLanguage = Self.sourceLocaleLanguage(for: sourceLanguage) {
+            languageStatus = await Self.checkLanguageAvailability(
+                source: sourceLocaleLanguage,
+                target: language.localeLanguage
+            )
+        } else if let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            languageStatus = await Self.checkLanguageAvailability(
+                text: text,
+                target: language.localeLanguage
+            )
+        } else {
+            return
+        }
 
         switch languageStatus {
         case .installed:
@@ -233,16 +321,19 @@ actor TranslationEngine {
     /// Performs the actual translation with a timeout
     private func performTranslation(
         text: String,
+        source: TranslationLanguage?,
         target: TranslationLanguage,
         timeout: TimeInterval
     ) async throws -> TranslationSession.Response {
         try await withThrowingTaskGroup(
             of: Result<TranslationSession.Response, any Error>.self
         ) { group in
-            group.addTask { [text, target] in
+            group.addTask { [text, source, target] in
                 do {
+                    // The current TranslationSession initializer exposed by this SDK
+                    // still requires an installed source language.
                     let session = TranslationSession(
-                        installedSource: Locale.Language(identifier: "en"),
+                        installedSource: (source ?? .english).localeLanguage,
                         target: target.localeLanguage
                     )
                     let result = try await session.translate(text)
@@ -336,11 +427,40 @@ actor TranslationEngine {
     /// Checks if the target language is available for translation
     /// - Parameter target: The target language to check
     /// - Returns: The availability status of the language
-    private static func checkLanguageAvailability(target: Locale.Language) async -> LanguageAvailabilityStatus {
-        let availability = LanguageAvailability()
-        let sourceLanguage = Locale.Language(identifier: "en")
-        let status = await availability.status(from: sourceLanguage, to: target)
+    static func sourceLocaleLanguage(for sourceLanguage: TranslationLanguage?) -> Locale.Language? {
+        guard let sourceLanguage, sourceLanguage != .auto else {
+            return nil
+        }
+        return sourceLanguage.localeLanguage
+    }
 
+    private static func checkLanguageAvailability(
+        source: Locale.Language,
+        target: Locale.Language
+    ) async -> LanguageAvailabilityStatus {
+        let availability = LanguageAvailability()
+        let status = await availability.status(from: source, to: target)
+        return languageAvailabilityStatus(from: status, target: target)
+    }
+
+    private static func checkLanguageAvailability(
+        text: String,
+        target: Locale.Language
+    ) async -> LanguageAvailabilityStatus {
+        let availability = LanguageAvailability()
+        let status: LanguageAvailability.Status
+        do {
+            status = try await availability.status(for: text, to: target)
+        } catch {
+            return .unsupported(languageName: target.minimalIdentifier)
+        }
+        return languageAvailabilityStatus(from: status, target: target)
+    }
+
+    private static func languageAvailabilityStatus(
+        from status: LanguageAvailability.Status,
+        target: Locale.Language
+    ) -> LanguageAvailabilityStatus {
         let languageName = target.minimalIdentifier
 
         switch status {

@@ -736,7 +736,7 @@
 "textTranslation.phase.failed" = "失败";
 
 "textTranslation.error.emptyInput" = "没有可翻译的文本";
-"textTranslation.error.translationFailed %@" = "翻译失败：%@";
+"textTranslation.error.translationFailed" = "翻译失败：%@";
 "textTranslation.error.cancelled" = "翻译已取消";
 "textTranslation.error.serviceUnavailable" = "翻译服务不可用";
 

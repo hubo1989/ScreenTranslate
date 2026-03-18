@@ -193,10 +193,15 @@ final class TranslationFlowController {
 
             let settings = AppSettings.shared
             let targetLanguage = settings.translationTargetLanguage?.rawValue ?? "zh-Hans"
-            let sourceLanguage = settings.translationSourceLanguage.rawValue
+            let sourceLanguage: String? = settings.translationSourceLanguage == .auto
+                ? nil
+                : settings.translationSourceLanguage.rawValue
             let engine = settings.translationEngine
-
-            let texts = analysisResult.segments.map { $0.text }
+            let filteredAnalysisResult = analysisResult.filteredForTranslation()
+            if filteredAnalysisResult.segments.isEmpty {
+                throw TranslationFlowError.noTextFound
+            }
+            let texts = filteredAnalysisResult.segments.map(\.text)
 
             if #available(macOS 13.0, *) {
                 let translatedSegments = try await TranslationService.shared.translate(
@@ -207,7 +212,7 @@ final class TranslationFlowController {
                 )
                 
                 // Merge bounding box info from VLM analysis back into translated segments
-                bilingualSegments = zip(analysisResult.segments, translatedSegments).map { original, translated in
+                bilingualSegments = zip(filteredAnalysisResult.segments, translatedSegments).map { original, translated in
                     BilingualSegment(
                         segment: original,
                         translatedText: translated.translated,

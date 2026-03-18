@@ -1,4 +1,5 @@
 import XCTest
+import Carbon.HIToolbox
 @testable import ScreenTranslate
 
 // MARK: - ShortcutRecordingType Tests

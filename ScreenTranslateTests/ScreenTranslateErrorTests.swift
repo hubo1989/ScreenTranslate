@@ -130,7 +130,11 @@ final class ScreenTranslateErrorTests: XCTestCase {
         }
 
         // If this compiles and runs, the error is Sendable
-        XCTAssertEqual(sendableClosure(), error)
+        if case .permissionDenied = sendableClosure() {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Expected permissionDenied case")
+        }
     }
 
     // MARK: - CaptureFailureError Helper

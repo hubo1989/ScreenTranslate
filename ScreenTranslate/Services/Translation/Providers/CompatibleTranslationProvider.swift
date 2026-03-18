@@ -218,9 +218,10 @@ actor CompatibleTranslationProvider: TranslationProvider {
         sourceLanguage: String?,
         targetLanguage: String
     ) -> String {
-        let source = sourceLanguage ?? "auto-detect"
+        let source = TranslationLanguage.promptDisplayName(for: sourceLanguage)
+        let target = TranslationLanguage.promptDisplayName(for: targetLanguage)
         return """
-            Translate the following text from \(source) to \(targetLanguage).
+            Translate the following text from \(source) to \(target).
             Provide ONLY the translated text without any explanations or additional text.
 
             Text to translate:

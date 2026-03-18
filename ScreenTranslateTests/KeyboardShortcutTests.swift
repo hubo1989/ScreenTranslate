@@ -1,4 +1,6 @@
 import XCTest
+import AppKit
+import Carbon.HIToolbox
 @testable import ScreenTranslate
 
 // MARK: - KeyboardShortcut Tests

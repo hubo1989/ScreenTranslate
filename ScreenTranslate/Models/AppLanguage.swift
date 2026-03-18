@@ -9,6 +9,22 @@ enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
     case english = "en"
     /// Simplified Chinese
     case simplifiedChinese = "zh-Hans"
+    /// German
+    case german = "de"
+    /// Spanish
+    case spanish = "es"
+    /// French
+    case french = "fr"
+    /// Italian
+    case italian = "it"
+    /// Japanese
+    case japanese = "ja"
+    /// Korean
+    case korean = "ko"
+    /// Portuguese
+    case portuguese = "pt"
+    /// Russian
+    case russian = "ru"
     
     var id: String { rawValue }
     
@@ -21,6 +37,22 @@ enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
             return "English"
         case .simplifiedChinese:
             return "简体中文"
+        case .german:
+            return "Deutsch"
+        case .spanish:
+            return "Español"
+        case .french:
+            return "Français"
+        case .italian:
+            return "Italiano"
+        case .japanese:
+            return "日本語"
+        case .korean:
+            return "한국어"
+        case .portuguese:
+            return "Português"
+        case .russian:
+            return "Русский"
         }
     }
     
@@ -29,16 +61,34 @@ enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .system:
             return nil
-        case .english:
-            return "en"
-        case .simplifiedChinese:
-            return "zh-Hans"
+        default:
+            return rawValue
         }
     }
     
     /// All supported language codes (excluding system)
     static var supportedLanguageCodes: [String] {
         allCases.compactMap { $0.localeIdentifier }
+    }
+
+    static func from(localeIdentifier: String) -> AppLanguage? {
+        let normalizedIdentifier = localeIdentifier.replacingOccurrences(of: "_", with: "-").lowercased()
+
+        if normalizedIdentifier.hasPrefix("zh-hans")
+            || normalizedIdentifier == "zh-cn"
+            || normalizedIdentifier == "zh-sg" {
+            return .simplifiedChinese
+        }
+
+        return allCases.first { language in
+            guard language != .system else {
+                return false
+            }
+
+            let languageCode = language.rawValue.lowercased()
+            return normalizedIdentifier == languageCode
+                || normalizedIdentifier.hasPrefix(languageCode + "-")
+        }
     }
 }
 
@@ -100,19 +150,15 @@ final class LanguageManager {
         }
         
         // For system, detect the preferred language
-        let preferredLanguages = Locale.preferredLanguages
-        for preferred in preferredLanguages {
-            // Check if we support this language
-            if preferred.hasPrefix("zh-Hans") || preferred.hasPrefix("zh_Hans") || preferred == "zh-CN" {
-                return "zh-Hans"
-            }
-            if preferred.hasPrefix("en") {
-                return "en"
+        for preferredLanguage in Locale.preferredLanguages {
+            if let matchedLanguage = AppLanguage.from(localeIdentifier: preferredLanguage),
+               let localeIdentifier = matchedLanguage.localeIdentifier {
+                return localeIdentifier
             }
         }
-        
+
         // Default to English
-        return "en"
+        return AppLanguage.english.rawValue
     }
     
     // MARK: - Private Methods
