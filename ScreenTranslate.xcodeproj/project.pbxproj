@@ -10,8 +10,19 @@
 		86DCC59B2F56BB9D000ECF4B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 86DCC59A2F56BB9D000ECF4B /* Sparkle */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		SC000032 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = SC000010 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = SC000006;
+			remoteInfo = ScreenTranslate;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		SC000001 /* ScreenTranslate.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ScreenTranslate.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		SC000022 /* ScreenTranslateTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScreenTranslateTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -33,6 +44,11 @@
 			path = ScreenTranslate;
 			sourceTree = "<group>";
 		};
+		SC000021 /* ScreenTranslateTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ScreenTranslateTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +67,7 @@
 			isa = PBXGroup;
 			children = (
 				SC000002 /* ScreenTranslate */,
+				SC000021 /* ScreenTranslateTests */,
 				SC000005 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -59,6 +76,7 @@
 			isa = PBXGroup;
 			children = (
 				SC000001 /* ScreenTranslate.app */,
+				SC000022 /* ScreenTranslateTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -90,6 +108,29 @@
 			productReference = SC000001 /* ScreenTranslate.app */;
 			productType = "com.apple.product-type.application";
 		};
+		SC000023 /* ScreenTranslateTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = SC000026 /* Build configuration list for PBXNativeTarget "ScreenTranslateTests" */;
+			buildPhases = (
+				SC000024 /* Sources */,
+				SC000025 /* Frameworks */,
+				SC000027 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				SC000033 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				SC000021 /* ScreenTranslateTests */,
+			);
+			name = ScreenTranslateTests;
+			packageProductDependencies = (
+			);
+			productName = ScreenTranslateTests;
+			productReference = SC000022 /* ScreenTranslateTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -102,6 +143,10 @@
 				TargetAttributes = {
 					SC000006 = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					SC000023 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = SC000006;
 					};
 				};
 			};
@@ -132,12 +177,20 @@
 			projectRoot = "";
 			targets = (
 				SC000006 /* ScreenTranslate */,
+				SC000023 /* ScreenTranslateTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		SC000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		SC000027 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -170,7 +223,32 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		SC000024 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		SC000025 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		SC000033 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = SC000006 /* ScreenTranslate */;
+			targetProxy = SC000032 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		SC000012 /* Debug */ = {
@@ -367,6 +445,48 @@
 			};
 			name = Release;
 		};
+		SC000028 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.screentranslate.appTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ScreenTranslate.app/Contents/MacOS/ScreenTranslate";
+				TEST_TARGET_NAME = ScreenTranslate;
+			};
+			name = Debug;
+		};
+		SC000029 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.screentranslate.appTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ScreenTranslate.app/Contents/MacOS/ScreenTranslate";
+				TEST_TARGET_NAME = ScreenTranslate;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -384,6 +504,15 @@
 			buildConfigurations = (
 				SC000012 /* Debug */,
 				SC000013 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		SC000026 /* Build configuration list for PBXNativeTarget "ScreenTranslateTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				SC000028 /* Debug */,
+				SC000029 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

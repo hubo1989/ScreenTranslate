@@ -57,6 +57,53 @@ extension TextSegment {
             y: boundingBox.midY * imageSize.height
         )
     }
+
+    /// Heuristic filter for OCR noise that should not be translated as primary content.
+    var isLikelyTranslationNoise: Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return true }
+        let isNearImageEdge =
+            boundingBox.minX < 0.08
+            || boundingBox.maxX > 0.92
+            || boundingBox.minY < 0.08
+            || boundingBox.maxY > 0.92
+
+        // Filter coordinate-like strings (e.g., "0.5, 0.3", "(x:0.5, y:0.3)", "x: 0.5")
+        if trimmed.range(of: #"^[\(\[]?[xy]?\s*[:\:]?\s*[\d.]+\s*[,，]\s*[xy]?\s*[:\:]?\s*[\d.]+[\)\]]?$"#, options: .regularExpression) != nil {
+            return true
+        }
+        // Filter single coordinate values (e.g., "x: 0.5", "y: 0.3")
+        if trimmed.range(of: #"^[xy]\s*[:\:]?\s*[\d.]+$"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        if trimmed.count == 1,
+           trimmed.range(of: #"^[\d\p{P}\p{S}]$"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        if trimmed.count <= 12,
+           trimmed.range(of: #"^[\d\s.,:;%+\-_=(){}\[\]/\\|<>]+$"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        if trimmed.count <= 4,
+           confidence < 0.35,
+           trimmed.range(of: #"^[\p{P}\p{S}\dA-Za-z]{1,4}$"#, options: .regularExpression) != nil {
+            return true
+        }
+
+        if isNearImageEdge,
+           trimmed.count <= 8,
+           trimmed.range(
+               of: #"^(?:q[1-4]|jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|mon|tue|wed|thu|fri|sat|sun|\d{1,2}:\d{2}(?:am|pm)?|\d{4})$"#,
+               options: [.regularExpression, .caseInsensitive]
+           ) != nil {
+            return true
+        }
+
+        return false
+    }
 }
 
 // MARK: - ScreenAnalysisResult
@@ -103,6 +150,13 @@ struct ScreenAnalysisResult: Codable, Sendable, Equatable {
     /// Get segments within a specific region
     func segments(in rect: CGRect) -> [TextSegment] {
         segments.filter { $0.boundingBox.intersects(rect) }
+    }
+
+    /// Removes coordinate ticks, isolated symbols, and similar OCR noise before translation.
+    func filteredForTranslation() -> ScreenAnalysisResult {
+        let filteredSegments = segments.filter { !$0.isLikelyTranslationNoise }
+        let segmentsToUse = filteredSegments.isEmpty ? segments : filteredSegments
+        return ScreenAnalysisResult(segments: segmentsToUse, imageSize: imageSize)
     }
 }
 

@@ -751,7 +751,7 @@ Conceda permissão em Configurações do Sistema > Privacidade e Segurança > Mo
 "textTranslation.phase.failed" = "Falhou";
 
 "textTranslation.error.emptyInput" = "Nenhum texto para traduzir";
-"textTranslation.error.translationFailed %@" = "Falha na tradução: %@";
+"textTranslation.error.translationFailed" = "Falha na tradução: %@";
 "textTranslation.error.cancelled" = "Tradução foi cancelada";
 "textTranslation.error.serviceUnavailable" = "Serviço de tradução indisponível";
 
@@ -828,4 +828,3 @@ Conceda permissão em Configurações do Sistema > Privacidade e Segurança > Mo
 "about.acknowledgements.upstream" = "Baseado em";
 "about.acknowledgements.author.format" = "por %@";
 "about.close" = "Fechar";
-

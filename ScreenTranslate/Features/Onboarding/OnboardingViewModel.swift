@@ -277,6 +277,7 @@ final class OnboardingViewModel {
                 translationTestSuccess = true
             } else {
                 let config = TranslationEngine.Configuration(
+                    sourceLanguage: nil,
                     targetLanguage: TranslationLanguage.chineseSimplified,
                     timeout: 10.0,
                     autoDetectSourceLanguage: true

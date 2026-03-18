@@ -736,7 +736,7 @@
 "textTranslation.phase.failed" = "Échec";
 
 "textTranslation.error.emptyInput" = "Aucun texte à traduire";
-"textTranslation.error.translationFailed %@" = "Échec de la traduction : %@";
+"textTranslation.error.translationFailed" = "Échec de la traduction : %@";
 "textTranslation.error.cancelled" = "La traduction a été annulée";
 "textTranslation.error.serviceUnavailable" = "Le service de traduction n'est pas disponible";
 

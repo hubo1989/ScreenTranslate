@@ -180,19 +180,20 @@ actor LLMTranslationProvider: TranslationProvider {
         sourceLanguage: String?,
         targetLanguage: String
     ) -> String {
-        let source = sourceLanguage ?? "auto-detect"
+        let source = TranslationLanguage.promptDisplayName(for: sourceLanguage)
+        let target = TranslationLanguage.promptDisplayName(for: targetLanguage)
 
         // Use custom template if available
         if let template = customPromptTemplate {
             return template
                 .replacingOccurrences(of: "{source_language}", with: source)
-                .replacingOccurrences(of: "{target_language}", with: targetLanguage)
+                .replacingOccurrences(of: "{target_language}", with: target)
                 .replacingOccurrences(of: "{text}", with: text)
         }
 
         // Default prompt
         return """
-            Translate the following text from \(source) to \(targetLanguage).
+            Translate the following text from \(source) to \(target).
             Provide ONLY the translated text without any explanations, notes, or formatting.
 
             Text to translate:

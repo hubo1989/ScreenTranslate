@@ -179,13 +179,7 @@ actor TranslationService {
                 group.addTask {
                     do {
                         let start = Date()
-                        guard let provider = await self.registry.provider(for: engine) else {
-                            return EngineResult.failed(
-                                engine: engine,
-                                error: RegistryError.notRegistered(engine),
-                                latency: 0
-                            )
-                        }
+                        let provider = try await self.resolvedProvider(for: engine)
 
                         await self.applyPromptConfig(
                             to: provider,
@@ -281,10 +275,7 @@ actor TranslationService {
         mode: EngineSelectionMode = .primaryWithFallback
     ) async throws -> TranslationResultBundle {
         let start = Date()
-
-        guard let provider = await registry.provider(for: engine) else {
-            throw RegistryError.notRegistered(engine)
-        }
+        let provider = try await resolvedProvider(for: engine)
 
         guard await provider.isAvailable else {
             throw TranslationProviderError.notAvailable
@@ -338,7 +329,6 @@ actor TranslationService {
         guard let llmProvider = provider as? LLMTranslationProvider else { return }
 
         let sceneToUse = scene ?? .screenshot
-        let sourceLang = sourceLanguage ?? "auto"
 
         let customPrompt = promptConfig.promptPreview(
             for: engine,
@@ -351,6 +341,18 @@ actor TranslationService {
         } else {
             await llmProvider.setCustomPromptTemplate(nil)
         }
+    }
+
+    private func resolvedProvider(for engine: TranslationEngineType) async throws -> any TranslationProvider {
+        if let provider = await registry.provider(for: engine) {
+            return provider
+        }
+
+        let engineConfig = await MainActor.run {
+            AppSettings.shared.engineConfigs[engine] ?? .default(for: engine)
+        }
+
+        return try await registry.createProvider(for: engine, config: engineConfig)
     }
 
     // MARK: - Legacy API (Backward Compatible)
@@ -385,7 +387,7 @@ actor TranslationService {
 
     /// Test connection to a specific engine
     func testConnection(for engine: TranslationEngineType) async -> Bool {
-        guard let provider = await registry.provider(for: engine) else {
+        guard let provider = try? await resolvedProvider(for: engine) else {
             return false
         }
         return await provider.checkConnection()

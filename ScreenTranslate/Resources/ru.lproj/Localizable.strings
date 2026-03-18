@@ -736,7 +736,7 @@
 "textTranslation.phase.failed" = "Ошибка";
 
 "textTranslation.error.emptyInput" = "Нет текста для перевода";
-"textTranslation.error.translationFailed %@" = "Ошибка перевода: %@";
+"textTranslation.error.translationFailed" = "Ошибка перевода: %@";
 "textTranslation.error.cancelled" = "Перевод отменён";
 "textTranslation.error.serviceUnavailable" = "Сервис перевода недоступен";
 

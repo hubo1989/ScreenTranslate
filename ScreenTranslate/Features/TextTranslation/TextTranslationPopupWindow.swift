@@ -108,13 +108,11 @@ final class TextTranslationPopupController: NSObject {
     }
 
     private func languageDisplayName(for code: String?) -> String {
-        guard let code = code, !code.isEmpty else {
-            return NSLocalizedString("language.auto", value: "Auto Detected", comment: "")
-        }
-        if let languageName = Locale.current.localizedString(forLanguageCode: code) {
-            return languageName
-        }
-        return code.uppercased()
+        TranslationLanguage.displayName(
+            for: code,
+            locale: .current,
+            autoDisplayName: NSLocalizedString("language.auto", value: "Auto Detected", comment: "")
+        )
     }
 
     private func calculateWindowSize(originalText: String, translatedText: String) -> NSSize {
