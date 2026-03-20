@@ -200,7 +200,9 @@ struct ScreenAnalysisResult: Codable, Sendable, Equatable {
 
     /// Removes coordinate ticks, isolated symbols, and similar OCR noise before translation.
     func filteredForTranslation() -> ScreenAnalysisResult {
-        let filteredSegments = segments.filter { !$0.isLikelyTranslationNoise }
+        let filteredSegments = segments.filter {
+            !$0.isLikelyTranslationNoise && !$0.isLikelyOCRPromptLeakage
+        }
         return ScreenAnalysisResult(segments: filteredSegments, imageSize: imageSize)
     }
 

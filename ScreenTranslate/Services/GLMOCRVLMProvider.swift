@@ -165,8 +165,7 @@ struct GLMOCRVLMProvider: VLMProvider, Sendable {
         do {
             response = try decoder.decode(GLMOCRLayoutParsingResponse.self, from: data)
         } catch {
-            let raw = String(data: data, encoding: .utf8) ?? "<non-utf8>"
-            throw VLMProviderError.parsingFailed("Failed to decode GLM OCR response: \(error.localizedDescription). Raw: \(raw.prefix(300))")
+            throw VLMProviderError.parsingFailed("Failed to decode GLM OCR response: \(error.localizedDescription)")
         }
 
         let segments = response.layoutDetails
@@ -194,8 +193,7 @@ struct GLMOCRVLMProvider: VLMProvider, Sendable {
         do {
             response = try decoder.decode(GLMOCRLocalChatResponse.self, from: data)
         } catch {
-            let raw = String(data: data, encoding: .utf8) ?? "<non-utf8>"
-            throw VLMProviderError.parsingFailed("Failed to decode local GLM OCR response: \(error.localizedDescription). Raw: \(raw.prefix(300))")
+            throw VLMProviderError.parsingFailed("Failed to decode local GLM OCR response: \(error.localizedDescription)")
         }
 
         guard let content = response.choices?.first?.message?.content,

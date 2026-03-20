@@ -331,30 +331,16 @@ final class SettingsViewModel {
     var vlmProvider: VLMProviderType {
         get { settings.vlmProvider }
         set {
-            let previousProvider = settings.vlmProvider
-            let previousMode = settings.glmOCRMode
-            let shouldUpdateBaseURL = vlmBaseURL.isEmpty || vlmBaseURL == previousProvider.defaultBaseURL(glmOCRMode: previousMode)
-            let shouldUpdateModel = vlmModelName.isEmpty || vlmModelName == previousProvider.defaultModelName(glmOCRMode: previousMode)
-
             settings.vlmProvider = newValue
+            vlmBaseURL = newValue == .glmOCR
+                ? (settings.storedGLMOCRBaseURL(for: settings.glmOCRMode)
+                    ?? newValue.defaultBaseURL(glmOCRMode: settings.glmOCRMode))
+                : newValue.defaultBaseURL(glmOCRMode: settings.glmOCRMode)
 
-            if shouldUpdateBaseURL {
-                if newValue == .glmOCR {
-                    vlmBaseURL = settings.storedGLMOCRBaseURL(for: settings.glmOCRMode)
-                        ?? newValue.defaultBaseURL(glmOCRMode: settings.glmOCRMode)
-                } else {
-                    vlmBaseURL = newValue.defaultBaseURL(glmOCRMode: settings.glmOCRMode)
-                }
-            }
-
-            if shouldUpdateModel {
-                if newValue == .glmOCR {
-                    vlmModelName = settings.storedGLMOCRModelName(for: settings.glmOCRMode)
-                        ?? newValue.defaultModelName(glmOCRMode: settings.glmOCRMode)
-                } else {
-                    vlmModelName = newValue.defaultModelName(glmOCRMode: settings.glmOCRMode)
-                }
-            }
+            vlmModelName = newValue == .glmOCR
+                ? (settings.storedGLMOCRModelName(for: settings.glmOCRMode)
+                    ?? newValue.defaultModelName(glmOCRMode: settings.glmOCRMode))
+                : newValue.defaultModelName(glmOCRMode: settings.glmOCRMode)
         }
     }
 
@@ -1074,20 +1060,21 @@ final class SettingsViewModel {
         let request: URLRequest
         switch mode {
         case .cloud:
-            var cloudRequest = URLRequest(url: baseURL.appendingPathComponent("models"))
-            cloudRequest.httpMethod = "GET"
-            cloudRequest.timeoutInterval = 10
-            cloudRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-            request = cloudRequest
+            request = try GLMOCRVLMProvider.makeLayoutParsingRequest(
+                baseURL: baseURL,
+                apiKey: apiKey,
+                modelName: modelName,
+                fileDataURI: GLMOCRVLMProvider.connectionTestImageDataURI,
+                timeout: 10
+            )
         case .local:
-            var localRequest = URLRequest(url: baseURL.appendingPathComponent("models"))
-            localRequest.httpMethod = "GET"
-            localRequest.timeoutInterval = 10
-            let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmedAPIKey.isEmpty {
-                localRequest.setValue("Bearer \(trimmedAPIKey)", forHTTPHeaderField: "Authorization")
-            }
-            request = localRequest
+            request = try GLMOCRVLMProvider.makeLocalChatRequest(
+                baseURL: baseURL,
+                apiKey: apiKey,
+                modelName: modelName,
+                fileDataURI: GLMOCRVLMProvider.connectionTestImageDataURI,
+                timeout: 10
+            )
         }
 
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -1098,23 +1085,13 @@ final class SettingsViewModel {
 
         switch httpResponse.statusCode {
         case 200:
-            if mode == .local {
-                let decoder = JSONDecoder()
-                if let modelsResponse = try? decoder.decode(GLMOCRLocalModelsResponse.self, from: data),
-                   !modelsResponse.data.contains(where: { $0.id == modelName }) {
-                    let availableModels = modelsResponse.data.map(\.id).joined(separator: ", ")
-                    let message = availableModels.isEmpty
-                        ? "Model '\(modelName)' not found. No models reported by local server."
-                        : "Model '\(modelName)' not found. Available models: \(availableModels)"
-                    return (false, message)
-                }
+            switch mode {
+            case .cloud:
+                _ = try GLMOCRVLMProvider.parseResponse(data, fallbackImageSize: .zero)
+            case .local:
+                _ = try GLMOCRVLMProvider.parseLocalResponse(data, fallbackImageSize: .zero)
             }
             return (true, String(format: NSLocalizedString("settings.vlm.test.success", comment: ""), modelName))
-        case 404, 405:
-            if mode == .cloud {
-                return (true, "GLM OCR cloud endpoint is reachable.")
-            }
-            throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
         case 401, 403:
             throw VLMProviderError.authenticationFailed
         case 429:

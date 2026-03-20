@@ -572,6 +572,7 @@ final class AppSettings {
 
     /// Resets all settings to defaults
     func resetToDefaults() {
+        let defaults = UserDefaults.standard
         saveLocation = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSHomeDirectory())
         defaultFormat = .png
@@ -599,6 +600,10 @@ final class AppSettings {
         glmOCRMode = .cloud
         vlmBaseURL = VLMProviderType.openai.defaultBaseURL
         vlmModelName = VLMProviderType.openai.defaultModelName
+        defaults.set(GLMOCRMode.cloud.defaultBaseURL, forKey: Keys.glmOCRCloudBaseURL)
+        defaults.set(GLMOCRMode.cloud.defaultModelName, forKey: Keys.glmOCRCloudModelName)
+        defaults.set(GLMOCRMode.local.defaultBaseURL, forKey: Keys.glmOCRLocalBaseURL)
+        defaults.set(GLMOCRMode.local.defaultModelName, forKey: Keys.glmOCRLocalModelName)
         onboardingCompleted = false
         translateAndInsertSourceLanguage = .auto
         translateAndInsertTargetLanguage = nil
