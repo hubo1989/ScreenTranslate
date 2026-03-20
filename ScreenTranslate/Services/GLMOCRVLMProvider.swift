@@ -29,7 +29,7 @@ struct GLMOCRVLMProvider: VLMProvider, Sendable {
     }()
     static let defaultLocalModel = "mlx-community/GLM-OCR-bf16"
 
-    static let connectionTestImageDataURI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII="
+    static let connectionTestImageDataURI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAE0lEQVR4nGP8//8/AwwwwVl4OQCWbgMF7ZjH1AAAAABJRU5ErkJggg=="
 
     private let timeout: TimeInterval
 
@@ -257,6 +257,13 @@ struct GLMOCRVLMProvider: VLMProvider, Sendable {
             return response
         }
 
+        if let jsonData = cleanedContent.data(using: .utf8),
+           let textOnlyResponse = try? JSONDecoder().decode(GLMOCRLocalTextOnlyResponse.self, from: jsonData),
+           let textContent = textOnlyResponse.resolvedText,
+           let plainTextResponse = parsePlainTextResponse(textContent) {
+            return plainTextResponse
+        }
+
         if let plainTextResponse = parsePlainTextResponse(content) {
             return plainTextResponse
         }
@@ -409,6 +416,15 @@ private struct GLMOCRLocalChatRequest: Encodable, Sendable {
     enum CodingKeys: String, CodingKey {
         case model, messages, temperature
         case maxTokens = "max_tokens"
+    }
+}
+
+private struct GLMOCRLocalTextOnlyResponse: Decodable, Sendable {
+    let text: String?
+    let Text: String?
+
+    var resolvedText: String? {
+        text ?? Text
     }
 }
 

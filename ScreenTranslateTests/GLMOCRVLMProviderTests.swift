@@ -86,6 +86,30 @@ final class GLMOCRVLMProviderTests: XCTestCase {
         assertRect(result.segments[0].boundingBox, equals: CGRect(x: 0.2, y: 0.3, width: 0.4, height: 0.1))
     }
 
+    func testParseLocalResponseSupportsTextOnlyPayload() throws {
+        let json = #"""
+        {
+          "choices": [
+            {
+              "message": {
+                "content": "{\"Text\":\"返回 200\\n-scheme ScreenTranslate -destination 'platform=macOS'\"}"
+              }
+            }
+          ]
+        }
+        """#
+
+        let result = try GLMOCRVLMProvider.parseLocalResponse(
+            Data(json.utf8),
+            fallbackImageSize: CGSize(width: 640, height: 480)
+        )
+
+        XCTAssertEqual(
+            result.segments.map(\.text),
+            ["返回 200", "-scheme ScreenTranslate -destination 'platform=macOS'"]
+        )
+    }
+
     private func assertRect(_ actual: CGRect, equals expected: CGRect, accuracy: CGFloat = 0.0001) {
         XCTAssertEqual(actual.origin.x, expected.origin.x, accuracy: accuracy)
         XCTAssertEqual(actual.origin.y, expected.origin.y, accuracy: accuracy)
