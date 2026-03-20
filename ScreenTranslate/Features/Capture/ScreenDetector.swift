@@ -1,10 +1,12 @@
 import Foundation
 @preconcurrency import ScreenCaptureKit
 import AppKit
+import os
 
 /// Service responsible for enumerating connected displays using ScreenCaptureKit.
 /// Thread-safe actor that provides display discovery and matching with NSScreen.
 actor ScreenDetector {
+    private let logger = Logger.capture
     // MARK: - Types
 
     /// Error types specific to screen detection
@@ -129,18 +131,18 @@ actor ScreenDetector {
         // Quick check first using CGPreflightScreenCaptureAccess
         guard CGPreflightScreenCaptureAccess() else {
             cachedPermissionStatus = false
-            if !silent { print("[ScreenDetector] Permission check: denied (CGPreflight)") }
+            if !silent { logger.debug("Permission check: denied (CGPreflight)") }
             return false
         }
         // Actually verify by trying to get shareable content
         do {
             _ = try await SCShareableContent.current
             cachedPermissionStatus = true
-            if !silent { print("[ScreenDetector] Permission check: granted") }
+            if !silent { logger.debug("Permission check: granted") }
             return true
         } catch {
             cachedPermissionStatus = false
-            if !silent { print("[ScreenDetector] Permission check: denied (SCShareableContent)") }
+            if !silent { logger.debug("Permission check: denied (SCShareableContent)") }
             return false
         }
     }

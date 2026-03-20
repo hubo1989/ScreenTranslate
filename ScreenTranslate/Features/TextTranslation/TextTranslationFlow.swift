@@ -131,9 +131,14 @@ actor TextTranslationFlow {
     /// Current translation task (for cancellation)
     private var currentTask: Task<TextTranslationResult, Error>?
 
+    /// Translation service used to execute the underlying work.
+    private let translationService: any TranslationServicing
+
     // MARK: - Initialization
 
-    private init() {}
+    init(service: any TranslationServicing = TranslationService.shared) {
+        self.translationService = service
+    }
 
     // MARK: - Public API
 
@@ -170,7 +175,7 @@ actor TextTranslationFlow {
             logger.info("Starting text translation: \(trimmedText.count) chars to \(effectiveTargetLanguage)")
 
             // Use TranslationService for actual translation
-            let bilingualSegments = try await TranslationService.shared.translate(
+            let bilingualSegments = try await translationService.translate(
                 segments: [trimmedText],
                 to: effectiveTargetLanguage,
                 preferredEngine: effectiveEngine,
@@ -307,12 +312,14 @@ extension TextTranslationConfig {
         }
 
         #if DEBUG
-        print("[TextTranslationConfig] forTranslateAndInsert:")
-        print("  - translateAndInsertTargetLanguage: \(String(describing: settings.translateAndInsertTargetLanguage?.rawValue))")
-        print("  - resolved targetLanguage: \(targetLanguage)")
-        print("  - translateAndInsertSourceLanguage: \(settings.translateAndInsertSourceLanguage.rawValue)")
-        print("  - resolved sourceLanguage: \(String(describing: sourceLanguage))")
-        print("  - preferredEngine: \(preferredEngine)")
+        Logger.translation.debug(
+            """
+            Translate-and-insert config resolved: \
+            target=\(targetLanguage, privacy: .public), \
+            source=\(sourceLanguage ?? "auto", privacy: .public), \
+            engine=\(preferredEngine.rawValue, privacy: .public)
+            """
+        )
         #endif
 
         return TextTranslationConfig(

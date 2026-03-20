@@ -28,16 +28,18 @@ actor TranslationEngineRegistry {
         category: "TranslationEngineRegistry"
     )
 
-    private init() {
-        // Cannot call async method in init, so we register synchronously
-        // Built-in providers don't need async setup
-        let appleProvider = AppleTranslationProvider()
-        providers[.apple] = appleProvider
+    init(registerBuiltInProviders: Bool = true) {
+        if registerBuiltInProviders {
+            // Cannot call async method in init, so we register synchronously.
+            // Built-in providers don't need async setup.
+            let appleProvider = AppleTranslationProvider()
+            providers[.apple] = appleProvider
 
-        let mtranProvider = MTranServerEngine.shared
-        providers[.mtranServer] = mtranProvider
+            let mtranProvider = MTranServerEngine.shared
+            providers[.mtranServer] = mtranProvider
 
-        logger.info("Registered 2 built-in providers")
+            logger.info("Registered 2 built-in providers")
+        }
     }
 
     // MARK: - Registration

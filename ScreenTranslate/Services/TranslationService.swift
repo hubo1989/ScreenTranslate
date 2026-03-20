@@ -153,8 +153,15 @@ actor TranslationService {
                     scene: scene,
                     mode: .primaryWithFallback
                 )
+                let failedPrimary = EngineResult.failed(engine: primaryEngine, error: errors[0])
+                let mergedResults = [failedPrimary] + result.results
                 logger.info("Fallback to \(actualFallback.rawValue) succeeded")
-                return result
+                return TranslationResultBundle(
+                    results: mergedResults,
+                    primaryEngine: result.primaryEngine,
+                    selectionMode: .primaryWithFallback,
+                    scene: scene
+                )
             } catch {
                 errors.append(error)
                 logger.warning("Fallback engine \(actualFallback.rawValue) also failed: \(error.localizedDescription)")
@@ -326,7 +333,7 @@ actor TranslationService {
         sourceLanguage: String?,
         targetLanguage: String
     ) async {
-        guard let llmProvider = provider as? LLMTranslationProvider else { return }
+        guard let promptConfigurableProvider = provider as? TranslationPromptConfigurable else { return }
 
         let sceneToUse = scene ?? .screenshot
 
@@ -337,9 +344,9 @@ actor TranslationService {
         )
 
         if customPrompt != TranslationPromptConfig.defaultPrompt {
-            await llmProvider.setCustomPromptTemplate(customPrompt)
+            await promptConfigurableProvider.setCustomPromptTemplate(customPrompt)
         } else {
-            await llmProvider.setCustomPromptTemplate(nil)
+            await promptConfigurableProvider.setCustomPromptTemplate(nil)
         }
     }
 

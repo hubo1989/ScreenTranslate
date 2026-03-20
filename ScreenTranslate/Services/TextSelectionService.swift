@@ -2,6 +2,7 @@ import Foundation
 import AppKit
 import CoreGraphics
 import ApplicationServices
+import os
 
 /// Result of text selection capture
 struct TextSelectionResult: Sendable {
@@ -16,6 +17,7 @@ struct TextSelectionResult: Sendable {
 /// Service for capturing selected text from any application.
 /// Uses clipboard-based capture with Cmd+C simulation to reliably get selected text.
 actor TextSelectionService {
+    private let logger = Logger.capture
 
     // MARK: - Types
 
@@ -166,7 +168,7 @@ actor TextSelectionService {
                 try restoreClipboardContent(saved)
             } catch {
                 // Log but don't fail - we still got the text
-                print("Warning: Failed to restore clipboard: \(error)")
+                logger.warning("Failed to restore clipboard: \(error.localizedDescription, privacy: .public)")
             }
         }
 
