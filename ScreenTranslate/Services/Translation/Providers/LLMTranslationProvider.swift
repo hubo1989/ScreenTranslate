@@ -9,7 +9,7 @@ import Foundation
 import os.log
 
 /// LLM-based translation provider supporting OpenAI, Claude, and Ollama
-actor LLMTranslationProvider: TranslationProvider {
+actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable {
     // MARK: - Properties
 
     nonisolated let id: String
@@ -161,7 +161,7 @@ actor LLMTranslationProvider: TranslationProvider {
 
     /// Set a custom prompt template for this provider
     /// - Parameter template: The prompt template with {source_language}, {target_language}, {text} placeholders
-    func setCustomPromptTemplate(_ template: String?) {
+    func setCustomPromptTemplate(_ template: String?) async {
         self.customPromptTemplate = template
     }
 

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import os
 
 struct EngineConfigSheet: View {
     let engine: TranslationEngineType
@@ -21,6 +22,7 @@ struct EngineConfigSheet: View {
     @State private var isTesting = false
     @State private var testResult: String?
     @State private var testSuccess = false
+    private let logger = Logger.settings
 
     var body: some View {
         VStack(spacing: 20) {
@@ -339,7 +341,7 @@ struct EngineConfigSheet: View {
                     )
                 }
             } catch {
-                print("Failed to save credentials: \(error)")
+                logger.error("Failed to save credentials: \(error.localizedDescription, privacy: .private(mask: .hash))")
             }
         }
     }

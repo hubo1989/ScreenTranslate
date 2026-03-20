@@ -7,6 +7,7 @@
 
 import CoreGraphics
 import Foundation
+import os
 
 // MARK: - OpenAI VLM Provider
 
@@ -27,6 +28,8 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     /// Request timeout in seconds
     private let timeout: TimeInterval
 
+    private let logger = Logger.translation
+
     // MARK: - Initialization
 
     /// Initialize with full configuration
@@ -36,6 +39,22 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     init(configuration: VLMProviderConfiguration, timeout: TimeInterval = 60) {
         self.configuration = configuration
         self.timeout = timeout
+    }
+
+    private func logDebug(_ message: String) {
+        logger.debug("\(message, privacy: .public)")
+    }
+
+    private func logInfo(_ message: String) {
+        logger.info("\(message, privacy: .public)")
+    }
+
+    private func logWarning(_ message: String) {
+        logger.warning("\(message, privacy: .public)")
+    }
+
+    private func logError(_ message: String) {
+        logger.error("\(message, privacy: .public)")
     }
 
     /// Convenience initializer with individual parameters
@@ -77,8 +96,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
         let base64Image = imageData.base64EncodedString()
         let imageSize = CGSize(width: image.width, height: image.height)
         
-        // DEBUG: Log image details
-        print("[OpenAI] Image size: \(image.width)x\(image.height), JPEG data: \(imageData.count) bytes, Base64 length: \(base64Image.count) chars")
+        logDebug("Image size: \(image.width)x\(image.height), JPEG bytes: \(imageData.count), base64 chars: \(base64Image.count)")
 
         // Use multi-turn conversation with continuation support
         let vlmResponse = try await analyzeWithContinuation(
@@ -142,7 +160,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
             let (content, isTruncated, finishReason) = try extractContentAndStatus(from: responseData)
 
-            print("[OpenAI] Attempt \(attempt + 1)/\(maxAttempts): received \(content.count) chars, finish_reason=\(finishReason ?? "unknown")")
+            logDebug("Attempt \(attempt + 1)/\(maxAttempts): received \(content.count) chars, finish reason: \(finishReason ?? "unknown")")
 
             // Try to parse this response
             do {
@@ -161,16 +179,16 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 }
 
                 allSegments.append(contentsOf: newSegments)
-                print("[OpenAI] Parsed \(response.segments.count) segments, added \(newSegments.count) new (attempt \(attempt + 1))")
+                logDebug("Parsed \(response.segments.count) segments, added \(newSegments.count) new (attempt \(attempt + 1))")
 
                 if !isTruncated {
                     // Complete - return merged result with deduplication
                     let deduplicated = deduplicateSegments(allSegments)
-                    print("[OpenAI] Complete response received, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
+                    logDebug("Complete response received, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
                     return VLMAnalysisResponse(segments: deduplicated)
                 }
             } catch {
-                print("[OpenAI] Parse error on attempt \(attempt + 1): \(error)")
+                logWarning("Parse error on attempt \(attempt + 1) [\(String(describing: type(of: error)))]")
 
                 // Try partial parsing for truncated response
                 if isTruncated {
@@ -181,7 +199,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                             new: partial.segments
                         )
                         allSegments.append(contentsOf: newSegments)
-                        print("[OpenAI] Partial parse recovered \(partial.segments.count) segments, added \(newSegments.count) new")
+                        logDebug("Partial parse recovered \(partial.segments.count) segments, added \(newSegments.count) new")
                     }
                 }
 
@@ -192,7 +210,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             }
 
             // Response truncated, need to continue
-            print("[OpenAI] Response truncated, requesting continuation...")
+            logDebug("Response truncated, requesting continuation")
 
             // Add assistant's partial response to conversation
             conversationMessages.append(OpenAIChatMessage(
@@ -209,7 +227,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
         // Final deduplication before returning
         let deduplicated = deduplicateSegments(allSegments)
-        print("[OpenAI] Max continuation attempts reached, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
+        logWarning("Max continuation attempts reached, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
         return VLMAnalysisResponse(segments: deduplicated)
     }
 
@@ -225,16 +243,13 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     private func deduplicateSegments(_ segments: [VLMTextSegment]) -> [VLMTextSegment] {
         VLMTextDeduplicator.deduplicate(segments) { length, count, threshold in
             // Log only safe statistics, not plaintext content
-            print("[OpenAI] Detected overrepresented text: length=\(length), count=\(count), threshold=\(threshold)")
+            logDebug("Detected overrepresented text: length=\(length), count=\(count), threshold=\(threshold)")
         }
     }
 
     /// Extracts content text and truncation status from OpenAI response
     private func extractContentAndStatus(from data: Data) throws -> (content: String, isTruncated: Bool, finishReason: String?) {
-        // Log raw response first for debugging
-        if let rawJSON = String(data: data, encoding: .utf8) {
-            print("[OpenAI] Raw response (\(data.count) bytes): \(rawJSON.prefix(500))...")
-        }
+        logDebug("Received raw response payload: \(data.count) bytes")
 
         // Check for error response first
         if let errorResponse = try? JSONDecoder().decode(OpenAIErrorResponse.self, from: data),
@@ -256,7 +271,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                let content = extractContentManually(from: rawJSON) {
                 let isTruncated = rawJSON.contains("\"finish_reason\":\"length\"") ||
                                  rawJSON.contains("\"finish_reason\": \"length\"")
-                print("[OpenAI] Manually extracted content (truncated: \(isTruncated))")
+                logDebug("Manually extracted content (truncated: \(isTruncated))")
                 return (content, isTruncated, isTruncated ? "length" : nil)
             }
 
@@ -285,14 +300,11 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
     /// Attempts to extract content field manually when JSON decoder fails
     private func extractContentManually(from json: String) -> String? {
-        print("[OpenAI] extractContentManually: searching in \(json.count) chars")
-
         let patterns = ["\"content\":\"", "\"content\": \""]
 
         for pattern in patterns {
             if let range = json.range(of: pattern) {
                 let start = range.upperBound
-                print("[OpenAI] Found pattern '\(pattern)' at position, start char: '\(json[start])'")
 
                 var end = start
                 var escaped = false
@@ -301,10 +313,6 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
                 for char in json[start...] {
                     charCount += 1
-                    if charCount <= 20 {
-                        print("[OpenAI] char[\(charCount)]: '\(char)' escaped=\(escaped) depth=\(depth)")
-                    }
-
                     if escaped {
                         escaped = false
                         end = json.index(after: end)
@@ -317,12 +325,8 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                     } else if char == "}" || char == "]" {
                         depth -= 1
                         end = json.index(after: end)
-                        if depth < 0 {
-                            print("[OpenAI] depth went negative at char '\(char)', breaking")
-                            break
-                        }
+                        if depth < 0 { break }
                     } else if char == "\"" && depth == 0 {
-                        print("[OpenAI] found end quote at depth 0, breaking")
                         break
                     } else {
                         end = json.index(after: end)
@@ -330,7 +334,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 }
 
                 let content = String(json[start..<end])
-                print("[OpenAI] extractContentManually: found content of \(content.count) chars, first 100: \(content.prefix(100))")
+                logDebug("extractContentManually found content of \(content.count) chars")
 
                 return content
                     .replacingOccurrences(of: "\\\"", with: "\"")
@@ -339,7 +343,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             }
         }
 
-        print("[OpenAI] extractContentManually: no content pattern found")
+        logDebug("extractContentManually found no content pattern")
         return nil
     }
 
@@ -381,20 +385,15 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     private func executeRequest(_ request: URLRequest) async throws -> Data {
         let (data, response): (Data, URLResponse)
 
-        print("[OpenAI] Sending request to: \(request.url?.absoluteString ?? "unknown")")
-        print("[OpenAI] API Key (first 8 chars): \(String(configuration.apiKey.prefix(8)))...")
+        logDebug("Sending request to: \(request.url?.absoluteString ?? "unknown")")
         if let body = request.httpBody {
-            print("[OpenAI] Request body size: \(body.count) bytes")
-            // Print first 500 chars of request body for debugging
-            if let bodyStr = String(data: body, encoding: .utf8) {
-                print("[OpenAI] Request body preview: \(bodyStr.prefix(500))")
-            }
+            logDebug("Request body size: \(body.count) bytes")
         }
 
         do {
             (data, response) = try await URLSession.shared.data(for: request)
         } catch let error as URLError {
-            print("[OpenAI] Network error: \(error)")
+            logWarning("Network error: \(error.localizedDescription)")
             switch error.code {
             case .timedOut:
                 throw VLMProviderError.networkError("Request timed out")
@@ -404,7 +403,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 throw VLMProviderError.networkError(error.localizedDescription)
             }
         } catch {
-            print("[OpenAI] Unknown error: \(error)")
+            logWarning("Unknown request error: \(error.localizedDescription)")
             throw VLMProviderError.networkError(error.localizedDescription)
         }
 
@@ -412,7 +411,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             throw VLMProviderError.invalidResponse("Invalid HTTP response")
         }
 
-        print("[OpenAI] HTTP status: \(httpResponse.statusCode), Data size: \(data.count) bytes")
+        logDebug("HTTP status: \(httpResponse.statusCode), payload size: \(data.count) bytes")
 
         try handleHTTPStatus(httpResponse, data: data)
 
@@ -429,8 +428,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             throw VLMProviderError.authenticationFailed
 
         case 429:
-            print("[OpenAI] 429 Rate Limited - Response body: \(String(data: data, encoding: .utf8) ?? "unable to decode")")
-            print("[OpenAI] 429 Response headers: \(response.allHeaderFields)")
+            logWarning("429 rate limited from OpenAI endpoint")
             let retryAfter = parseRetryAfter(from: response, data: data)
             let errorMessage = parseErrorMessage(from: data)
             throw VLMProviderError.rateLimited(retryAfter: retryAfter, message: errorMessage)
@@ -440,7 +438,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
         case 400:
             let message = parseErrorMessage(from: data) ?? "Bad request"
-            print("[OpenAI] 400 Error - Response body: \(String(data: data, encoding: .utf8) ?? "nil")")
+            logWarning("400 bad request from OpenAI endpoint")
             throw VLMProviderError.invalidConfiguration(message)
 
         case 500 ... 599:
@@ -484,7 +482,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
         // If response was truncated, try to repair the JSON by closing open brackets
         if wasTruncated {
-            print("[OpenAI] Attempting to repair truncated JSON...")
+            logDebug("Attempting to repair truncated JSON")
             cleanedContent = attemptToRepairJSON(cleanedContent)
         }
 
@@ -497,9 +495,9 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             return response
         } catch {
             // JSON parsing failed - try to handle plain text response from local models
-            print("[OpenAI] JSON parsing failed, attempting plain text fallback...")
+            logDebug("JSON parsing failed, attempting plain text fallback")
             if let plainTextResponse = parsePlainTextResponse(content) {
-                print("[OpenAI] Successfully parsed plain text response with \(plainTextResponse.segments.count) segments")
+                logDebug("Successfully parsed plain text response with \(plainTextResponse.segments.count) segments")
                 return plainTextResponse
             }
 
@@ -575,11 +573,11 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
             do {
                 let response = try JSONDecoder().decode(VLMAnalysisResponse.self, from: jsonData)
-                print("[OpenAI] Successfully parsed partial response with \(response.segments.count) segments")
+                logDebug("Successfully parsed partial response with \(response.segments.count) segments")
                 return response
             } catch {
                 // If that didn't work, return empty result with warning
-                print("[OpenAI] Partial parse failed, returning empty result")
+                logWarning("Partial parse failed, returning empty result")
                 return VLMAnalysisResponse(segments: [])
             }
         }

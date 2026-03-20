@@ -50,6 +50,11 @@ protocol TranslationProvider: Sendable {
     func checkConnection() async -> Bool
 }
 
+/// Providers that can accept a custom prompt template from the translation service.
+protocol TranslationPromptConfigurable: Sendable {
+    func setCustomPromptTemplate(_ template: String?) async
+}
+
 // MARK: - Translation Provider Errors
 
 /// Errors that can occur during translation provider operations
@@ -84,6 +89,27 @@ enum TranslationProviderError: LocalizedError, Sendable {
                 return "Rate limited. Retry after \(Int(seconds)) seconds."
             }
             return "Rate limited. Please try again later."
+        }
+    }
+
+    var recoverySuggestion: String? {
+        switch self {
+        case .notAvailable:
+            return NSLocalizedString("translation.provider.recovery.notAvailable", comment: "")
+        case .connectionFailed:
+            return NSLocalizedString("translation.provider.recovery.connectionFailed", comment: "")
+        case .invalidConfiguration:
+            return NSLocalizedString("translation.provider.recovery.invalidConfiguration", comment: "")
+        case .translationFailed:
+            return NSLocalizedString("translation.provider.recovery.translationFailed", comment: "")
+        case .emptyInput:
+            return NSLocalizedString("translation.provider.recovery.emptyInput", comment: "")
+        case .unsupportedLanguage:
+            return NSLocalizedString("translation.provider.recovery.unsupportedLanguage", comment: "")
+        case .timeout:
+            return NSLocalizedString("translation.provider.recovery.timeout", comment: "")
+        case .rateLimited:
+            return NSLocalizedString("translation.provider.recovery.rateLimited", comment: "")
         }
     }
 }
