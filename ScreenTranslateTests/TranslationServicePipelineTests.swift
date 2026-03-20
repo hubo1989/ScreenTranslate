@@ -325,6 +325,37 @@ final class TranslationServicePipelineTests: XCTestCase {
         XCTAssertEqual(fallbackRequestCount, 1)
     }
 
+    func testRegistryCreatesBuiltInProviderWhenRegistrationWasSkipped() async throws {
+        let registry = TranslationEngineRegistry(registerBuiltInProviders: false)
+
+        let provider = try await registry.createProvider(
+            for: .apple,
+            config: .default(for: .apple)
+        )
+
+        XCTAssertTrue(provider is AppleTranslationProvider)
+        let registeredProvider = await registry.provider(for: .apple)
+        XCTAssertNotNil(registeredProvider)
+    }
+
+    func testRegistryCreatesLLMProvidersThatArePromptConfigurable() async throws {
+        let registry = TranslationEngineRegistry(registerBuiltInProviders: false)
+        let provider = try await registry.createProvider(
+            for: .ollama,
+            config: TranslationEngineConfig(
+                id: .ollama,
+                isEnabled: true,
+                options: EngineOptions(
+                    baseURL: "http://127.0.0.1:11434",
+                    modelName: "llama3",
+                    timeout: 30
+                )
+            )
+        )
+
+        XCTAssertNotNil(provider as? any TranslationPromptConfigurable)
+    }
+
     func testParallelModeCapturesSuccessAndFailurePerEngine() async throws {
         let registry = TranslationEngineRegistry(registerBuiltInProviders: false)
         let apple = MockTranslationProvider(

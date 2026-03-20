@@ -127,9 +127,17 @@ extension TranslationEngineRegistry {
         let provider: any TranslationProvider
 
         switch type {
-        case .apple, .mtranServer:
-            // These are registered in init
-            throw RegistryError.alreadyRegistered
+        case .apple:
+            if providers[.apple] != nil {
+                throw RegistryError.alreadyRegistered
+            }
+            provider = AppleTranslationProvider()
+
+        case .mtranServer:
+            if providers[.mtranServer] != nil {
+                throw RegistryError.alreadyRegistered
+            }
+            provider = MTranServerEngine.shared
 
         case .openai, .claude, .gemini, .ollama:
             provider = try await LLMTranslationProvider(

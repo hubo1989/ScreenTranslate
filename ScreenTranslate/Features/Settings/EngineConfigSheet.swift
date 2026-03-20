@@ -341,7 +341,7 @@ struct EngineConfigSheet: View {
                     )
                 }
             } catch {
-                logger.error("Failed to save credentials: \(error.localizedDescription, privacy: .public)")
+                logger.error("Failed to save credentials: \(error.localizedDescription, privacy: .private(mask: .hash))")
             }
         }
     }

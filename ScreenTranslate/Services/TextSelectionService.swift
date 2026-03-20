@@ -168,7 +168,7 @@ actor TextSelectionService {
                 try restoreClipboardContent(saved)
             } catch {
                 // Log but don't fail - we still got the text
-                logger.warning("Failed to restore clipboard: \(error.localizedDescription, privacy: .public)")
+                logger.warning("Failed to restore clipboard: \(error.localizedDescription, privacy: .private(mask: .hash))")
             }
         }
 

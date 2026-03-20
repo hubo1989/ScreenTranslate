@@ -9,7 +9,7 @@ import Foundation
 import os.log
 
 /// LLM-based translation provider supporting OpenAI, Claude, and Ollama
-actor LLMTranslationProvider: TranslationProvider {
+actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable {
     // MARK: - Properties
 
     nonisolated let id: String

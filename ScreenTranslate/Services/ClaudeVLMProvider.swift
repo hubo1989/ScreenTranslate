@@ -165,7 +165,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
                     return VLMAnalysisResponse(segments: deduplicated)
                 }
             } catch {
-                logWarning("Parse error on attempt \(attempt + 1): \(error.localizedDescription)")
+                logWarning("Parse error on attempt \(attempt + 1) [\(String(describing: type(of: error)))]")
 
                 // Try partial parsing for truncated response
                 if isTruncated {
