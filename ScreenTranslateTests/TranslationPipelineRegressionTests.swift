@@ -31,7 +31,7 @@ final class TranslationPipelineRegressionTests: XCTestCase {
                     text: "- x, y: 左上角 (0.0-1.0)",
                     boundingBox: .zero,
                     confidence: 0.99
-                ),
+                )
             ],
             imageSize: CGSize(width: 1200, height: 800)
         )
@@ -46,7 +46,7 @@ final class TranslationPipelineRegressionTests: XCTestCase {
                     text: "Superset",
                     boundingBox: CGRect(x: 0.1, y: 0.2, width: 0.2, height: 0.05),
                     confidence: 0.94
-                ),
+                )
             ],
             imageSize: CGSize(width: 1200, height: 800)
         )
@@ -103,7 +103,7 @@ final class TranslationPipelineRegressionTests: XCTestCase {
         XCTAssertEqual(filtered.segments.first?.text, "Q4 Revenue increased significantly")
     }
 
-    func testFilteredForTranslationFallsBackWhenEverySegmentLooksLikeNoise() {
+    func testFilteredForTranslationReturnsEmptyWhenEverySegmentLooksLikeNoise() {
         let segments = [
             TextSegment(
                 text: "Jan",
@@ -120,6 +120,6 @@ final class TranslationPipelineRegressionTests: XCTestCase {
         let result = ScreenAnalysisResult(segments: segments, imageSize: CGSize(width: 1200, height: 800))
         let filtered = result.filteredForTranslation()
 
-        XCTAssertEqual(filtered.segments, segments)
+        XCTAssertTrue(filtered.segments.isEmpty)
     }
 }

@@ -55,6 +55,8 @@ final class GLMOCRVLMProviderTests: XCTestCase {
 
         XCTAssertEqual(result.imageSize, CGSize(width: 1200, height: 800))
         XCTAssertEqual(result.segments.map(\.text), ["Hello world", "Total 42"])
+        XCTAssertEqual(result.segments.count, 2)
+        guard result.segments.count == 2 else { return }
         assertRect(result.segments[0].boundingBox, equals: CGRect(x: 0.1, y: 0.2, width: 0.3, height: 0.1))
         assertRect(result.segments[1].boundingBox, equals: CGRect(x: 0.5, y: 0.2, width: 0.4, height: 0.4))
     }
@@ -79,6 +81,8 @@ final class GLMOCRVLMProviderTests: XCTestCase {
 
         XCTAssertEqual(result.imageSize, CGSize(width: 640, height: 480))
         XCTAssertEqual(result.segments.map(\.text), ["Local OCR"])
+        XCTAssertEqual(result.segments.count, 1)
+        guard result.segments.count == 1 else { return }
         assertRect(result.segments[0].boundingBox, equals: CGRect(x: 0.2, y: 0.3, width: 0.4, height: 0.1))
     }
 

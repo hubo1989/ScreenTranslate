@@ -76,7 +76,8 @@ enum AppLanguage: String, CaseIterable, Identifiable, Sendable {
 
         if normalizedIdentifier.hasPrefix("zh-hans")
             || normalizedIdentifier == "zh-cn"
-            || normalizedIdentifier == "zh-sg" {
+            || normalizedIdentifier == "zh-sg"
+            || normalizedIdentifier == "zh" {
             return .simplifiedChinese
         }
 

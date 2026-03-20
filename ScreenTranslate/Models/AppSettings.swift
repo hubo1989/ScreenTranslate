@@ -129,6 +129,10 @@ final class AppSettings {
         static let vlmBaseURL = prefix + "vlmBaseURL"
         static let vlmModelName = prefix + "vlmModelName"
         static let glmOCRMode = prefix + "glmOCRMode"
+        static let glmOCRCloudBaseURL = prefix + "glmOCRCloudBaseURL"
+        static let glmOCRCloudModelName = prefix + "glmOCRCloudModelName"
+        static let glmOCRLocalBaseURL = prefix + "glmOCRLocalBaseURL"
+        static let glmOCRLocalModelName = prefix + "glmOCRLocalModelName"
         // Translation Workflow Configuration
         static let preferredTranslationEngine = prefix + "preferredTranslationEngine"
         static let mtranServerURL = prefix + "mtranServerURL"
@@ -293,11 +297,25 @@ final class AppSettings {
     }
 
     var vlmBaseURL: String {
-        didSet { save(vlmBaseURL, forKey: Keys.vlmBaseURL) }
+        didSet {
+            save(vlmBaseURL, forKey: Keys.vlmBaseURL)
+            saveGLMOCRVLMValue(
+                vlmBaseURL,
+                cloudKey: Keys.glmOCRCloudBaseURL,
+                localKey: Keys.glmOCRLocalBaseURL
+            )
+        }
     }
 
     var vlmModelName: String {
-        didSet { save(vlmModelName, forKey: Keys.vlmModelName) }
+        didSet {
+            save(vlmModelName, forKey: Keys.vlmModelName)
+            saveGLMOCRVLMValue(
+                vlmModelName,
+                cloudKey: Keys.glmOCRCloudModelName,
+                localKey: Keys.glmOCRLocalModelName
+            )
+        }
     }
 
     var glmOCRMode: GLMOCRMode {
@@ -489,8 +507,15 @@ final class AppSettings {
         vlmProvider = resolvedVLMProvider
         vlmAPIKey = defaults.string(forKey: Keys.vlmAPIKey) ?? ""
         glmOCRMode = resolvedGLMOCRMode
-        vlmBaseURL = defaults.string(forKey: Keys.vlmBaseURL) ?? resolvedVLMProvider.defaultBaseURL(glmOCRMode: resolvedGLMOCRMode)
-        vlmModelName = defaults.string(forKey: Keys.vlmModelName) ?? resolvedVLMProvider.defaultModelName(glmOCRMode: resolvedGLMOCRMode)
+        if resolvedVLMProvider == .glmOCR {
+            let modeSpecificBaseURLKey = resolvedGLMOCRMode == .cloud ? Keys.glmOCRCloudBaseURL : Keys.glmOCRLocalBaseURL
+            let modeSpecificModelKey = resolvedGLMOCRMode == .cloud ? Keys.glmOCRCloudModelName : Keys.glmOCRLocalModelName
+            vlmBaseURL = defaults.string(forKey: modeSpecificBaseURLKey) ?? defaults.string(forKey: Keys.vlmBaseURL) ?? resolvedVLMProvider.defaultBaseURL(glmOCRMode: resolvedGLMOCRMode)
+            vlmModelName = defaults.string(forKey: modeSpecificModelKey) ?? defaults.string(forKey: Keys.vlmModelName) ?? resolvedVLMProvider.defaultModelName(glmOCRMode: resolvedGLMOCRMode)
+        } else {
+            vlmBaseURL = defaults.string(forKey: Keys.vlmBaseURL) ?? resolvedVLMProvider.defaultBaseURL(glmOCRMode: resolvedGLMOCRMode)
+            vlmModelName = defaults.string(forKey: Keys.vlmModelName) ?? resolvedVLMProvider.defaultModelName(glmOCRMode: resolvedGLMOCRMode)
+        }
 
         preferredTranslationEngine = defaults.string(forKey: Keys.preferredTranslationEngine)
             .flatMap { PreferredTranslationEngine(rawValue: $0) } ?? .apple
@@ -606,6 +631,16 @@ final class AppSettings {
         compatibleProviderConfigs = []
     }
 
+    func storedGLMOCRBaseURL(for mode: GLMOCRMode) -> String? {
+        let key = mode == .cloud ? Keys.glmOCRCloudBaseURL : Keys.glmOCRLocalBaseURL
+        return UserDefaults.standard.string(forKey: key)
+    }
+
+    func storedGLMOCRModelName(for mode: GLMOCRMode) -> String? {
+        let key = mode == .cloud ? Keys.glmOCRCloudModelName : Keys.glmOCRLocalModelName
+        return UserDefaults.standard.string(forKey: key)
+    }
+
     // MARK: - Notifications
 
     /// Posted when any keyboard shortcut is changed
@@ -615,6 +650,19 @@ final class AppSettings {
 
     private func save(_ value: Any, forKey key: String) {
         UserDefaults.standard.set(value, forKey: key)
+    }
+
+    private func saveGLMOCRVLMValue(_ value: String, cloudKey: String, localKey: String) {
+        guard vlmProvider == .glmOCR else {
+            return
+        }
+
+        switch glmOCRMode {
+        case .cloud:
+            save(value, forKey: cloudKey)
+        case .local:
+            save(value, forKey: localKey)
+        }
     }
 
     private func saveShortcut(_ shortcut: KeyboardShortcut, forKey key: String) {

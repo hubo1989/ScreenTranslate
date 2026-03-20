@@ -637,7 +637,7 @@
 "vlm.provider.paddleocr" = "PaddleOCR";
 "vlm.provider.openai.description" = "API OpenAI GPT-4 Vision";
 "vlm.provider.claude.description" = "API Anthropic Claude Vision";
-"vlm.provider.glmocr.description" = "API di layout parsing Zhipu GLM-OCR";
+"vlm.provider.glmocr.description" = "API di analisi del layout Zhipu GLM-OCR";
 "vlm.provider.ollama.description" = "Server Ollama locale";
 "vlm.provider.paddleocr.description" = "Motore OCR locale (gratuito, offline)";
 

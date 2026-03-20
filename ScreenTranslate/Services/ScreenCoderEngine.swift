@@ -129,12 +129,10 @@ actor ScreenCoderEngine {
     
     /// Creates a provider instance for the given type using current settings.
     private func createProvider(for type: VLMProviderType) async throws -> any VLMProvider {
-        let settings = await MainActor.run { AppSettings.shared }
-        
-        let apiKey = await MainActor.run { settings.vlmAPIKey }
-        let baseURLString = await MainActor.run { settings.vlmBaseURL }
-        let modelName = await MainActor.run { settings.vlmModelName }
-        let glmOCRMode = await MainActor.run { settings.glmOCRMode }
+        let (apiKey, baseURLString, modelName, glmOCRMode) = await MainActor.run {
+            let settings = AppSettings.shared
+            return (settings.vlmAPIKey, settings.vlmBaseURL, settings.vlmModelName, settings.glmOCRMode)
+        }
         
         let effectiveBaseURL = baseURLString.isEmpty ? type.defaultBaseURL(glmOCRMode: glmOCRMode) : baseURLString
         let effectiveModel = modelName.isEmpty ? type.defaultModelName(glmOCRMode: glmOCRMode) : modelName
@@ -171,13 +169,10 @@ actor ScreenCoderEngine {
     
     /// Computes a hash of the current configuration for cache invalidation.
     private func configurationHash() async -> Int {
-        let settings = await MainActor.run { AppSettings.shared }
-        
-        let providerType = await MainActor.run { settings.vlmProvider }
-        let apiKey = await MainActor.run { settings.vlmAPIKey }
-        let baseURL = await MainActor.run { settings.vlmBaseURL }
-        let modelName = await MainActor.run { settings.vlmModelName }
-        let glmOCRMode = await MainActor.run { settings.glmOCRMode }
+        let (providerType, apiKey, baseURL, modelName, glmOCRMode) = await MainActor.run {
+            let settings = AppSettings.shared
+            return (settings.vlmProvider, settings.vlmAPIKey, settings.vlmBaseURL, settings.vlmModelName, settings.glmOCRMode)
+        }
         
         var hasher = Hasher()
         hasher.combine(providerType)

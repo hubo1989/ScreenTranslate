@@ -202,8 +202,7 @@ struct ScreenAnalysisResult: Codable, Sendable, Equatable {
     /// Removes coordinate ticks, isolated symbols, and similar OCR noise before translation.
     func filteredForTranslation() -> ScreenAnalysisResult {
         let filteredSegments = segments.filter { !$0.isLikelyTranslationNoise }
-        let segmentsToUse = filteredSegments.isEmpty ? segments : filteredSegments
-        return ScreenAnalysisResult(segments: segmentsToUse, imageSize: imageSize)
+        return ScreenAnalysisResult(segments: filteredSegments, imageSize: imageSize)
     }
 
     /// Whether every segment appears to be prompt/schema leakage instead of real UI text.

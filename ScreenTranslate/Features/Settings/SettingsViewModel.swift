@@ -339,11 +339,21 @@ final class SettingsViewModel {
             settings.vlmProvider = newValue
 
             if shouldUpdateBaseURL {
-                vlmBaseURL = newValue.defaultBaseURL(glmOCRMode: settings.glmOCRMode)
+                if newValue == .glmOCR {
+                    vlmBaseURL = settings.storedGLMOCRBaseURL(for: settings.glmOCRMode)
+                        ?? newValue.defaultBaseURL(glmOCRMode: settings.glmOCRMode)
+                } else {
+                    vlmBaseURL = newValue.defaultBaseURL(glmOCRMode: settings.glmOCRMode)
+                }
             }
 
             if shouldUpdateModel {
-                vlmModelName = newValue.defaultModelName(glmOCRMode: settings.glmOCRMode)
+                if newValue == .glmOCR {
+                    vlmModelName = settings.storedGLMOCRModelName(for: settings.glmOCRMode)
+                        ?? newValue.defaultModelName(glmOCRMode: settings.glmOCRMode)
+                } else {
+                    vlmModelName = newValue.defaultModelName(glmOCRMode: settings.glmOCRMode)
+                }
             }
         }
     }
@@ -366,23 +376,14 @@ final class SettingsViewModel {
     var glmOCRMode: GLMOCRMode {
         get { settings.glmOCRMode }
         set {
-            let previousMode = settings.glmOCRMode
-            let shouldUpdateBaseURL = vlmBaseURL.isEmpty || vlmBaseURL == previousMode.defaultBaseURL
-            let shouldUpdateModel = vlmModelName.isEmpty || vlmModelName == previousMode.defaultModelName
-
             settings.glmOCRMode = newValue
 
             guard settings.vlmProvider == .glmOCR else {
                 return
             }
 
-            if shouldUpdateBaseURL {
-                vlmBaseURL = newValue.defaultBaseURL
-            }
-
-            if shouldUpdateModel {
-                vlmModelName = newValue.defaultModelName
-            }
+            vlmBaseURL = settings.storedGLMOCRBaseURL(for: newValue) ?? newValue.defaultBaseURL
+            vlmModelName = settings.storedGLMOCRModelName(for: newValue) ?? newValue.defaultModelName
         }
     }
 
@@ -1073,13 +1074,11 @@ final class SettingsViewModel {
         let request: URLRequest
         switch mode {
         case .cloud:
-            request = try GLMOCRVLMProvider.makeLayoutParsingRequest(
-                baseURL: baseURL,
-                apiKey: apiKey,
-                modelName: modelName,
-                fileDataURI: GLMOCRVLMProvider.connectionTestImageDataURI,
-                timeout: 10
-            )
+            var cloudRequest = URLRequest(url: baseURL.appendingPathComponent("models"))
+            cloudRequest.httpMethod = "GET"
+            cloudRequest.timeoutInterval = 10
+            cloudRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request = cloudRequest
         case .local:
             var localRequest = URLRequest(url: baseURL.appendingPathComponent("models"))
             localRequest.httpMethod = "GET"
@@ -1104,11 +1103,18 @@ final class SettingsViewModel {
                 if let modelsResponse = try? decoder.decode(GLMOCRLocalModelsResponse.self, from: data),
                    !modelsResponse.data.contains(where: { $0.id == modelName }) {
                     let availableModels = modelsResponse.data.map(\.id).joined(separator: ", ")
-                    let message = availableModels.isEmpty ? "No models reported by local server." : "Available models: \(availableModels)"
-                    return (true, message)
+                    let message = availableModels.isEmpty
+                        ? "Model '\(modelName)' not found. No models reported by local server."
+                        : "Model '\(modelName)' not found. Available models: \(availableModels)"
+                    return (false, message)
                 }
             }
             return (true, String(format: NSLocalizedString("settings.vlm.test.success", comment: ""), modelName))
+        case 404, 405:
+            if mode == .cloud {
+                return (true, "GLM OCR cloud endpoint is reachable.")
+            }
+            throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
         case 401, 403:
             throw VLMProviderError.authenticationFailed
         case 429:

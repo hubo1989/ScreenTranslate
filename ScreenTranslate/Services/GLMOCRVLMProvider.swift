@@ -14,9 +14,19 @@ struct GLMOCRVLMProvider: VLMProvider, Sendable {
     let configuration: VLMProviderConfiguration
     let mode: GLMOCRMode
 
-    static let defaultBaseURL = URL(string: "https://open.bigmodel.cn/api/paas/v4")!
+    static let defaultBaseURL: URL = {
+        guard let url = URL(string: "https://open.bigmodel.cn/api/paas/v4") else {
+            fatalError("Invalid URL literal for GLMOCRVLMProvider.defaultBaseURL")
+        }
+        return url
+    }()
     static let defaultModel = "glm-ocr"
-    static let defaultLocalBaseURL = URL(string: "http://127.0.0.1:18081")!
+    static let defaultLocalBaseURL: URL = {
+        guard let url = URL(string: "http://127.0.0.1:18081") else {
+            fatalError("Invalid URL literal for GLMOCRVLMProvider.defaultLocalBaseURL")
+        }
+        return url
+    }()
     static let defaultLocalModel = "mlx-community/GLM-OCR-bf16"
 
     static let connectionTestImageDataURI = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6WQAAAAASUVORK5CYII="
@@ -130,7 +140,7 @@ struct GLMOCRVLMProvider: VLMProvider, Sendable {
                     role: "user",
                     content: .vision([
                         .text(VLMPromptTemplate.localModelUserPrompt + "\nReturn only valid JSON."),
-                        .imageURL(GLMOCRLocalImageURL(url: fileDataURI)),
+                        .imageURL(GLMOCRLocalImageURL(url: fileDataURI))
                     ])
                 ),
             ],

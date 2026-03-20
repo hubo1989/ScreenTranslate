@@ -401,8 +401,11 @@ actor TranslationService {
             return true
         }
 
-        guard let provider = try? await resolvedProvider(for: engine) else {
-            logger.error("Failed to resolve provider for \(engine.rawValue)")
+        let provider: any TranslationProvider
+        do {
+            provider = try await resolvedProvider(for: engine)
+        } catch {
+            logger.error("Failed to resolve provider for \(engine.rawValue): \(error.localizedDescription)")
             return false
         }
 
