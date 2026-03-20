@@ -124,11 +124,6 @@ struct GLMOCRVLMProvider: VLMProvider, Sendable {
         request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        let trimmedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedAPIKey.isEmpty {
-            request.setValue("Bearer \(trimmedAPIKey)", forHTTPHeaderField: "Authorization")
-        }
-
         let body = GLMOCRLocalChatRequest(
             model: modelName.isEmpty ? defaultLocalModel : modelName,
             messages: [

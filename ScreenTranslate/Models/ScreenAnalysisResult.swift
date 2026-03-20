@@ -208,7 +208,8 @@ struct ScreenAnalysisResult: Codable, Sendable, Equatable {
 
     /// Whether every segment appears to be prompt/schema leakage instead of real UI text.
     var containsOnlyPromptLeakage: Bool {
-        !segments.isEmpty && segments.allSatisfy(\.isLikelyOCRPromptLeakage)
+        let nonNoiseSegments = segments.filter { !$0.isLikelyTranslationNoise }
+        return !nonNoiseSegments.isEmpty && nonNoiseSegments.allSatisfy(\.isLikelyOCRPromptLeakage)
     }
 }
 

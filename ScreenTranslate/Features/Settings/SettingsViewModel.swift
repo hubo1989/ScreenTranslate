@@ -341,6 +341,8 @@ final class SettingsViewModel {
                 ? (settings.storedGLMOCRModelName(for: settings.glmOCRMode)
                     ?? newValue.defaultModelName(glmOCRMode: settings.glmOCRMode))
                 : newValue.defaultModelName(glmOCRMode: settings.glmOCRMode)
+            vlmTestResult = nil
+            vlmTestSuccess = false
         }
     }
 
@@ -370,6 +372,8 @@ final class SettingsViewModel {
 
             vlmBaseURL = settings.storedGLMOCRBaseURL(for: newValue) ?? newValue.defaultBaseURL
             vlmModelName = settings.storedGLMOCRModelName(for: newValue) ?? newValue.defaultModelName
+            vlmTestResult = nil
+            vlmTestSuccess = false
         }
     }
 
