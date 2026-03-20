@@ -11,6 +11,7 @@ import Foundation
 enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
     case openai = "openai"
     case claude = "claude"
+    case glmOCR = "glm_ocr"
     case ollama = "ollama"
     case paddleocr = "paddleocr"
     
@@ -23,6 +24,8 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
             return NSLocalizedString("vlm.provider.openai", comment: "OpenAI")
         case .claude:
             return NSLocalizedString("vlm.provider.claude", comment: "Claude")
+        case .glmOCR:
+            return NSLocalizedString("vlm.provider.glmocr", comment: "GLM OCR")
         case .ollama:
             return NSLocalizedString("vlm.provider.ollama", comment: "Ollama")
         case .paddleocr:
@@ -32,6 +35,10 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
     
     /// Description of the provider
     var providerDescription: String {
+        providerDescription(glmOCRMode: .cloud)
+    }
+
+    func providerDescription(glmOCRMode: GLMOCRMode) -> String {
         switch self {
         case .openai:
             return NSLocalizedString(
@@ -43,6 +50,8 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
                 "vlm.provider.claude.description",
                 comment: "Anthropic Claude Vision API"
             )
+        case .glmOCR:
+            return glmOCRMode.providerDescription
         case .ollama:
             return NSLocalizedString(
                 "vlm.provider.ollama.description",
@@ -58,11 +67,17 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
     
     /// Default base URL for this provider
     var defaultBaseURL: String {
+        defaultBaseURL(glmOCRMode: .cloud)
+    }
+
+    func defaultBaseURL(glmOCRMode: GLMOCRMode) -> String {
         switch self {
         case .openai:
             return "https://api.openai.com/v1"
         case .claude:
             return "https://api.anthropic.com/v1"
+        case .glmOCR:
+            return glmOCRMode.defaultBaseURL
         case .ollama:
             return "http://localhost:11434"
         case .paddleocr:
@@ -72,11 +87,17 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
     
     /// Default model name for this provider
     var defaultModelName: String {
+        defaultModelName(glmOCRMode: .cloud)
+    }
+
+    func defaultModelName(glmOCRMode: GLMOCRMode) -> String {
         switch self {
         case .openai:
             return "gpt-4o"
         case .claude:
             return "claude-sonnet-4-20250514"
+        case .glmOCR:
+            return glmOCRMode.defaultModelName
         case .ollama:
             return "llava"
         case .paddleocr:
@@ -86,9 +107,15 @@ enum VLMProviderType: String, CaseIterable, Sendable, Codable, Identifiable {
     
     /// Whether this provider requires an API key
     var requiresAPIKey: Bool {
+        requiresAPIKey(glmOCRMode: .cloud)
+    }
+
+    func requiresAPIKey(glmOCRMode: GLMOCRMode) -> Bool {
         switch self {
         case .openai, .claude:
             return true
+        case .glmOCR:
+            return glmOCRMode.requiresAPIKey
         case .ollama, .paddleocr:
             return false
         }

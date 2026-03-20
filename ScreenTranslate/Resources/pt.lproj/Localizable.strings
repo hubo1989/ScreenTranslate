@@ -647,10 +647,12 @@ Conceda permissão em Configurações do Sistema > Privacidade e Segurança > Mo
 
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";
+"vlm.provider.glmocr" = "GLM OCR";
 "vlm.provider.ollama" = "Ollama";
 "vlm.provider.paddleocr" = "PaddleOCR";
 "vlm.provider.openai.description" = "API OpenAI GPT-4 Vision";
 "vlm.provider.claude.description" = "API Anthropic Claude Vision";
+"vlm.provider.glmocr.description" = "API de análise de layout Zhipu GLM-OCR";
 "vlm.provider.ollama.description" = "Servidor Ollama local";
 "vlm.provider.paddleocr.description" = "Motor OCR local (gratuito, offline)";
 
@@ -828,3 +830,8 @@ Conceda permissão em Configurações do Sistema > Privacidade e Segurança > Mo
 "about.acknowledgements.upstream" = "Baseado em";
 "about.acknowledgements.author.format" = "por %@";
 "about.close" = "Fechar";
+"settings.glmocr.mode" = "Modo";
+"settings.glmocr.mode.cloud" = "Nuvem";
+"settings.glmocr.mode.local" = "Local";
+"settings.glmocr.local.apiKey.optional" = "A chave API é opcional para servidores MLX-VLM locais";
+"vlm.provider.glmocr.local.description" = "Servidor MLX-VLM local para GLM-OCR";

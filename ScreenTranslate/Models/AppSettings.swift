@@ -27,6 +27,63 @@ enum PaddleOCRMode: String, Codable, CaseIterable, Sendable {
     }
 }
 
+/// GLM OCR backend mode selection
+enum GLMOCRMode: String, Codable, CaseIterable, Sendable {
+    case cloud
+    case local
+
+    var localizedName: String {
+        switch self {
+        case .cloud:
+            return NSLocalizedString("settings.glmocr.mode.cloud", comment: "Cloud mode")
+        case .local:
+            return NSLocalizedString("settings.glmocr.mode.local", comment: "Local mode")
+        }
+    }
+
+    var providerDescription: String {
+        switch self {
+        case .cloud:
+            return NSLocalizedString(
+                "vlm.provider.glmocr.description",
+                comment: "Zhipu GLM-OCR layout parsing API"
+            )
+        case .local:
+            return NSLocalizedString(
+                "vlm.provider.glmocr.local.description",
+                comment: "Local MLX-VLM server for GLM-OCR"
+            )
+        }
+    }
+
+    var defaultBaseURL: String {
+        switch self {
+        case .cloud:
+            return "https://open.bigmodel.cn/api/paas/v4"
+        case .local:
+            return "http://127.0.0.1:18081"
+        }
+    }
+
+    var defaultModelName: String {
+        switch self {
+        case .cloud:
+            return "glm-ocr"
+        case .local:
+            return "mlx-community/GLM-OCR-bf16"
+        }
+    }
+
+    var requiresAPIKey: Bool {
+        switch self {
+        case .cloud:
+            return true
+        case .local:
+            return false
+        }
+    }
+}
+
 /// User preferences persisted across sessions via UserDefaults.
 /// All properties automatically sync to UserDefaults with the `ScreenTranslate.` prefix.
 @MainActor
@@ -71,6 +128,7 @@ final class AppSettings {
         static let vlmAPIKey = prefix + "vlmAPIKey"
         static let vlmBaseURL = prefix + "vlmBaseURL"
         static let vlmModelName = prefix + "vlmModelName"
+        static let glmOCRMode = prefix + "glmOCRMode"
         // Translation Workflow Configuration
         static let preferredTranslationEngine = prefix + "preferredTranslationEngine"
         static let mtranServerURL = prefix + "mtranServerURL"
@@ -240,6 +298,10 @@ final class AppSettings {
 
     var vlmModelName: String {
         didSet { save(vlmModelName, forKey: Keys.vlmModelName) }
+    }
+
+    var glmOCRMode: GLMOCRMode {
+        didSet { save(glmOCRMode.rawValue, forKey: Keys.glmOCRMode) }
     }
 
     // MARK: - Translation Workflow Configuration
@@ -420,11 +482,15 @@ final class AppSettings {
         mtranServerHost = defaults.string(forKey: Keys.mtranServerHost) ?? "localhost"
         mtranServerPort = defaults.object(forKey: Keys.mtranServerPort) as? Int ?? 8989
 
-        vlmProvider = defaults.string(forKey: Keys.vlmProvider)
+        let resolvedVLMProvider = defaults.string(forKey: Keys.vlmProvider)
             .flatMap { VLMProviderType(rawValue: $0) } ?? .openai
+        let resolvedGLMOCRMode = defaults.string(forKey: Keys.glmOCRMode)
+            .flatMap { GLMOCRMode(rawValue: $0) } ?? .cloud
+        vlmProvider = resolvedVLMProvider
         vlmAPIKey = defaults.string(forKey: Keys.vlmAPIKey) ?? ""
-        vlmBaseURL = defaults.string(forKey: Keys.vlmBaseURL) ?? VLMProviderType.openai.defaultBaseURL
-        vlmModelName = defaults.string(forKey: Keys.vlmModelName) ?? VLMProviderType.openai.defaultModelName
+        glmOCRMode = resolvedGLMOCRMode
+        vlmBaseURL = defaults.string(forKey: Keys.vlmBaseURL) ?? resolvedVLMProvider.defaultBaseURL(glmOCRMode: resolvedGLMOCRMode)
+        vlmModelName = defaults.string(forKey: Keys.vlmModelName) ?? resolvedVLMProvider.defaultModelName(glmOCRMode: resolvedGLMOCRMode)
 
         preferredTranslationEngine = defaults.string(forKey: Keys.preferredTranslationEngine)
             .flatMap { PreferredTranslationEngine(rawValue: $0) } ?? .apple
@@ -503,6 +569,11 @@ final class AppSettings {
         ocrEngine = .vision
         translationEngine = .apple
         translationMode = .below
+        vlmProvider = .openai
+        vlmAPIKey = ""
+        glmOCRMode = .cloud
+        vlmBaseURL = VLMProviderType.openai.defaultBaseURL
+        vlmModelName = VLMProviderType.openai.defaultModelName
         onboardingCompleted = false
         translateAndInsertSourceLanguage = .auto
         translateAndInsertTargetLanguage = nil

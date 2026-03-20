@@ -632,10 +632,12 @@
 
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";
+"vlm.provider.glmocr" = "GLM OCR";
 "vlm.provider.ollama" = "Ollama";
 "vlm.provider.paddleocr" = "PaddleOCR";
 "vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
 "vlm.provider.claude.description" = "Anthropic Claude Vision API";
+"vlm.provider.glmocr.description" = "智谱 GLM-OCR 版面解析 API";
 "vlm.provider.ollama.description" = "本地 Ollama 服务器";
 "vlm.provider.paddleocr.description" = "本地 OCR 引擎（免费、离线可用）";
 
@@ -813,3 +815,8 @@
 "about.acknowledgements.upstream" = "基于";
 "about.acknowledgements.author.format" = "作者：%@";
 "about.close" = "关闭";
+"settings.glmocr.mode" = "模式";
+"settings.glmocr.mode.cloud" = "云端";
+"settings.glmocr.mode.local" = "本地";
+"settings.glmocr.local.apiKey.optional" = "本地 MLX-VLM 服务无需 API 密钥";
+"vlm.provider.glmocr.local.description" = "本地 MLX-VLM GLM-OCR 服务";

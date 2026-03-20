@@ -134,15 +134,16 @@ actor ScreenCoderEngine {
         let apiKey = await MainActor.run { settings.vlmAPIKey }
         let baseURLString = await MainActor.run { settings.vlmBaseURL }
         let modelName = await MainActor.run { settings.vlmModelName }
+        let glmOCRMode = await MainActor.run { settings.glmOCRMode }
         
-        let effectiveBaseURL = baseURLString.isEmpty ? type.defaultBaseURL : baseURLString
-        let effectiveModel = modelName.isEmpty ? type.defaultModelName : modelName
+        let effectiveBaseURL = baseURLString.isEmpty ? type.defaultBaseURL(glmOCRMode: glmOCRMode) : baseURLString
+        let effectiveModel = modelName.isEmpty ? type.defaultModelName(glmOCRMode: glmOCRMode) : modelName
         
         guard let baseURL = URL(string: effectiveBaseURL) else {
             throw ScreenCoderEngineError.invalidConfiguration("Invalid base URL: \(effectiveBaseURL)")
         }
         
-        if type.requiresAPIKey && apiKey.isEmpty {
+        if type.requiresAPIKey(glmOCRMode: glmOCRMode) && apiKey.isEmpty {
             throw ScreenCoderEngineError.invalidConfiguration(
                 "\(type.localizedName) requires an API key. Please configure it in Settings."
             )
@@ -159,6 +160,8 @@ actor ScreenCoderEngine {
             return OpenAIVLMProvider(configuration: configuration)
         case .claude:
             return ClaudeVLMProvider(configuration: configuration)
+        case .glmOCR:
+            return GLMOCRVLMProvider(configuration: configuration, mode: glmOCRMode)
         case .ollama:
             return OllamaVLMProvider(configuration: configuration)
         case .paddleocr:
@@ -174,9 +177,11 @@ actor ScreenCoderEngine {
         let apiKey = await MainActor.run { settings.vlmAPIKey }
         let baseURL = await MainActor.run { settings.vlmBaseURL }
         let modelName = await MainActor.run { settings.vlmModelName }
+        let glmOCRMode = await MainActor.run { settings.glmOCRMode }
         
         var hasher = Hasher()
         hasher.combine(providerType)
+        hasher.combine(glmOCRMode)
         hasher.combine(apiKey)
         hasher.combine(baseURL)
         hasher.combine(modelName)
