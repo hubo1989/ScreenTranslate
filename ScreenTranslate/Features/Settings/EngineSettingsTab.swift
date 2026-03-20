@@ -47,6 +47,21 @@ struct VLMConfigurationSection: View {
             } else {
                 // Standard VLM configuration for API-based providers
                 Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 12) {
+                    if viewModel.vlmProvider == .glmOCR {
+                        GridRow {
+                            Text(localized("settings.glmocr.mode"))
+                                .foregroundStyle(.secondary)
+                                .gridColumnAlignment(.trailing)
+                            Picker("", selection: $viewModel.glmOCRMode) {
+                                ForEach(GLMOCRMode.allCases, id: \.self) { mode in
+                                    Text(mode.localizedName).tag(mode)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .frame(maxWidth: 300)
+                        }
+                    }
+
                     GridRow {
                         Text(localized("settings.vlm.apiKey"))
                             .foregroundStyle(.secondary)
@@ -69,10 +84,12 @@ struct VLMConfigurationSection: View {
                         .frame(maxWidth: 300)
                     }
 
-                    if !viewModel.vlmProvider.requiresAPIKey {
+                    if !viewModel.currentVLMRequiresAPIKey {
                         GridRow {
                             Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-                            Text(localized("settings.vlm.apiKey.optional"))
+                            Text(viewModel.vlmProvider == .glmOCR && viewModel.glmOCRMode == .local
+                                 ? localized("settings.glmocr.local.apiKey.optional")
+                                 : localized("settings.vlm.apiKey.optional"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -97,7 +114,7 @@ struct VLMConfigurationSection: View {
                     }
                 }
 
-                Text(viewModel.vlmProvider.providerDescription)
+                Text(viewModel.currentVLMProviderDescription)
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

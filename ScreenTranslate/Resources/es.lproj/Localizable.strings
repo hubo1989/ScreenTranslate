@@ -632,10 +632,12 @@
 
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";
+"vlm.provider.glmocr" = "GLM OCR";
 "vlm.provider.ollama" = "Ollama";
 "vlm.provider.paddleocr" = "PaddleOCR";
 "vlm.provider.openai.description" = "API de OpenAI GPT-4 Vision";
 "vlm.provider.claude.description" = "API de Anthropic Claude Vision";
+"vlm.provider.glmocr.description" = "API de análisis de diseño Zhipu GLM-OCR";
 "vlm.provider.ollama.description" = "Servidor Ollama local";
 "vlm.provider.paddleocr.description" = "Motor OCR local (gratis, sin conexión)";
 
@@ -813,3 +815,8 @@
 "about.acknowledgements.upstream" = "Basado en";
 "about.acknowledgements.author.format" = "por %@";
 "about.close" = "Cerrar";
+"settings.glmocr.mode" = "Modo";
+"settings.glmocr.mode.cloud" = "Nube";
+"settings.glmocr.mode.local" = "Local";
+"settings.glmocr.local.apiKey.optional" = "La clave API es opcional para servidores MLX-VLM locales";
+"vlm.provider.glmocr.local.description" = "Servidor MLX-VLM local para GLM-OCR";

@@ -632,10 +632,12 @@
 
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";
+"vlm.provider.glmocr" = "GLM OCR";
 "vlm.provider.ollama" = "Ollama";
 "vlm.provider.paddleocr" = "PaddleOCR";
 "vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
 "vlm.provider.claude.description" = "Anthropic Claude Vision API";
+"vlm.provider.glmocr.description" = "Zhipu GLM-OCR 레이아웃 파싱 API";
 "vlm.provider.ollama.description" = "로컬 Ollama 서버";
 "vlm.provider.paddleocr.description" = "로컬 OCR 엔진 (무료, 오프라인)";
 
@@ -813,3 +815,8 @@
 "about.acknowledgements.upstream" = "기반";
 "about.acknowledgements.author.format" = "%@ 작성";
 "about.close" = "닫기";
+"settings.glmocr.mode" = "모드";
+"settings.glmocr.mode.cloud" = "클라우드";
+"settings.glmocr.mode.local" = "로컬";
+"settings.glmocr.local.apiKey.optional" = "로컬 MLX-VLM 서버에서는 API 키가 선택 사항입니다";
+"vlm.provider.glmocr.local.description" = "GLM-OCR용 로컬 MLX-VLM 서버";

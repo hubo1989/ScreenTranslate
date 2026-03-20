@@ -332,12 +332,17 @@ final class SettingsViewModel {
         get { settings.vlmProvider }
         set {
             settings.vlmProvider = newValue
-            if vlmBaseURL.isEmpty || vlmBaseURL == settings.vlmProvider.defaultBaseURL {
-                vlmBaseURL = newValue.defaultBaseURL
-            }
-            if vlmModelName.isEmpty || vlmModelName == settings.vlmProvider.defaultModelName {
-                vlmModelName = newValue.defaultModelName
-            }
+            vlmBaseURL = newValue == .glmOCR
+                ? (settings.storedGLMOCRBaseURL(for: settings.glmOCRMode)
+                    ?? newValue.defaultBaseURL(glmOCRMode: settings.glmOCRMode))
+                : newValue.defaultBaseURL(glmOCRMode: settings.glmOCRMode)
+
+            vlmModelName = newValue == .glmOCR
+                ? (settings.storedGLMOCRModelName(for: settings.glmOCRMode)
+                    ?? newValue.defaultModelName(glmOCRMode: settings.glmOCRMode))
+                : newValue.defaultModelName(glmOCRMode: settings.glmOCRMode)
+            vlmTestResult = nil
+            vlmTestSuccess = false
         }
     }
 
@@ -354,6 +359,30 @@ final class SettingsViewModel {
     var vlmModelName: String {
         get { settings.vlmModelName }
         set { settings.vlmModelName = newValue }
+    }
+
+    var glmOCRMode: GLMOCRMode {
+        get { settings.glmOCRMode }
+        set {
+            settings.glmOCRMode = newValue
+
+            guard settings.vlmProvider == .glmOCR else {
+                return
+            }
+
+            vlmBaseURL = settings.storedGLMOCRBaseURL(for: newValue) ?? newValue.defaultBaseURL
+            vlmModelName = settings.storedGLMOCRModelName(for: newValue) ?? newValue.defaultModelName
+            vlmTestResult = nil
+            vlmTestSuccess = false
+        }
+    }
+
+    var currentVLMRequiresAPIKey: Bool {
+        settings.vlmProvider.requiresAPIKey(glmOCRMode: settings.glmOCRMode)
+    }
+
+    var currentVLMProviderDescription: String {
+        settings.vlmProvider.providerDescription(glmOCRMode: settings.glmOCRMode)
     }
 
     // MARK: - Translation Workflow Configuration
@@ -859,14 +888,14 @@ final class SettingsViewModel {
         Task {
             do {
                 // Validate configuration
-                let effectiveBaseURL = vlmBaseURL.isEmpty ? vlmProvider.defaultBaseURL : vlmBaseURL
-                let effectiveModel = vlmModelName.isEmpty ? vlmProvider.defaultModelName : vlmModelName
+                let effectiveBaseURL = vlmBaseURL.isEmpty ? vlmProvider.defaultBaseURL(glmOCRMode: glmOCRMode) : vlmBaseURL
+                let effectiveModel = vlmModelName.isEmpty ? vlmProvider.defaultModelName(glmOCRMode: glmOCRMode) : vlmModelName
 
                 guard let baseURL = URL(string: effectiveBaseURL) else {
                     throw ScreenCoderEngineError.invalidConfiguration("Invalid base URL: \(effectiveBaseURL)")
                 }
 
-                if vlmProvider.requiresAPIKey && vlmAPIKey.isEmpty {
+                if currentVLMRequiresAPIKey && vlmAPIKey.isEmpty {
                     throw ScreenCoderEngineError.invalidConfiguration("API key is required for \(vlmProvider.localizedName)")
                 }
 
@@ -918,6 +947,8 @@ final class SettingsViewModel {
             return try await testOpenAIConnection(baseURL: baseURL, apiKey: apiKey, modelName: modelName)
         case .claude:
             return try await testClaudeConnection(baseURL: baseURL, apiKey: apiKey, modelName: modelName)
+        case .glmOCR:
+            return try await testGLMOCRConnection(baseURL: baseURL, apiKey: apiKey, modelName: modelName, mode: glmOCRMode)
         case .ollama:
             return try await testOllamaConnection(baseURL: baseURL, modelName: modelName)
         case .paddleocr:
@@ -1018,6 +1049,57 @@ final class SettingsViewModel {
             return (true, String(format: NSLocalizedString("settings.vlm.test.success", comment: ""), modelName))
         case 401:
             throw VLMProviderError.authenticationFailed
+        default:
+            throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
+        }
+    }
+
+    /// Tests GLM-OCR connectivity with a tiny inline PNG payload.
+    private func testGLMOCRConnection(
+        baseURL: URL,
+        apiKey: String,
+        modelName: String,
+        mode: GLMOCRMode
+    ) async throws -> (success: Bool, message: String) {
+        let request: URLRequest
+        switch mode {
+        case .cloud:
+            request = try GLMOCRVLMProvider.makeLayoutParsingRequest(
+                baseURL: baseURL,
+                apiKey: apiKey,
+                modelName: modelName,
+                fileDataURI: GLMOCRVLMProvider.connectionTestImageDataURI,
+                timeout: 10
+            )
+        case .local:
+            request = try GLMOCRVLMProvider.makeLocalChatRequest(
+                baseURL: baseURL,
+                apiKey: apiKey,
+                modelName: modelName,
+                fileDataURI: GLMOCRVLMProvider.connectionTestImageDataURI,
+                timeout: 10
+            )
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw VLMProviderError.invalidResponse("Invalid HTTP response")
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            switch mode {
+            case .cloud:
+                _ = try GLMOCRVLMProvider.parseResponse(data, fallbackImageSize: .zero)
+            case .local:
+                _ = try GLMOCRVLMProvider.parseLocalResponse(data, fallbackImageSize: .zero)
+            }
+            return (true, String(format: NSLocalizedString("settings.vlm.test.success", comment: ""), modelName))
+        case 401, 403:
+            throw VLMProviderError.authenticationFailed
+        case 429:
+            throw VLMProviderError.rateLimited(retryAfter: nil, message: "Rate limited. Please try again later.")
         default:
             throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
         }

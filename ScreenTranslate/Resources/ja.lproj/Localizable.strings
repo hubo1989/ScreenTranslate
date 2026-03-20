@@ -632,10 +632,12 @@
 
 "vlm.provider.openai" = "OpenAI";
 "vlm.provider.claude" = "Claude";
+"vlm.provider.glmocr" = "GLM OCR";
 "vlm.provider.ollama" = "Ollama";
 "vlm.provider.paddleocr" = "PaddleOCR";
 "vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
 "vlm.provider.claude.description" = "Anthropic Claude Vision API";
+"vlm.provider.glmocr.description" = "Zhipu GLM-OCR レイアウト解析 API";
 "vlm.provider.ollama.description" = "ローカル Ollama サーバー";
 "vlm.provider.paddleocr.description" = "ローカル OCR エンジン（無料、オフライン）";
 
@@ -813,3 +815,8 @@
 "about.acknowledgements.upstream" = "ベース";
 "about.acknowledgements.author.format" = "作者: %@";
 "about.close" = "閉じる";
+"settings.glmocr.mode" = "モード";
+"settings.glmocr.mode.cloud" = "クラウド";
+"settings.glmocr.mode.local" = "ローカル";
+"settings.glmocr.local.apiKey.optional" = "ローカル MLX-VLM サーバーでは API キーは不要です";
+"vlm.provider.glmocr.local.description" = "GLM-OCR 用ローカル MLX-VLM サーバー";

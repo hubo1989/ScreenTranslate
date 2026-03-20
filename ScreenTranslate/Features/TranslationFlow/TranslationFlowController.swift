@@ -166,7 +166,10 @@ final class TranslationFlowController {
         let analysisResult: ScreenAnalysisResult
         do {
             try Task.checkCancellation()
-            analysisResult = try await screenCoderEngine.analyze(image: image)
+            let initialAnalysis = try await screenCoderEngine.analyze(image: image)
+            analysisResult = try await Self.recoverAnalysisResultIfNeeded(initialAnalysis) {
+                try await OCRService.shared.recognize(image)
+            }
 
             if analysisResult.segments.isEmpty {
                 throw TranslationFlowError.noTextFound
@@ -297,6 +300,19 @@ final class TranslationFlowController {
         // Get translated text from last result
         let translatedText = lastResult?.segments.map { $0.translated }.joined(separator: "\n")
         BilingualResultWindowController.shared.showResult(image: renderedImage, scaleFactor: scaleFactor, translatedText: translatedText)
+    }
+
+    static func recoverAnalysisResultIfNeeded(
+        _ analysisResult: ScreenAnalysisResult,
+        ocrFallback: @Sendable () async throws -> OCRResult
+    ) async throws -> ScreenAnalysisResult {
+        guard analysisResult.containsOnlyPromptLeakage else {
+            return analysisResult
+        }
+
+        let fallbackResult = try await ocrFallback()
+        let recoveredResult = ScreenAnalysisResult(ocrResult: fallbackResult)
+        return recoveredResult.segments.isEmpty ? analysisResult : recoveredResult
     }
 
     private func saveToHistory(

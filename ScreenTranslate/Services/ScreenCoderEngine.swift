@@ -129,20 +129,19 @@ actor ScreenCoderEngine {
     
     /// Creates a provider instance for the given type using current settings.
     private func createProvider(for type: VLMProviderType) async throws -> any VLMProvider {
-        let settings = await MainActor.run { AppSettings.shared }
+        let (apiKey, baseURLString, modelName, glmOCRMode) = await MainActor.run {
+            let settings = AppSettings.shared
+            return (settings.vlmAPIKey, settings.vlmBaseURL, settings.vlmModelName, settings.glmOCRMode)
+        }
         
-        let apiKey = await MainActor.run { settings.vlmAPIKey }
-        let baseURLString = await MainActor.run { settings.vlmBaseURL }
-        let modelName = await MainActor.run { settings.vlmModelName }
-        
-        let effectiveBaseURL = baseURLString.isEmpty ? type.defaultBaseURL : baseURLString
-        let effectiveModel = modelName.isEmpty ? type.defaultModelName : modelName
+        let effectiveBaseURL = baseURLString.isEmpty ? type.defaultBaseURL(glmOCRMode: glmOCRMode) : baseURLString
+        let effectiveModel = modelName.isEmpty ? type.defaultModelName(glmOCRMode: glmOCRMode) : modelName
         
         guard let baseURL = URL(string: effectiveBaseURL) else {
             throw ScreenCoderEngineError.invalidConfiguration("Invalid base URL: \(effectiveBaseURL)")
         }
         
-        if type.requiresAPIKey && apiKey.isEmpty {
+        if type.requiresAPIKey(glmOCRMode: glmOCRMode) && apiKey.isEmpty {
             throw ScreenCoderEngineError.invalidConfiguration(
                 "\(type.localizedName) requires an API key. Please configure it in Settings."
             )
@@ -159,6 +158,8 @@ actor ScreenCoderEngine {
             return OpenAIVLMProvider(configuration: configuration)
         case .claude:
             return ClaudeVLMProvider(configuration: configuration)
+        case .glmOCR:
+            return GLMOCRVLMProvider(configuration: configuration, mode: glmOCRMode)
         case .ollama:
             return OllamaVLMProvider(configuration: configuration)
         case .paddleocr:
@@ -168,15 +169,14 @@ actor ScreenCoderEngine {
     
     /// Computes a hash of the current configuration for cache invalidation.
     private func configurationHash() async -> Int {
-        let settings = await MainActor.run { AppSettings.shared }
-        
-        let providerType = await MainActor.run { settings.vlmProvider }
-        let apiKey = await MainActor.run { settings.vlmAPIKey }
-        let baseURL = await MainActor.run { settings.vlmBaseURL }
-        let modelName = await MainActor.run { settings.vlmModelName }
+        let (providerType, apiKey, baseURL, modelName, glmOCRMode) = await MainActor.run {
+            let settings = AppSettings.shared
+            return (settings.vlmProvider, settings.vlmAPIKey, settings.vlmBaseURL, settings.vlmModelName, settings.glmOCRMode)
+        }
         
         var hasher = Hasher()
         hasher.combine(providerType)
+        hasher.combine(glmOCRMode)
         hasher.combine(apiKey)
         hasher.combine(baseURL)
         hasher.combine(modelName)

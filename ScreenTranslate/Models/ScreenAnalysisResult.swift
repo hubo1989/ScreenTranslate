@@ -104,6 +104,52 @@ extension TextSegment {
 
         return false
     }
+    /// Heuristic for leaked OCR prompt/schema instructions accidentally returned by VLMs.
+    var isLikelyOCRPromptLeakage: Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+
+        let normalized = trimmed.lowercased()
+        let strongSignals = [
+            "\"segments\"",
+            "\"boundingbox\"",
+            "\"confidence\"",
+            "\"width\"",
+            "\"height\"",
+            "return json",
+            "json format",
+            "top-left corner",
+            "normalized to image size",
+            "boundingbox",
+            "置信度",
+            "左上角",
+            "右上角",
+            "箱形尺寸",
+            "json格式",
+            "返回json",
+        ]
+
+        if strongSignals.contains(where: normalized.contains) {
+            return true
+        }
+
+        let weakSignals = [
+            "x, y",
+            "width, height",
+            "0.0-1.0",
+            "0.0–1.0",
+            "宽度",
+            "高度",
+            "归一化",
+        ]
+        let weakSignalCount = weakSignals.reduce(into: 0) { count, signal in
+            if normalized.contains(signal) {
+                count += 1
+            }
+        }
+
+        return weakSignalCount >= 2
+    }
 }
 
 // MARK: - ScreenAnalysisResult
@@ -154,9 +200,16 @@ struct ScreenAnalysisResult: Codable, Sendable, Equatable {
 
     /// Removes coordinate ticks, isolated symbols, and similar OCR noise before translation.
     func filteredForTranslation() -> ScreenAnalysisResult {
-        let filteredSegments = segments.filter { !$0.isLikelyTranslationNoise }
-        let segmentsToUse = filteredSegments.isEmpty ? segments : filteredSegments
-        return ScreenAnalysisResult(segments: segmentsToUse, imageSize: imageSize)
+        let filteredSegments = segments.filter {
+            !$0.isLikelyTranslationNoise && !$0.isLikelyOCRPromptLeakage
+        }
+        return ScreenAnalysisResult(segments: filteredSegments, imageSize: imageSize)
+    }
+
+    /// Whether every segment appears to be prompt/schema leakage instead of real UI text.
+    var containsOnlyPromptLeakage: Bool {
+        let nonNoiseSegments = segments.filter { !$0.isLikelyTranslationNoise }
+        return !nonNoiseSegments.isEmpty && nonNoiseSegments.allSatisfy(\.isLikelyOCRPromptLeakage)
     }
 }
 
@@ -166,5 +219,18 @@ extension ScreenAnalysisResult {
     /// Creates an empty analysis result for the given image size
     static func empty(imageSize: CGSize) -> ScreenAnalysisResult {
         ScreenAnalysisResult(segments: [], imageSize: imageSize)
+    }
+
+    init(ocrResult: OCRResult) {
+        self.init(
+            segments: ocrResult.observations.map {
+                TextSegment(
+                    text: $0.text,
+                    boundingBox: $0.boundingBox,
+                    confidence: $0.confidence
+                )
+            },
+            imageSize: ocrResult.imageSize
+        )
     }
 }
