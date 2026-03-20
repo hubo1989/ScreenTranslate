@@ -57,7 +57,6 @@ final class TranslationPipelineRegressionTests: XCTestCase {
 
         XCTAssertEqual(recovered.segments.map(\.text), ["ScreenTranslate", "Superset"])
     }
-
     @available(macOS 13.0, *)
     func testTranslationEngineSourceLocaleLanguageUsesNilForAutoDetect() {
         XCTAssertNil(TranslationEngine.sourceLocaleLanguage(for: nil))

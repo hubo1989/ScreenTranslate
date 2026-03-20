@@ -104,7 +104,6 @@ extension TextSegment {
 
         return false
     }
-
     /// Heuristic for leaked OCR prompt/schema instructions accidentally returned by VLMs.
     var isLikelyOCRPromptLeakage: Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
