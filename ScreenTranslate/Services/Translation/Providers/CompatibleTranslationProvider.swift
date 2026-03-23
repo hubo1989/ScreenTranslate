@@ -9,7 +9,7 @@ import Foundation
 import os.log
 
 /// OpenAI-compatible translation provider for custom endpoints
-actor CompatibleTranslationProvider: TranslationProvider {
+actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfigurable, TranslationPromptContextProviding {
     // MARK: - Properties
 
     nonisolated let id: String
@@ -24,6 +24,7 @@ actor CompatibleTranslationProvider: TranslationProvider {
         subsystem: Bundle.main.bundleIdentifier ?? "ScreenTranslate",
         category: "CompatibleTranslationProvider"
     )
+    private var customPromptTemplate: String?
 
     // MARK: - Configuration
 
@@ -75,16 +76,22 @@ actor CompatibleTranslationProvider: TranslationProvider {
     init(config: TranslationEngineConfig, keychain: KeychainService) async throws {
         self.config = config
         self.keychain = keychain
-        self.instanceIndex = 0
 
         // Parse compatible config from customName or create default
+        let resolvedCompatibleConfig: CompatibleConfig
         if let customName = config.customName,
            let jsonData = customName.data(using: .utf8),
            let compatibleConfig = try? JSONDecoder().decode(CompatibleConfig.self, from: jsonData) {
-            self.compatibleConfig = compatibleConfig
+            resolvedCompatibleConfig = compatibleConfig
         } else {
-            self.compatibleConfig = .default
+            resolvedCompatibleConfig = .default
         }
+
+        let resolvedInstanceIndex = await MainActor.run {
+            AppSettings.shared.compatibleProviderConfigs.firstIndex(where: { $0.id == resolvedCompatibleConfig.id }) ?? 0
+        }
+        self.compatibleConfig = resolvedCompatibleConfig
+        self.instanceIndex = resolvedInstanceIndex
 
         self.id = "custom"
         self.name = self.compatibleConfig.displayName
@@ -211,6 +218,14 @@ actor CompatibleTranslationProvider: TranslationProvider {
         }
     }
 
+    func setCustomPromptTemplate(_ template: String?) async {
+        customPromptTemplate = template
+    }
+
+    func compatiblePromptIndex() async -> Int? {
+        instanceIndex
+    }
+
     // MARK: - Private Methods
 
     private func buildPrompt(
@@ -220,6 +235,14 @@ actor CompatibleTranslationProvider: TranslationProvider {
     ) -> String {
         let source = TranslationLanguage.promptDisplayName(for: sourceLanguage)
         let target = TranslationLanguage.promptDisplayName(for: targetLanguage)
+
+        if let template = customPromptTemplate {
+            return template
+                .replacingOccurrences(of: "{source_language}", with: source)
+                .replacingOccurrences(of: "{target_language}", with: target)
+                .replacingOccurrences(of: "{text}", with: text)
+        }
+
         return """
             Translate the following text from \(source) to \(target).
             Provide ONLY the translated text without any explanations or additional text.

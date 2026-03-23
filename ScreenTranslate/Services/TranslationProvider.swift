@@ -55,6 +55,11 @@ protocol TranslationPromptConfigurable: Sendable {
     func setCustomPromptTemplate(_ template: String?) async
 }
 
+/// Providers that can expose prompt-selection context, such as compatible-engine instance indices.
+protocol TranslationPromptContextProviding: Sendable {
+    func compatiblePromptIndex() async -> Int?
+}
+
 // MARK: - Translation Provider Errors
 
 /// Errors that can occur during translation provider operations

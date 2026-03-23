@@ -21,7 +21,8 @@ protocol TranslationServicing: Sendable {
         segments: [String],
         to targetLanguage: String,
         preferredEngine: TranslationEngineType,
-        from sourceLanguage: String?
+        from sourceLanguage: String?,
+        scene: TranslationScene?
     ) async throws -> [BilingualSegment]
 }
 

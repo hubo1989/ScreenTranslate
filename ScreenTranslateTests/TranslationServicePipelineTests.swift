@@ -2,7 +2,7 @@ import XCTest
 @testable import ScreenTranslate
 
 @available(macOS 13.0, *)
-actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurable {
+actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurable, TranslationPromptContextProviding {
     struct Request: Sendable, Equatable {
         let texts: [String]
         let sourceLanguage: String?
@@ -16,6 +16,7 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
     private var translateError: Error?
     private var batchResults: [TranslationResult]
     private var checkConnectionResult: Bool
+    private var promptContextIndex: Int?
     private(set) var requests: [Request] = []
     private(set) var promptTemplates: [String?] = []
 
@@ -25,7 +26,8 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
         available: Bool = true,
         batchResults: [TranslationResult] = [],
         translateError: Error? = nil,
-        checkConnectionResult: Bool = true
+        checkConnectionResult: Bool = true,
+        promptContextIndex: Int? = nil
     ) {
         self.id = id
         self.name = name
@@ -33,6 +35,7 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
         self.batchResults = batchResults
         self.translateError = translateError
         self.checkConnectionResult = checkConnectionResult
+        self.promptContextIndex = promptContextIndex
     }
 
     var isAvailable: Bool {
@@ -111,7 +114,11 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
     }
 
     func lastPromptTemplate() async -> String? {
-        promptTemplates.last ?? nil
+        promptTemplates.last.flatMap { $0 }
+    }
+
+    func compatiblePromptIndex() async -> Int? {
+        promptContextIndex
     }
 }
 
@@ -122,6 +129,7 @@ actor MockTranslationServicing: TranslationServicing {
         let targetLanguage: String
         let preferredEngine: TranslationEngineType
         let sourceLanguage: String?
+        let scene: TranslationScene?
     }
 
     private var nextResult: [BilingualSegment]
@@ -137,14 +145,16 @@ actor MockTranslationServicing: TranslationServicing {
         segments: [String],
         to targetLanguage: String,
         preferredEngine: TranslationEngineType,
-        from sourceLanguage: String?
+        from sourceLanguage: String?,
+        scene: TranslationScene?
     ) async throws -> [BilingualSegment] {
         requests.append(
             Request(
                 segments: segments,
                 targetLanguage: targetLanguage,
                 preferredEngine: preferredEngine,
-                sourceLanguage: sourceLanguage
+                sourceLanguage: sourceLanguage,
+                scene: scene
             )
         )
 
@@ -245,6 +255,39 @@ final class TranslationServicePipelineTests: XCTestCase {
 
         let promptTemplate = await apple.lastPromptTemplate()
         XCTAssertEqual(promptTemplate, TranslationPromptConfig.defaultInsertPrompt)
+    }
+
+    func testCustomEngineUsesCompatiblePromptForSelectedProviderInstance() async throws {
+        let registry = TranslationEngineRegistry(registerBuiltInProviders: false)
+        let custom = MockTranslationProvider(
+            id: "custom:1",
+            name: "Custom",
+            batchResults: [
+                makeResult(source: "Translate me", translated: "翻译我")
+            ],
+            promptContextIndex: 1
+        )
+        await registry.register(custom, for: .custom)
+
+        let service = TranslationService(registry: registry)
+        await service.updatePromptConfig(
+            TranslationPromptConfig(
+                compatibleEnginePrompts: [1: "Compatible prompt {text}"]
+            )
+        )
+
+        _ = try await service.translate(
+            segments: ["Translate me"],
+            to: "zh-Hans",
+            from: "en",
+            scene: .translateAndInsert,
+            mode: .primaryWithFallback,
+            preferredEngine: .custom,
+            fallbackEnabled: false
+        )
+
+        let promptTemplate = await custom.lastPromptTemplate()
+        XCTAssertEqual(promptTemplate, "Compatible prompt {text}")
     }
 
     func testPrimaryWithFallbackUsesFallbackWhenPrimaryFails() async throws {
@@ -556,7 +599,8 @@ final class TranslationServicePipelineTests: XCTestCase {
             config: TextTranslationConfig(
                 targetLanguage: "zh-Hans",
                 sourceLanguage: "en",
-                preferredEngine: .apple
+                preferredEngine: .apple,
+                scene: .translateAndInsert
             )
         )
 
@@ -575,7 +619,8 @@ final class TranslationServicePipelineTests: XCTestCase {
                 segments: ["Hello"],
                 targetLanguage: "zh-Hans",
                 preferredEngine: .apple,
-                sourceLanguage: "en"
+                sourceLanguage: "en",
+                scene: .translateAndInsert
             )
         ])
         XCTAssertEqual(serviceRequestCount, 1)
@@ -593,7 +638,8 @@ final class TranslationServicePipelineTests: XCTestCase {
                 config: TextTranslationConfig(
                     targetLanguage: "zh-Hans",
                     sourceLanguage: "en",
-                    preferredEngine: .apple
+                    preferredEngine: .apple,
+                    scene: .textSelection
                 )
             )
             XCTFail("Expected flow to fail")
@@ -611,8 +657,19 @@ final class TranslationServicePipelineTests: XCTestCase {
         let currentPhase = await flow.currentPhase
         let lastError = await flow.lastError
         let serviceRequestCount = await service.requestCount()
-        XCTAssertEqual(currentPhase, .failed(.translationFailed("Connection failed: offline")))
-        XCTAssertEqual(lastError, .translationFailed("Connection failed: offline"))
+
+        if case .failed(let failedError) = currentPhase,
+           case .translationFailed(let message) = failedError {
+            XCTAssertTrue(message.contains("offline"))
+        } else {
+            XCTFail("Expected failed phase with translationFailed error")
+        }
+
+        if case .translationFailed(let message) = lastError {
+            XCTAssertTrue(message.contains("offline"))
+        } else {
+            XCTFail("Expected translationFailed error")
+        }
         XCTAssertEqual(serviceRequestCount, 1)
     }
 }

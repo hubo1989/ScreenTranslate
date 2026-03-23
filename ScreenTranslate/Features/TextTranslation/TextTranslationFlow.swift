@@ -95,12 +95,15 @@ struct TextTranslationConfig: Sendable {
     let sourceLanguage: String?
     /// Preferred translation engine
     let preferredEngine: TranslationEngineType
+    /// Translation scene for prompt selection and scene bindings
+    let scene: TranslationScene?
 
     /// Default configuration using common settings
     static let `default` = TextTranslationConfig(
         targetLanguage: "zh-Hans",
         sourceLanguage: nil,
-        preferredEngine: .apple
+        preferredEngine: .apple,
+        scene: nil
     )
 }
 
@@ -179,7 +182,8 @@ actor TextTranslationFlow {
                 segments: [trimmedText],
                 to: effectiveTargetLanguage,
                 preferredEngine: effectiveEngine,
-                from: effectiveSourceLanguage
+                from: effectiveSourceLanguage,
+                scene: config.scene
             )
 
             guard let firstSegment = bilingualSegments.first else {
@@ -270,7 +274,8 @@ actor TextTranslationFlow {
         let config = TextTranslationConfig(
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
-            preferredEngine: preferredEngine
+            preferredEngine: preferredEngine,
+            scene: nil
         )
         return try await translate(text, config: config)
     }
@@ -294,7 +299,8 @@ extension TextTranslationConfig {
         return TextTranslationConfig(
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
-            preferredEngine: preferredEngine
+            preferredEngine: preferredEngine,
+            scene: .textSelection
         )
     }
 
@@ -325,7 +331,8 @@ extension TextTranslationConfig {
         return TextTranslationConfig(
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
-            preferredEngine: preferredEngine
+            preferredEngine: preferredEngine,
+            scene: .translateAndInsert
         )
     }
 }

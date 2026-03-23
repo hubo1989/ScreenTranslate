@@ -275,8 +275,9 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 return (content, isTruncated, isTruncated ? "length" : nil)
             }
 
-            let rawJSON = String(data: data, encoding: .utf8) ?? "<unable to decode>"
-            throw VLMProviderError.parsingFailed("Failed to decode OpenAI response: \(error.localizedDescription). Raw: \(rawJSON.prefix(300))")
+            throw VLMProviderError.parsingFailed(
+                "Failed to decode OpenAI response: \(error.localizedDescription). Response length: \(data.count) bytes"
+            )
         }
 
         guard let choices = openAIResponse.choices, !choices.isEmpty else {
@@ -505,7 +506,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
                 throw VLMProviderError.invalidResponse("Response was truncated due to token limit. Try selecting a smaller area or using a model with larger context window.")
             }
             throw VLMProviderError.parsingFailed(
-                "Failed to parse VLM response JSON: \(error.localizedDescription). Content: \(cleanedContent.prefix(200))..."
+                "Failed to parse VLM response JSON: \(error.localizedDescription). Content length: \(cleanedContent.count) chars"
             )
         }
     }

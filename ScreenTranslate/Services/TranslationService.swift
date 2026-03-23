@@ -336,11 +336,12 @@ actor TranslationService {
         guard let promptConfigurableProvider = provider as? TranslationPromptConfigurable else { return }
 
         let sceneToUse = scene ?? .screenshot
+        let compatibleIndex = await (provider as? TranslationPromptContextProviding)?.compatiblePromptIndex()
 
         let customPrompt = promptConfig.promptPreview(
             for: engine,
             scene: sceneToUse,
-            compatibleIndex: nil
+            compatibleIndex: compatibleIndex
         )
 
         if customPrompt != TranslationPromptConfig.defaultPrompt {
@@ -375,7 +376,8 @@ actor TranslationService {
         segments: [String],
         to targetLanguage: String,
         preferredEngine: TranslationEngineType = .apple,
-        from sourceLanguage: String? = nil
+        from sourceLanguage: String? = nil,
+        scene: TranslationScene? = nil
     ) async throws -> [BilingualSegment] {
         guard !segments.isEmpty else { return [] }
 
@@ -383,6 +385,7 @@ actor TranslationService {
             segments: segments,
             to: targetLanguage,
             from: sourceLanguage,
+            scene: scene,
             mode: .primaryWithFallback,
             preferredEngine: preferredEngine
         )
