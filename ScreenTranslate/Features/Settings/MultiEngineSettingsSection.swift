@@ -495,21 +495,11 @@ struct MultiEngineSettingsSection: View {
     private func deleteCompatibleEngine(at index: Int) {
         Task {
             do {
-                let compositeId = "custom:\(index)"
-                try await KeychainService.shared.deleteCredentials(forCompatibleId: compositeId)
-
-                // Shift credentials for remaining engines
-                for i in (index + 1)..<viewModel.settings.compatibleProviderConfigs.count {
-                    let oldId = "custom:\(i)"
-                    let newId = "custom:\(i - 1)"
-                    if let creds = try? await KeychainService.shared.getCredentials(forCompatibleId: oldId) {
-                        try await KeychainService.shared.saveCredentials(apiKey: creds.apiKey, forCompatibleId: newId)
-                        try await KeychainService.shared.deleteCredentials(forCompatibleId: oldId)
-                    }
-                }
+                let config = viewModel.settings.compatibleProviderConfigs[index]
+                try await KeychainService.shared.deleteCredentials(forCompatibleId: config.keychainId)
 
                 // Clear cached provider for this engine
-                await TranslationEngineRegistry.shared.removeCompatibleProvider(for: compositeId)
+                await TranslationEngineRegistry.shared.removeCompatibleProvider(for: config.keychainId)
 
                 await MainActor.run {
                     viewModel.settings.compatibleProviderConfigs.remove(at: index)
@@ -531,10 +521,8 @@ struct MultiEngineSettingsSection: View {
     private func setCompatibleAsEngineAtIndex(config: CompatibleTranslationProvider.CompatibleConfig, index: Int) {
         Task {
             do {
-                let configIndex = viewModel.settings.compatibleProviderConfigs.firstIndex(where: { $0.id == config.id }) ?? 0
                 let provider = try await TranslationEngineRegistry.shared.createCompatibleProvider(
-                    compatibleConfig: config,
-                    index: configIndex
+                    compatibleConfig: config
                 )
 
                 let isAvailable = await provider.isAvailable
@@ -562,10 +550,8 @@ struct MultiEngineSettingsSection: View {
     private func appendCompatibleAsEngine(config: CompatibleTranslationProvider.CompatibleConfig) {
         Task {
             do {
-                let configIndex = viewModel.settings.compatibleProviderConfigs.firstIndex(where: { $0.id == config.id }) ?? 0
                 let provider = try await TranslationEngineRegistry.shared.createCompatibleProvider(
-                    compatibleConfig: config,
-                    index: configIndex
+                    compatibleConfig: config
                 )
 
                 let isAvailable = await provider.isAvailable
@@ -594,10 +580,8 @@ struct MultiEngineSettingsSection: View {
         Task {
             do {
                 // Create provider to verify configuration
-                let index = viewModel.settings.compatibleProviderConfigs.firstIndex(where: { $0.id == config.id }) ?? 0
                 let provider = try await TranslationEngineRegistry.shared.createCompatibleProvider(
-                    compatibleConfig: config,
-                    index: index
+                    compatibleConfig: config
                 )
 
                 // Verify availability

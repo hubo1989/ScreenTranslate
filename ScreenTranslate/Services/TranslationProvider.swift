@@ -50,14 +50,19 @@ protocol TranslationProvider: Sendable {
     func checkConnection() async -> Bool
 }
 
-/// Providers that can accept a custom prompt template from the translation service.
+/// Providers that can execute a translation request with a request-scoped prompt template.
 protocol TranslationPromptConfigurable: Sendable {
-    func setCustomPromptTemplate(_ template: String?) async
+    func translate(
+        texts: [String],
+        from sourceLanguage: String?,
+        to targetLanguage: String,
+        promptTemplate: String?
+    ) async throws -> [TranslationResult]
 }
 
-/// Providers that can expose prompt-selection context, such as compatible-engine instance indices.
+/// Providers that can expose prompt-selection context, such as compatible-engine identifiers.
 protocol TranslationPromptContextProviding: Sendable {
-    func compatiblePromptIndex() async -> Int?
+    func compatiblePromptIdentifier() async -> String?
 }
 
 // MARK: - Translation Provider Errors

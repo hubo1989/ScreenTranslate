@@ -99,7 +99,7 @@ struct PromptSettingsView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
 
-                ForEach(Array(viewModel.settings.compatibleProviderConfigs.enumerated()), id: \.element.id) { index, config in
+                ForEach(viewModel.settings.compatibleProviderConfigs) { config in
                     HStack {
                         Image(systemName: "gearshape.2")
                             .frame(width: 24)
@@ -109,14 +109,14 @@ struct PromptSettingsView: View {
                         Spacer()
 
                         // Show if custom prompt is set
-                        if let prompt = viewModel.settings.promptConfig.compatibleEnginePrompts[index], !prompt.isEmpty {
+                        if let prompt = viewModel.settings.promptConfig.compatibleEnginePrompts[config.id.uuidString], !prompt.isEmpty {
                             Image(systemName: "pencil.circle.fill")
                                 .foregroundStyle(.tint)
                         }
 
                         Button(localized("prompt.button.edit")) {
-                            editingTarget = .compatibleEngine(index)
-                            editingPrompt = viewModel.settings.promptConfig.compatibleEnginePrompts[index] ?? ""
+                            editingTarget = .compatibleEngine(config.id.uuidString, config.displayName)
+                            editingPrompt = viewModel.settings.promptConfig.compatibleEnginePrompts[config.id.uuidString] ?? ""
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
@@ -212,11 +212,11 @@ struct PromptSettingsView: View {
             } else {
                 config.enginePrompts[engine] = prompt
             }
-        case .compatibleEngine(let index):
+        case .compatibleEngine(let promptID, _):
             if prompt.isEmpty {
-                config.compatibleEnginePrompts.removeValue(forKey: index)
+                config.compatibleEnginePrompts.removeValue(forKey: promptID)
             } else {
-                config.compatibleEnginePrompts[index] = prompt
+                config.compatibleEnginePrompts[promptID] = prompt
             }
         case .scene(let scene):
             if prompt.isEmpty {
@@ -251,15 +251,15 @@ struct PromptSettingsView: View {
 
 enum PromptEditTarget: Identifiable {
     case engine(TranslationEngineType)
-    case compatibleEngine(Int)
+    case compatibleEngine(String, String)
     case scene(TranslationScene)
 
     var id: String {
         switch self {
         case .engine(let engine):
             return "engine-\(engine.rawValue)"
-        case .compatibleEngine(let index):
-            return "compatible-\(index)"
+        case .compatibleEngine(let promptID, _):
+            return "compatible-\(promptID)"
         case .scene(let scene):
             return "scene-\(scene.rawValue)"
         }
@@ -269,8 +269,8 @@ enum PromptEditTarget: Identifiable {
         switch self {
         case .engine(let engine):
             return engine.localizedName
-        case .compatibleEngine(let index):
-            return "Compatible Engine \(index + 1)"
+        case .compatibleEngine(_, let displayName):
+            return displayName
         case .scene(let scene):
             return scene.localizedName
         }

@@ -291,15 +291,11 @@ extension TextTranslationConfig {
         let settings = AppSettings.shared
         let targetLanguage = settings.translationTargetLanguage?.rawValue ?? "zh-Hans"
         let sourceLanguage: String? = settings.translationSourceLanguage == .auto ? nil : settings.translationSourceLanguage.rawValue
-        let preferredEngine: TranslationEngineType = switch settings.preferredTranslationEngine {
-        case .apple: .apple
-        case .mtranServer: .mtranServer
-        }
 
         return TextTranslationConfig(
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
-            preferredEngine: preferredEngine,
+            preferredEngine: resolvePreferredEngine(from: settings, scene: .textSelection),
             scene: .textSelection
         )
     }
@@ -312,10 +308,7 @@ extension TextTranslationConfig {
         let settings = AppSettings.shared
         let targetLanguage = settings.translateAndInsertTargetLanguage?.rawValue ?? "zh-Hans"
         let sourceLanguage: String? = settings.translateAndInsertSourceLanguage == .auto ? nil : settings.translateAndInsertSourceLanguage.rawValue
-        let preferredEngine: TranslationEngineType = switch settings.preferredTranslationEngine {
-        case .apple: .apple
-        case .mtranServer: .mtranServer
-        }
+        let preferredEngine = resolvePreferredEngine(from: settings, scene: .translateAndInsert)
 
         #if DEBUG
         Logger.translation.debug(
@@ -334,5 +327,24 @@ extension TextTranslationConfig {
             preferredEngine: preferredEngine,
             scene: .translateAndInsert
         )
+    }
+
+    @MainActor
+    private static func resolvePreferredEngine(
+        from settings: AppSettings,
+        scene: TranslationScene
+    ) -> TranslationEngineType {
+        switch settings.engineSelectionMode {
+        case .sceneBinding:
+            return settings.sceneBindings[scene]?.primaryEngine ?? SceneEngineBinding.default(for: scene).primaryEngine
+        case .parallel, .quickSwitch, .primaryWithFallback:
+            if let firstConfiguredEngine = settings.parallelEngines.first {
+                return firstConfiguredEngine
+            }
+            return switch settings.preferredTranslationEngine {
+            case .apple: .apple
+            case .mtranServer: .mtranServer
+            }
+        }
     }
 }

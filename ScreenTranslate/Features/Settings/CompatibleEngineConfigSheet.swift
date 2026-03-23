@@ -239,7 +239,6 @@ struct CompatibleEngineConfigSheet: View {
             let provider = try await CompatibleTranslationProvider(
                 config: engineConfig,
                 compatibleConfig: tempConfig,
-                instanceIndex: index,
                 keychain: KeychainService.shared
             )
 

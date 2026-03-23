@@ -533,10 +533,11 @@ final class AppSettings {
             .flatMap { EngineSelectionMode(rawValue: $0) } ?? .primaryWithFallback
 
         engineConfigs = Self.loadEngineConfigs()
-        promptConfig = Self.loadPromptConfig()
+        let loadedCompatibleProviderConfigs = Self.loadCompatibleConfigs()
+        compatibleProviderConfigs = loadedCompatibleProviderConfigs
+        promptConfig = Self.loadPromptConfig(compatibleConfigs: loadedCompatibleProviderConfigs)
         sceneBindings = Self.loadSceneBindings()
         parallelEngines = Self.loadParallelEngines()
-        compatibleProviderConfigs = Self.loadCompatibleConfigs()
 
         // Load PaddleOCR configuration
         paddleOCRMode = defaults.string(forKey: Keys.paddleOCRMode)
@@ -760,12 +761,40 @@ final class AppSettings {
         }
     }
 
-    private static func loadPromptConfig() -> TranslationPromptConfig {
-        guard let data = UserDefaults.standard.data(forKey: Keys.promptConfig),
-              let config = try? JSONDecoder().decode(TranslationPromptConfig.self, from: data) else {
+    private static func loadPromptConfig(
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig]
+    ) -> TranslationPromptConfig {
+        guard let data = UserDefaults.standard.data(forKey: Keys.promptConfig) else {
             return TranslationPromptConfig()
         }
-        return config
+
+        if let config = try? JSONDecoder().decode(TranslationPromptConfig.self, from: data) {
+            return config
+        }
+
+        struct LegacyTranslationPromptConfig: Decodable {
+            var enginePrompts: [TranslationEngineType: String]
+            var compatibleEnginePrompts: [Int: String]
+            var scenePrompts: [TranslationScene: String]
+        }
+
+        guard let legacyConfig = try? JSONDecoder().decode(LegacyTranslationPromptConfig.self, from: data) else {
+            return TranslationPromptConfig()
+        }
+
+        let migratedCompatiblePrompts = legacyConfig.compatibleEnginePrompts.reduce(into: [String: String]()) {
+            result,
+            entry in
+            let (index, prompt) = entry
+            guard compatibleConfigs.indices.contains(index) else { return }
+            result[compatibleConfigs[index].id.uuidString] = prompt
+        }
+
+        return TranslationPromptConfig(
+            enginePrompts: legacyConfig.enginePrompts,
+            compatibleEnginePrompts: migratedCompatiblePrompts,
+            scenePrompts: legacyConfig.scenePrompts
+        )
     }
 
     private func saveSceneBindings() {
@@ -777,7 +806,7 @@ final class AppSettings {
 
     private static func loadSceneBindings() -> [TranslationScene: SceneEngineBinding] {
         // Start with defaults
-        var result = SceneEngineBinding.allDefaults
+        let result = SceneEngineBinding.allDefaults
 
         // Load saved bindings and merge
         guard let data = UserDefaults.standard.data(forKey: Keys.sceneBindings),

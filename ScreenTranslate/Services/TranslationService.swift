@@ -188,18 +188,13 @@ actor TranslationService {
                         let start = Date()
                         let provider = try await self.resolvedProvider(for: engine)
 
-                        await self.applyPromptConfig(
-                            to: provider,
+                        let providerResults = try await self.translateWithResolvedPrompt(
+                            provider: provider,
                             engine: engine,
-                            scene: scene,
-                            sourceLanguage: sourceLanguage,
-                            targetLanguage: targetLanguage
-                        )
-
-                        let providerResults = try await provider.translate(
                             texts: segments,
                             from: sourceLanguage,
-                            to: targetLanguage
+                            to: targetLanguage,
+                            scene: scene
                         )
                         let bilingualSegments = providerResults.map { BilingualSegment(from: $0) }
                         return EngineResult(
@@ -288,19 +283,13 @@ actor TranslationService {
             throw TranslationProviderError.notAvailable
         }
 
-        // Apply custom prompt configuration if available
-        await applyPromptConfig(
-            to: provider,
+        let results = try await translateWithResolvedPrompt(
+            provider: provider,
             engine: engine,
-            scene: scene,
-            sourceLanguage: sourceLanguage,
-            targetLanguage: targetLanguage
-        )
-
-        let results = try await provider.translate(
             texts: segments,
             from: sourceLanguage,
-            to: targetLanguage
+            to: targetLanguage,
+            scene: scene
         )
 
         let bilingualSegments = results.map { BilingualSegment(from: $0) }
@@ -325,30 +314,55 @@ actor TranslationService {
         return promptConfig
     }
 
-    /// Apply prompt configuration to a provider if supported
-    private func applyPromptConfig(
-        to provider: any TranslationProvider,
+    private func translateWithResolvedPrompt(
+        provider: any TranslationProvider,
         engine: TranslationEngineType,
-        scene: TranslationScene?,
-        sourceLanguage: String?,
-        targetLanguage: String
-    ) async {
-        guard let promptConfigurableProvider = provider as? TranslationPromptConfigurable else { return }
+        texts: [String],
+        from sourceLanguage: String?,
+        to targetLanguage: String,
+        scene: TranslationScene?
+    ) async throws -> [TranslationResult] {
+        guard let promptConfigurableProvider = provider as? TranslationPromptConfigurable else {
+            return try await provider.translate(
+                texts: texts,
+                from: sourceLanguage,
+                to: targetLanguage
+            )
+        }
 
-        let sceneToUse = scene ?? .screenshot
-        let compatibleIndex = await (provider as? TranslationPromptContextProviding)?.compatiblePromptIndex()
-
-        let customPrompt = promptConfig.promptPreview(
-            for: engine,
-            scene: sceneToUse,
-            compatibleIndex: compatibleIndex
+        let promptTemplate = await resolvedPromptTemplate(
+            for: provider,
+            engine: engine,
+            scene: scene
         )
 
-        if customPrompt != TranslationPromptConfig.defaultPrompt {
-            await promptConfigurableProvider.setCustomPromptTemplate(customPrompt)
-        } else {
-            await promptConfigurableProvider.setCustomPromptTemplate(nil)
+        return try await promptConfigurableProvider.translate(
+            texts: texts,
+            from: sourceLanguage,
+            to: targetLanguage,
+            promptTemplate: promptTemplate
+        )
+    }
+
+    private func resolvedPromptTemplate(
+        for provider: any TranslationProvider,
+        engine: TranslationEngineType,
+        scene: TranslationScene?
+    ) async -> String? {
+        let sceneToUse = scene ?? .screenshot
+        let compatiblePromptID = await (provider as? TranslationPromptContextProviding)?.compatiblePromptIdentifier()
+
+        let resolvedPrompt = promptConfig.promptPreview(
+            for: engine,
+            scene: sceneToUse,
+            compatiblePromptID: compatiblePromptID
+        )
+
+        if resolvedPrompt == TranslationPromptConfig.defaultPrompt {
+            return nil
         }
+
+        return resolvedPrompt
     }
 
     private func resolvedProvider(for engine: TranslationEngineType) async throws -> any TranslationProvider {

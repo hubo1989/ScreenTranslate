@@ -178,12 +178,10 @@ extension TranslationEngineRegistry {
     /// Create and cache a compatible engine provider for a specific instance
     /// - Parameters:
     ///   - compatibleConfig: The compatible engine configuration
-    ///   - index: The instance index
     ///   - forceRefresh: Force recreation even if cached
     /// - Returns: The created provider
     func createCompatibleProvider(
         compatibleConfig: CompatibleTranslationProvider.CompatibleConfig,
-        index: Int,
         forceRefresh: Bool = false
     ) async throws -> CompatibleTranslationProvider {
         let compositeId = compatibleConfig.keychainId
@@ -199,7 +197,6 @@ extension TranslationEngineRegistry {
         let provider = try await CompatibleTranslationProvider(
             config: engineConfig,
             compatibleConfig: compatibleConfig,
-            instanceIndex: index,
             keychain: keychain
         )
 

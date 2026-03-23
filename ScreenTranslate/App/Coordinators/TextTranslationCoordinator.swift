@@ -117,7 +117,7 @@ final class TextTranslationCoordinator {
 
             // Step 3: Translate the captured text
             if #available(macOS 13.0, *) {
-                let config = await TextTranslationConfig.fromAppSettings()
+                let config = TextTranslationConfig.fromAppSettings()
                 let translationResult = try await TextTranslationFlow.shared.translate(
                     selectionResult.text,
                     config: config
@@ -203,7 +203,7 @@ final class TextTranslationCoordinator {
 
         do {
             if #available(macOS 13.0, *) {
-                let config = await TextTranslationConfig.forTranslateAndInsert()
+                let config = TextTranslationConfig.forTranslateAndInsert()
                 let translationResult = try await TextTranslationFlow.shared.translate(selectedText, config: config)
                 translatedText = translationResult.translatedText
 

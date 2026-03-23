@@ -5,7 +5,7 @@ final class TranslationConfigurationTests: XCTestCase {
     func testScenePromptTakesPriorityOverEngineAndCompatiblePrompts() {
         let config = TranslationPromptConfig(
             enginePrompts: [.openai: "Engine prompt {text}"],
-            compatibleEnginePrompts: [0: "Compatible prompt {text}"],
+            compatibleEnginePrompts: ["compatible-0": "Compatible prompt {text}"],
             scenePrompts: [.screenshot: "Scene prompt {source_language} -> {target_language}: {text}"]
         )
 
@@ -15,7 +15,7 @@ final class TranslationConfigurationTests: XCTestCase {
             sourceLanguage: "English",
             targetLanguage: "Chinese",
             text: "Hello",
-            compatibleIndex: 0
+            compatiblePromptID: "compatible-0"
         )
 
         XCTAssertEqual(resolved, "Scene prompt English -> Chinese: Hello")
@@ -23,7 +23,7 @@ final class TranslationConfigurationTests: XCTestCase {
 
     func testCompatiblePromptIsUsedForCustomEngineInstances() {
         let config = TranslationPromptConfig(
-            compatibleEnginePrompts: [2: "Compatible prompt {text}"]
+            compatibleEnginePrompts: ["compatible-2": "Compatible prompt {text}"]
         )
 
         let resolved = config.resolvedPrompt(
@@ -32,7 +32,7 @@ final class TranslationConfigurationTests: XCTestCase {
             sourceLanguage: "English",
             targetLanguage: "Japanese",
             text: "Hello",
-            compatibleIndex: 2
+            compatiblePromptID: "compatible-2"
         )
 
         XCTAssertEqual(resolved, "Compatible prompt Hello")
@@ -50,7 +50,7 @@ final class TranslationConfigurationTests: XCTestCase {
     func testResetRemovesAllCustomPrompts() {
         var config = TranslationPromptConfig(
             enginePrompts: [.openai: "Engine"],
-            compatibleEnginePrompts: [1: "Compatible"],
+            compatibleEnginePrompts: ["compatible-1": "Compatible"],
             scenePrompts: [.textSelection: "Scene"]
         )
 

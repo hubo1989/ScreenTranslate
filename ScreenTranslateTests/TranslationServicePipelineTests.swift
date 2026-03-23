@@ -16,7 +16,7 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
     private var translateError: Error?
     private var batchResults: [TranslationResult]
     private var checkConnectionResult: Bool
-    private var promptContextIndex: Int?
+    private var promptContextID: String?
     private(set) var requests: [Request] = []
     private(set) var promptTemplates: [String?] = []
 
@@ -27,7 +27,7 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
         batchResults: [TranslationResult] = [],
         translateError: Error? = nil,
         checkConnectionResult: Bool = true,
-        promptContextIndex: Int? = nil
+        promptContextID: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -35,7 +35,7 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
         self.batchResults = batchResults
         self.translateError = translateError
         self.checkConnectionResult = checkConnectionResult
-        self.promptContextIndex = promptContextIndex
+        self.promptContextID = promptContextID
     }
 
     var isAvailable: Bool {
@@ -68,9 +68,24 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
         from sourceLanguage: String?,
         to targetLanguage: String
     ) async throws -> [TranslationResult] {
+        try await translate(
+            texts: texts,
+            from: sourceLanguage,
+            to: targetLanguage,
+            promptTemplate: nil
+        )
+    }
+
+    func translate(
+        texts: [String],
+        from sourceLanguage: String?,
+        to targetLanguage: String,
+        promptTemplate: String?
+    ) async throws -> [TranslationResult] {
         requests.append(
             Request(texts: texts, sourceLanguage: sourceLanguage, targetLanguage: targetLanguage)
         )
+        promptTemplates.append(promptTemplate)
 
         if let translateError {
             throw translateError
@@ -105,10 +120,6 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
         checkConnectionResult
     }
 
-    func setCustomPromptTemplate(_ template: String?) async {
-        promptTemplates.append(template)
-    }
-
     func requestCount() async -> Int {
         requests.count
     }
@@ -117,8 +128,8 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
         promptTemplates.last.flatMap { $0 }
     }
 
-    func compatiblePromptIndex() async -> Int? {
-        promptContextIndex
+    func compatiblePromptIdentifier() async -> String? {
+        promptContextID
     }
 }
 
@@ -265,14 +276,14 @@ final class TranslationServicePipelineTests: XCTestCase {
             batchResults: [
                 makeResult(source: "Translate me", translated: "翻译我")
             ],
-            promptContextIndex: 1
+            promptContextID: "compatible-provider-1"
         )
         await registry.register(custom, for: .custom)
 
         let service = TranslationService(registry: registry)
         await service.updatePromptConfig(
             TranslationPromptConfig(
-                compatibleEnginePrompts: [1: "Compatible prompt {text}"]
+                compatibleEnginePrompts: ["compatible-provider-1": "Compatible prompt {text}"]
             )
         )
 
