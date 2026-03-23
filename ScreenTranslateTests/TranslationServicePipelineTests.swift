@@ -53,12 +53,8 @@ actor MockTranslationProvider: TranslationProvider, TranslationPromptConfigurabl
             to: targetLanguage
         )
         guard let result = results.first else {
-            return TranslationResult(
-                sourceText: text,
-                translatedText: text,
-                sourceLanguage: sourceLanguage ?? "Auto",
-                targetLanguage: targetLanguage
-            )
+            XCTFail("MockTranslationProvider returned no results for a single-text request")
+            throw TranslationProviderError.translationFailed("MockTranslationProvider returned no results")
         }
         return result
     }
@@ -141,6 +137,10 @@ actor MockTranslationServicing: TranslationServicing {
         let preferredEngine: TranslationEngineType
         let sourceLanguage: String?
         let scene: TranslationScene?
+        let mode: EngineSelectionMode
+        let fallbackEnabled: Bool
+        let parallelEngines: [TranslationEngineType]
+        let sceneBindings: [TranslationScene: SceneEngineBinding]
     }
 
     private var nextResult: [BilingualSegment]
@@ -157,7 +157,11 @@ actor MockTranslationServicing: TranslationServicing {
         to targetLanguage: String,
         preferredEngine: TranslationEngineType,
         from sourceLanguage: String?,
-        scene: TranslationScene?
+        scene: TranslationScene?,
+        mode: EngineSelectionMode,
+        fallbackEnabled: Bool,
+        parallelEngines: [TranslationEngineType],
+        sceneBindings: [TranslationScene: SceneEngineBinding]
     ) async throws -> [BilingualSegment] {
         requests.append(
             Request(
@@ -165,7 +169,11 @@ actor MockTranslationServicing: TranslationServicing {
                 targetLanguage: targetLanguage,
                 preferredEngine: preferredEngine,
                 sourceLanguage: sourceLanguage,
-                scene: scene
+                scene: scene,
+                mode: mode,
+                fallbackEnabled: fallbackEnabled,
+                parallelEngines: parallelEngines,
+                sceneBindings: sceneBindings
             )
         )
 
@@ -611,7 +619,16 @@ final class TranslationServicePipelineTests: XCTestCase {
                 targetLanguage: "zh-Hans",
                 sourceLanguage: "en",
                 preferredEngine: .apple,
-                scene: .translateAndInsert
+                scene: .translateAndInsert,
+                mode: .parallel,
+                fallbackEnabled: false,
+                parallelEngines: [.apple, .mtranServer],
+                sceneBindings: [.translateAndInsert: SceneEngineBinding(
+                    scene: .translateAndInsert,
+                    primaryEngine: .custom,
+                    fallbackEngine: .ollama,
+                    fallbackEnabled: true
+                )]
             )
         )
 
@@ -631,7 +648,16 @@ final class TranslationServicePipelineTests: XCTestCase {
                 targetLanguage: "zh-Hans",
                 preferredEngine: .apple,
                 sourceLanguage: "en",
-                scene: .translateAndInsert
+                scene: .translateAndInsert,
+                mode: .parallel,
+                fallbackEnabled: false,
+                parallelEngines: [.apple, .mtranServer],
+                sceneBindings: [.translateAndInsert: SceneEngineBinding(
+                    scene: .translateAndInsert,
+                    primaryEngine: .custom,
+                    fallbackEngine: .ollama,
+                    fallbackEnabled: true
+                )]
             )
         ])
         XCTAssertEqual(serviceRequestCount, 1)
@@ -650,7 +676,11 @@ final class TranslationServicePipelineTests: XCTestCase {
                     targetLanguage: "zh-Hans",
                     sourceLanguage: "en",
                     preferredEngine: .apple,
-                    scene: .textSelection
+                    scene: .textSelection,
+                    mode: .primaryWithFallback,
+                    fallbackEnabled: true,
+                    parallelEngines: [],
+                    sceneBindings: [:]
                 )
             )
             XCTFail("Expected flow to fail")
@@ -676,7 +706,7 @@ final class TranslationServicePipelineTests: XCTestCase {
             XCTFail("Expected failed phase with translationFailed error")
         }
 
-        if case .translationFailed(let message) = lastError {
+        if case .translationFailed(let message)? = lastError {
             XCTAssertTrue(message.contains("offline"))
         } else {
             XCTFail("Expected translationFailed error")

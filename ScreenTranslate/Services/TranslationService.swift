@@ -391,7 +391,11 @@ actor TranslationService {
         to targetLanguage: String,
         preferredEngine: TranslationEngineType = .apple,
         from sourceLanguage: String? = nil,
-        scene: TranslationScene? = nil
+        scene: TranslationScene? = nil,
+        mode: EngineSelectionMode = .primaryWithFallback,
+        fallbackEnabled: Bool = true,
+        parallelEngines: [TranslationEngineType] = [],
+        sceneBindings: [TranslationScene: SceneEngineBinding] = [:]
     ) async throws -> [BilingualSegment] {
         guard !segments.isEmpty else { return [] }
 
@@ -400,8 +404,11 @@ actor TranslationService {
             to: targetLanguage,
             from: sourceLanguage,
             scene: scene,
-            mode: .primaryWithFallback,
-            preferredEngine: preferredEngine
+            mode: mode,
+            preferredEngine: preferredEngine,
+            fallbackEnabled: fallbackEnabled,
+            parallelEngines: parallelEngines,
+            sceneBindings: sceneBindings
         )
 
         return bundle.primaryResult

@@ -97,13 +97,25 @@ struct TextTranslationConfig: Sendable {
     let preferredEngine: TranslationEngineType
     /// Translation scene for prompt selection and scene bindings
     let scene: TranslationScene?
+    /// Engine selection mode for the request
+    let mode: EngineSelectionMode
+    /// Whether fallback is enabled for the request
+    let fallbackEnabled: Bool
+    /// Engines participating in parallel/quick-switch modes
+    let parallelEngines: [TranslationEngineType]
+    /// Scene routing bindings active for the request
+    let sceneBindings: [TranslationScene: SceneEngineBinding]
 
     /// Default configuration using common settings
     static let `default` = TextTranslationConfig(
         targetLanguage: "zh-Hans",
         sourceLanguage: nil,
         preferredEngine: .apple,
-        scene: nil
+        scene: nil,
+        mode: .primaryWithFallback,
+        fallbackEnabled: true,
+        parallelEngines: [],
+        sceneBindings: [:]
     )
 }
 
@@ -183,7 +195,11 @@ actor TextTranslationFlow {
                 to: effectiveTargetLanguage,
                 preferredEngine: effectiveEngine,
                 from: effectiveSourceLanguage,
-                scene: config.scene
+                scene: config.scene,
+                mode: config.mode,
+                fallbackEnabled: config.fallbackEnabled,
+                parallelEngines: config.parallelEngines,
+                sceneBindings: config.sceneBindings
             )
 
             guard let firstSegment = bilingualSegments.first else {
@@ -275,7 +291,11 @@ actor TextTranslationFlow {
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
             preferredEngine: preferredEngine,
-            scene: nil
+            scene: nil,
+            mode: .primaryWithFallback,
+            fallbackEnabled: true,
+            parallelEngines: [],
+            sceneBindings: [:]
         )
         return try await translate(text, config: config)
     }
@@ -296,7 +316,11 @@ extension TextTranslationConfig {
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
             preferredEngine: resolvePreferredEngine(from: settings, scene: .textSelection),
-            scene: .textSelection
+            scene: .textSelection,
+            mode: settings.engineSelectionMode,
+            fallbackEnabled: settings.translationFallbackEnabled,
+            parallelEngines: settings.parallelEngines,
+            sceneBindings: settings.sceneBindings
         )
     }
 
@@ -325,7 +349,11 @@ extension TextTranslationConfig {
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
             preferredEngine: preferredEngine,
-            scene: .translateAndInsert
+            scene: .translateAndInsert,
+            mode: settings.engineSelectionMode,
+            fallbackEnabled: settings.translationFallbackEnabled,
+            parallelEngines: settings.parallelEngines,
+            sceneBindings: settings.sceneBindings
         )
     }
 

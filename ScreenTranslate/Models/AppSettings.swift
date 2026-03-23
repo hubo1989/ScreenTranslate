@@ -769,7 +769,19 @@ final class AppSettings {
         }
 
         if let config = try? JSONDecoder().decode(TranslationPromptConfig.self, from: data) {
-            return config
+            let migratedCompatiblePrompts = migrateCompatiblePromptKeys(
+                config.compatibleEnginePrompts,
+                compatibleConfigs: compatibleConfigs
+            )
+            if migratedCompatiblePrompts == config.compatibleEnginePrompts {
+                return config
+            }
+
+            return TranslationPromptConfig(
+                enginePrompts: config.enginePrompts,
+                compatibleEnginePrompts: migratedCompatiblePrompts,
+                scenePrompts: config.scenePrompts
+            )
         }
 
         struct LegacyTranslationPromptConfig: Decodable {
@@ -795,6 +807,20 @@ final class AppSettings {
             compatibleEnginePrompts: migratedCompatiblePrompts,
             scenePrompts: legacyConfig.scenePrompts
         )
+    }
+
+    private static func migrateCompatiblePromptKeys(
+        _ prompts: [String: String],
+        compatibleConfigs: [CompatibleTranslationProvider.CompatibleConfig]
+    ) -> [String: String] {
+        prompts.reduce(into: [String: String]()) { result, entry in
+            let (key, value) = entry
+            if let index = Int(key), compatibleConfigs.indices.contains(index) {
+                result[compatibleConfigs[index].id.uuidString] = value
+            } else {
+                result[key] = value
+            }
+        }
     }
 
     private func saveSceneBindings() {

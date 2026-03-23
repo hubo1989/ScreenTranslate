@@ -173,8 +173,13 @@ final class TranslationConfigurationTests: XCTestCase {
         ]
 
         for error in errors {
-            XCTAssertNotNil(error.errorDescription)
-            XCTAssertNotNil(error.recoverySuggestion)
+            guard let description = error.errorDescription,
+                  let suggestion = error.recoverySuggestion else {
+                return XCTFail("Expected localized description and recovery suggestion")
+            }
+
+            XCTAssertFalse(description.isEmpty)
+            XCTAssertFalse(suggestion.isEmpty)
         }
     }
 }
