@@ -28,7 +28,7 @@ actor AppleTranslationProvider: TranslationProvider {
         from sourceLanguage: String?,
         to targetLanguage: String
     ) async throws -> TranslationResult {
-        guard let target = TranslationLanguage(rawValue: targetLanguage) else {
+        guard let target = TranslationLanguage.fromTranslationCode(targetLanguage) else {
             throw TranslationProviderError.unsupportedLanguage(targetLanguage)
         }
 

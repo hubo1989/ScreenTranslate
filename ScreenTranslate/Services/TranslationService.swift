@@ -74,11 +74,14 @@ actor TranslationService {
             )
 
         case .parallel:
+            let effectiveParallelEngines = await filterEnabledEngines(
+                parallelEngines.isEmpty ? [preferredEngine] : parallelEngines
+            )
             return try await translateParallel(
                 segments: segments,
                 to: targetLanguage,
                 from: sourceLanguage,
-                engines: parallelEngines.isEmpty ? [preferredEngine] : parallelEngines,
+                engines: effectiveParallelEngines,
                 scene: scene
             )
 
@@ -144,6 +147,13 @@ actor TranslationService {
                 actualFallback = primaryEngine == .apple ? .mtranServer : .apple
             }
 
+            // Skip fallback if the engine is not explicitly enabled in user settings
+            let enabledFallbacks = await filterEnabledEngines([actualFallback])
+            guard !enabledFallbacks.isEmpty else {
+                logger.warning("Fallback engine \(actualFallback.rawValue) is not enabled, skipping")
+                throw MultiEngineError.allEnginesFailed(errors)
+            }
+
             do {
                 let result = try await translateWithEngine(
                     actualFallback,
@@ -197,6 +207,17 @@ actor TranslationService {
                             scene: scene
                         )
                         let bilingualSegments = providerResults.map { BilingualSegment(from: $0) }
+
+                        // Treat empty results as failure
+                        guard !bilingualSegments.isEmpty else {
+                            return EngineResult.failed(
+                                engine: engine,
+                                error: TranslationProviderError.translationFailed(
+                                    "\(provider.name) returned no results"
+                                )
+                            )
+                        }
+
                         return EngineResult(
                             engine: engine,
                             segments: bilingualSegments,
@@ -213,6 +234,13 @@ actor TranslationService {
                 collectedResults.append(result)
             }
             return collectedResults
+        }
+
+        // If all engines failed (no successful results), throw instead of silently returning empty results
+        let failedErrors = results.compactMap { $0.error }
+        let hasSuccess = results.contains { $0.isSuccess }
+        if !hasSuccess {
+            throw MultiEngineError.allEnginesFailed(failedErrors)
         }
 
         return TranslationResultBundle(
@@ -293,6 +321,14 @@ actor TranslationService {
         )
 
         let bilingualSegments = results.map { BilingualSegment(from: $0) }
+
+        // Treat empty results as failure so callers can trigger fallback
+        guard !bilingualSegments.isEmpty else {
+            throw TranslationProviderError.translationFailed(
+                "\(provider.name) returned no results"
+            )
+        }
+
         let latency = Date().timeIntervalSince(start)
 
         return TranslationResultBundle.single(
@@ -365,6 +401,17 @@ actor TranslationService {
         return resolvedPrompt
     }
 
+    /// Filters engine list to only include engines that are explicitly enabled in user settings.
+    /// Apple is treated as always enabled (it's the default built-in engine).
+    private func filterEnabledEngines(_ engines: [TranslationEngineType]) async -> [TranslationEngineType] {
+        let configs = await MainActor.run {
+            AppSettings.shared.engineConfigs
+        }
+        return engines.filter { engine in
+            configs[engine]?.isEnabled ?? (engine == .apple)
+        }
+    }
+
     private func resolvedProvider(for engine: TranslationEngineType) async throws -> any TranslationProvider {
         if let provider = await registry.provider(for: engine) {
             return provider
@@ -411,7 +458,18 @@ actor TranslationService {
             sceneBindings: sceneBindings
         )
 
-        return bundle.primaryResult
+        let result = bundle.primaryResult
+
+        // If no engine produced results, propagate the actual errors
+        guard !result.isEmpty else {
+            if bundle.successfulEngines.isEmpty {
+                let errors = bundle.results.compactMap { $0.error }
+                throw MultiEngineError.allEnginesFailed(errors)
+            }
+            throw MultiEngineError.noResults
+        }
+
+        return result
     }
 
     // MARK: - Connection Testing

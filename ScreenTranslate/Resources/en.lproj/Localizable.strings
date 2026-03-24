@@ -741,6 +741,7 @@
 "textTranslation.error.translationFailed" = "Translation failed: %@";
 "textTranslation.error.cancelled" = "Translation was cancelled";
 "textTranslation.error.serviceUnavailable" = "Translation service is unavailable";
+"textTranslation.error.insertFailed" = "Failed to insert translated text";
 
 "textTranslation.recovery.emptyInput" = "Please select some text first";
 "textTranslation.recovery.translationFailed" = "Please try again";

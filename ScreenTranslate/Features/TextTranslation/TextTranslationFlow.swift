@@ -71,11 +71,31 @@ enum TextTranslationError: LocalizedError, Sendable, Equatable {
     }
 }
 
+/// Per-engine translation result for parallel/multi-engine display
+struct EngineTranslationInfo: Sendable, Identifiable {
+    let id = UUID()
+    let engine: TranslationEngineType
+    let translatedText: String?
+    let errorMessage: String?
+    let latency: TimeInterval
+
+    var isSuccess: Bool { translatedText != nil && !(translatedText?.isEmpty ?? true) }
+
+    static func fromEngineResult(_ result: EngineResult) -> EngineTranslationInfo {
+        EngineTranslationInfo(
+            engine: result.engine,
+            translatedText: result.segments.first?.translated,
+            errorMessage: result.error?.localizedDescription,
+            latency: result.latency
+        )
+    }
+}
+
 /// Result of a plain text translation operation
 struct TextTranslationResult: Sendable {
     /// The original text that was translated
     let originalText: String
-    /// The translated text
+    /// The translated text (from first successful engine)
     let translatedText: String
     /// Detected or specified source language
     let sourceLanguage: String?
@@ -85,6 +105,10 @@ struct TextTranslationResult: Sendable {
     let segments: [BilingualSegment]
     /// Processing time in seconds
     let processingTime: TimeInterval
+    /// Per-engine results (populated for parallel mode; empty for single-engine modes)
+    let engineResults: [EngineTranslationInfo]
+    /// Whether this result contains multiple engine results
+    var hasMultipleResults: Bool { engineResults.count > 1 }
 }
 
 /// Configuration for text translation
@@ -189,8 +213,8 @@ actor TextTranslationFlow {
 
             logger.info("Starting text translation: \(trimmedText.count) chars to \(effectiveTargetLanguage)")
 
-            // Use TranslationService for actual translation
-            let bilingualSegments = try await translationService.translate(
+            // Use bundle API to get per-engine results
+            let bundle = try await translationService.translateBundle(
                 segments: [trimmedText],
                 to: effectiveTargetLanguage,
                 preferredEngine: effectiveEngine,
@@ -202,8 +226,19 @@ actor TextTranslationFlow {
                 sceneBindings: config.sceneBindings
             )
 
-            guard let firstSegment = bilingualSegments.first else {
-                throw TextTranslationError.translationFailed("No translation returned")
+            // Collect per-engine results for display
+            let engineInfos = bundle.results.map { EngineTranslationInfo.fromEngineResult($0) }
+
+            // Use first successful result (any engine)
+            guard let firstSuccess = bundle.results.first(where: { $0.isSuccess }),
+                  let firstSegment = firstSuccess.segments.first else {
+                // All engines failed — build descriptive error
+                let errorSummaries = bundle.results.compactMap { result -> String? in
+                    guard let error = result.error else { return nil }
+                    return "\(result.engine.localizedName): \(error.localizedDescription)"
+                }
+                let message = errorSummaries.joined(separator: "\n")
+                throw TextTranslationError.translationFailed(message)
             }
 
             let processingTime = Date().timeIntervalSince(startTime)
@@ -213,8 +248,9 @@ actor TextTranslationFlow {
                 translatedText: firstSegment.translated,
                 sourceLanguage: firstSegment.sourceLanguage,
                 targetLanguage: firstSegment.targetLanguage,
-                segments: bilingualSegments,
-                processingTime: processingTime
+                segments: firstSuccess.segments,
+                processingTime: processingTime,
+                engineResults: engineInfos
             )
         }
 

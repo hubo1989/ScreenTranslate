@@ -741,6 +741,7 @@
 "textTranslation.error.translationFailed" = "Übersetzung fehlgeschlagen: %@";
 "textTranslation.error.cancelled" = "Übersetzung wurde abgebrochen";
 "textTranslation.error.serviceUnavailable" = "Übersetzungsdienst nicht verfügbar";
+"textTranslation.error.insertFailed" = "Übersetzter Text konnte nicht eingefügt werden";
 
 "textTranslation.recovery.emptyInput" = "Bitte wählen Sie zuerst Text aus";
 "textTranslation.recovery.translationFailed" = "Bitte versuchen Sie es erneut";

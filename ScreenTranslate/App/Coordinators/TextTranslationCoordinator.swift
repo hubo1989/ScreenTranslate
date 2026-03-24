@@ -87,14 +87,9 @@ final class TextTranslationCoordinator {
         permissionManager.refreshPermissionStatus()
 
         if !permissionManager.hasAccessibilityPermission {
-            // Show permission request dialog - direct call since we're already @MainActor
-            let granted = permissionManager.requestAccessibilityPermission()
-
-            if !granted {
-                // User declined or permission not granted - show error
-                permissionManager.showPermissionDeniedError(for: .accessibility)
-                return false
-            }
+            // Directly trigger system permission prompt
+            permissionManager.requestAccessibilityPermission()
+            return false
         }
         return true
     }
@@ -160,7 +155,7 @@ final class TextTranslationCoordinator {
         } catch let error as TextTranslationError {
             await hideLoadingIndicator()
             logger.error("Translation failed: \(error.localizedDescription)")
-            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+            showTranslationError(error)
 
         } catch {
             await hideLoadingIndicator()
@@ -218,7 +213,7 @@ final class TextTranslationCoordinator {
             }
         } catch let error as TextTranslationError {
             logger.error("Translation failed: \(error.localizedDescription)")
-            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+            showTranslationError(error)
             return
         } catch {
             logger.error("Unexpected error during translation: \(error.localizedDescription)")
@@ -232,11 +227,26 @@ final class TextTranslationCoordinator {
             logger.info("Successfully inserted translated text")
         } catch let error as TextInsertService.InsertError {
             logger.error("Text insertion failed: \(error.localizedDescription)")
-            appDelegate?.showCaptureError(.captureFailure(underlying: error))
+            let alert = NSAlert()
+            alert.alertStyle = .warning
+            alert.messageText = String(localized: "textTranslation.error.insertFailed")
+            alert.informativeText = error.localizedDescription
+            alert.addButton(withTitle: String(localized: "common.ok"))
+            alert.runModal()
         } catch {
             logger.error("Unexpected error during translate and insert: \(error.localizedDescription)")
             appDelegate?.showCaptureError(.captureFailure(underlying: error))
         }
+    }
+
+    /// Shows an error alert for translation failures
+    private func showTranslationError(_ error: TextTranslationError) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = error.errorDescription ?? String(localized: "textTranslation.error.translationFailed")
+        alert.informativeText = error.recoverySuggestion ?? ""
+        alert.addButton(withTitle: String(localized: "common.ok"))
+        alert.runModal()
     }
 
     // MARK: - UI Helpers
