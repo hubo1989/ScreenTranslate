@@ -8,10 +8,12 @@
 import Foundation
 import CoreGraphics
 import ApplicationServices
+import os
 
 /// Service for inserting text into the currently focused input field.
 /// Uses CGEvent keyboard simulation to type text character by character.
 actor TextInsertService {
+    private let logger = Logger.general
 
     // MARK: - Types
 
@@ -133,7 +135,7 @@ actor TextInsertService {
         try await insertUnicodeText(text, source: source)
 
         #if DEBUG
-        print("[TextInsertService] Inserted \(text.count) characters via Unicode events")
+        logger.debug("Inserted \(text.count, privacy: .public) characters via Unicode events")
         #endif
     }
 
@@ -145,7 +147,9 @@ actor TextInsertService {
         let characters = Array(text)
 
         #if DEBUG
-        print("[TextInsertService] Starting Unicode insertion of \(characters.count) chars in \(max(1, (characters.count + chunkSize - 1) / chunkSize)) chunk(s)")
+        logger.debug(
+            "Starting Unicode insertion of \(characters.count, privacy: .public) chars in \(max(1, (characters.count + chunkSize - 1) / chunkSize), privacy: .public) chunk(s)"
+        )
         #endif
 
         for i in stride(from: 0, to: characters.count, by: chunkSize) {
@@ -179,7 +183,7 @@ actor TextInsertService {
 
             #if DEBUG
             // Log metadata only, not actual content
-            print("[TextInsertService] Posted chunk \(i / chunkSize + 1): \(utf16Chars.count) UTF-16 chars")
+            logger.debug("Posted chunk \(i / chunkSize + 1, privacy: .public): \(utf16Chars.count, privacy: .public) UTF-16 chars")
             #endif
 
             // Small delay between chunks

@@ -95,12 +95,27 @@ struct TextTranslationConfig: Sendable {
     let sourceLanguage: String?
     /// Preferred translation engine
     let preferredEngine: TranslationEngineType
+    /// Translation scene for prompt selection and scene bindings
+    let scene: TranslationScene?
+    /// Engine selection mode for the request
+    let mode: EngineSelectionMode
+    /// Whether fallback is enabled for the request
+    let fallbackEnabled: Bool
+    /// Engines participating in parallel/quick-switch modes
+    let parallelEngines: [TranslationEngineType]
+    /// Scene routing bindings active for the request
+    let sceneBindings: [TranslationScene: SceneEngineBinding]
 
     /// Default configuration using common settings
     static let `default` = TextTranslationConfig(
         targetLanguage: "zh-Hans",
         sourceLanguage: nil,
-        preferredEngine: .apple
+        preferredEngine: .apple,
+        scene: nil,
+        mode: .primaryWithFallback,
+        fallbackEnabled: true,
+        parallelEngines: [],
+        sceneBindings: [:]
     )
 }
 
@@ -131,9 +146,14 @@ actor TextTranslationFlow {
     /// Current translation task (for cancellation)
     private var currentTask: Task<TextTranslationResult, Error>?
 
+    /// Translation service used to execute the underlying work.
+    private let translationService: any TranslationServicing
+
     // MARK: - Initialization
 
-    private init() {}
+    init(service: any TranslationServicing = TranslationService.shared) {
+        self.translationService = service
+    }
 
     // MARK: - Public API
 
@@ -170,11 +190,16 @@ actor TextTranslationFlow {
             logger.info("Starting text translation: \(trimmedText.count) chars to \(effectiveTargetLanguage)")
 
             // Use TranslationService for actual translation
-            let bilingualSegments = try await TranslationService.shared.translate(
+            let bilingualSegments = try await translationService.translate(
                 segments: [trimmedText],
                 to: effectiveTargetLanguage,
                 preferredEngine: effectiveEngine,
-                from: effectiveSourceLanguage
+                from: effectiveSourceLanguage,
+                scene: config.scene,
+                mode: config.mode,
+                fallbackEnabled: config.fallbackEnabled,
+                parallelEngines: config.parallelEngines,
+                sceneBindings: config.sceneBindings
             )
 
             guard let firstSegment = bilingualSegments.first else {
@@ -265,7 +290,12 @@ actor TextTranslationFlow {
         let config = TextTranslationConfig(
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
-            preferredEngine: preferredEngine
+            preferredEngine: preferredEngine,
+            scene: nil,
+            mode: .primaryWithFallback,
+            fallbackEnabled: true,
+            parallelEngines: [],
+            sceneBindings: [:]
         )
         return try await translate(text, config: config)
     }
@@ -281,15 +311,16 @@ extension TextTranslationConfig {
         let settings = AppSettings.shared
         let targetLanguage = settings.translationTargetLanguage?.rawValue ?? "zh-Hans"
         let sourceLanguage: String? = settings.translationSourceLanguage == .auto ? nil : settings.translationSourceLanguage.rawValue
-        let preferredEngine: TranslationEngineType = switch settings.preferredTranslationEngine {
-        case .apple: .apple
-        case .mtranServer: .mtranServer
-        }
 
         return TextTranslationConfig(
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
-            preferredEngine: preferredEngine
+            preferredEngine: resolvePreferredEngine(from: settings, scene: .textSelection),
+            scene: .textSelection,
+            mode: settings.engineSelectionMode,
+            fallbackEnabled: settings.translationFallbackEnabled,
+            parallelEngines: settings.parallelEngines,
+            sceneBindings: settings.sceneBindings
         )
     }
 
@@ -301,24 +332,47 @@ extension TextTranslationConfig {
         let settings = AppSettings.shared
         let targetLanguage = settings.translateAndInsertTargetLanguage?.rawValue ?? "zh-Hans"
         let sourceLanguage: String? = settings.translateAndInsertSourceLanguage == .auto ? nil : settings.translateAndInsertSourceLanguage.rawValue
-        let preferredEngine: TranslationEngineType = switch settings.preferredTranslationEngine {
-        case .apple: .apple
-        case .mtranServer: .mtranServer
-        }
+        let preferredEngine = resolvePreferredEngine(from: settings, scene: .translateAndInsert)
 
         #if DEBUG
-        print("[TextTranslationConfig] forTranslateAndInsert:")
-        print("  - translateAndInsertTargetLanguage: \(String(describing: settings.translateAndInsertTargetLanguage?.rawValue))")
-        print("  - resolved targetLanguage: \(targetLanguage)")
-        print("  - translateAndInsertSourceLanguage: \(settings.translateAndInsertSourceLanguage.rawValue)")
-        print("  - resolved sourceLanguage: \(String(describing: sourceLanguage))")
-        print("  - preferredEngine: \(preferredEngine)")
+        Logger.translation.debug(
+            """
+            Translate-and-insert config resolved: \
+            target=\(targetLanguage, privacy: .public), \
+            source=\(sourceLanguage ?? "auto", privacy: .public), \
+            engine=\(preferredEngine.rawValue, privacy: .public)
+            """
+        )
         #endif
 
         return TextTranslationConfig(
             targetLanguage: targetLanguage,
             sourceLanguage: sourceLanguage,
-            preferredEngine: preferredEngine
+            preferredEngine: preferredEngine,
+            scene: .translateAndInsert,
+            mode: settings.engineSelectionMode,
+            fallbackEnabled: settings.translationFallbackEnabled,
+            parallelEngines: settings.parallelEngines,
+            sceneBindings: settings.sceneBindings
         )
+    }
+
+    @MainActor
+    private static func resolvePreferredEngine(
+        from settings: AppSettings,
+        scene: TranslationScene
+    ) -> TranslationEngineType {
+        switch settings.engineSelectionMode {
+        case .sceneBinding:
+            return settings.sceneBindings[scene]?.primaryEngine ?? SceneEngineBinding.default(for: scene).primaryEngine
+        case .parallel, .quickSwitch, .primaryWithFallback:
+            if let firstConfiguredEngine = settings.parallelEngines.first {
+                return firstConfiguredEngine
+            }
+            return switch settings.preferredTranslationEngine {
+            case .apple: .apple
+            case .mtranServer: .mtranServer
+            }
+        }
     }
 }

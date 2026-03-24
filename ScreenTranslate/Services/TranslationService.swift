@@ -153,8 +153,15 @@ actor TranslationService {
                     scene: scene,
                     mode: .primaryWithFallback
                 )
+                let failedPrimary = EngineResult.failed(engine: primaryEngine, error: errors[0])
+                let mergedResults = [failedPrimary] + result.results
                 logger.info("Fallback to \(actualFallback.rawValue) succeeded")
-                return result
+                return TranslationResultBundle(
+                    results: mergedResults,
+                    primaryEngine: result.primaryEngine,
+                    selectionMode: .primaryWithFallback,
+                    scene: scene
+                )
             } catch {
                 errors.append(error)
                 logger.warning("Fallback engine \(actualFallback.rawValue) also failed: \(error.localizedDescription)")
@@ -181,18 +188,13 @@ actor TranslationService {
                         let start = Date()
                         let provider = try await self.resolvedProvider(for: engine)
 
-                        await self.applyPromptConfig(
-                            to: provider,
+                        let providerResults = try await self.translateWithResolvedPrompt(
+                            provider: provider,
                             engine: engine,
-                            scene: scene,
-                            sourceLanguage: sourceLanguage,
-                            targetLanguage: targetLanguage
-                        )
-
-                        let providerResults = try await provider.translate(
                             texts: segments,
                             from: sourceLanguage,
-                            to: targetLanguage
+                            to: targetLanguage,
+                            scene: scene
                         )
                         let bilingualSegments = providerResults.map { BilingualSegment(from: $0) }
                         return EngineResult(
@@ -281,19 +283,13 @@ actor TranslationService {
             throw TranslationProviderError.notAvailable
         }
 
-        // Apply custom prompt configuration if available
-        await applyPromptConfig(
-            to: provider,
+        let results = try await translateWithResolvedPrompt(
+            provider: provider,
             engine: engine,
-            scene: scene,
-            sourceLanguage: sourceLanguage,
-            targetLanguage: targetLanguage
-        )
-
-        let results = try await provider.translate(
             texts: segments,
             from: sourceLanguage,
-            to: targetLanguage
+            to: targetLanguage,
+            scene: scene
         )
 
         let bilingualSegments = results.map { BilingualSegment(from: $0) }
@@ -318,29 +314,55 @@ actor TranslationService {
         return promptConfig
     }
 
-    /// Apply prompt configuration to a provider if supported
-    private func applyPromptConfig(
-        to provider: any TranslationProvider,
+    private func translateWithResolvedPrompt(
+        provider: any TranslationProvider,
         engine: TranslationEngineType,
-        scene: TranslationScene?,
-        sourceLanguage: String?,
-        targetLanguage: String
-    ) async {
-        guard let llmProvider = provider as? LLMTranslationProvider else { return }
+        texts: [String],
+        from sourceLanguage: String?,
+        to targetLanguage: String,
+        scene: TranslationScene?
+    ) async throws -> [TranslationResult] {
+        guard let promptConfigurableProvider = provider as? TranslationPromptConfigurable else {
+            return try await provider.translate(
+                texts: texts,
+                from: sourceLanguage,
+                to: targetLanguage
+            )
+        }
 
-        let sceneToUse = scene ?? .screenshot
-
-        let customPrompt = promptConfig.promptPreview(
-            for: engine,
-            scene: sceneToUse,
-            compatibleIndex: nil
+        let promptTemplate = await resolvedPromptTemplate(
+            for: provider,
+            engine: engine,
+            scene: scene
         )
 
-        if customPrompt != TranslationPromptConfig.defaultPrompt {
-            await llmProvider.setCustomPromptTemplate(customPrompt)
-        } else {
-            await llmProvider.setCustomPromptTemplate(nil)
+        return try await promptConfigurableProvider.translate(
+            texts: texts,
+            from: sourceLanguage,
+            to: targetLanguage,
+            promptTemplate: promptTemplate
+        )
+    }
+
+    private func resolvedPromptTemplate(
+        for provider: any TranslationProvider,
+        engine: TranslationEngineType,
+        scene: TranslationScene?
+    ) async -> String? {
+        let sceneToUse = scene ?? .screenshot
+        let compatiblePromptID = await (provider as? TranslationPromptContextProviding)?.compatiblePromptIdentifier()
+
+        let resolvedPrompt = promptConfig.promptPreview(
+            for: engine,
+            scene: sceneToUse,
+            compatiblePromptID: compatiblePromptID
+        )
+
+        if resolvedPrompt == TranslationPromptConfig.defaultPrompt {
+            return nil
         }
+
+        return resolvedPrompt
     }
 
     private func resolvedProvider(for engine: TranslationEngineType) async throws -> any TranslationProvider {
@@ -368,7 +390,12 @@ actor TranslationService {
         segments: [String],
         to targetLanguage: String,
         preferredEngine: TranslationEngineType = .apple,
-        from sourceLanguage: String? = nil
+        from sourceLanguage: String? = nil,
+        scene: TranslationScene? = nil,
+        mode: EngineSelectionMode = .primaryWithFallback,
+        fallbackEnabled: Bool = true,
+        parallelEngines: [TranslationEngineType] = [],
+        sceneBindings: [TranslationScene: SceneEngineBinding] = [:]
     ) async throws -> [BilingualSegment] {
         guard !segments.isEmpty else { return [] }
 
@@ -376,8 +403,12 @@ actor TranslationService {
             segments: segments,
             to: targetLanguage,
             from: sourceLanguage,
-            mode: .primaryWithFallback,
-            preferredEngine: preferredEngine
+            scene: scene,
+            mode: mode,
+            preferredEngine: preferredEngine,
+            fallbackEnabled: fallbackEnabled,
+            parallelEngines: parallelEngines,
+            sceneBindings: sceneBindings
         )
 
         return bundle.primaryResult

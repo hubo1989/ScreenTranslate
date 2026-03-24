@@ -7,6 +7,7 @@
 
 import CoreGraphics
 import Foundation
+import os
 
 // MARK: - Claude VLM Provider
 
@@ -29,6 +30,8 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
     /// Request timeout in seconds
     private let timeout: TimeInterval
+
+    private let logger = Logger.translation
 
     // MARK: - Initialization
 
@@ -59,6 +62,18 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
             modelName: modelName
         )
         self.timeout = timeout
+    }
+
+    private func logDebug(_ message: String) {
+        logger.debug("\(message, privacy: .public)")
+    }
+
+    private func logWarning(_ message: String) {
+        logger.warning("\(message, privacy: .public)")
+    }
+
+    private func logError(_ message: String) {
+        logger.error("\(message, privacy: .public)")
     }
 
     // MARK: - VLMProvider Protocol
@@ -122,7 +137,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
             let (content, isTruncated, stopReason) = try extractContentAndStatus(from: responseData)
 
-            print("[ClaudeVLMProvider] Attempt \(attempt + 1)/\(maxAttempts): received \(content.count) chars, stop_reason=\(stopReason ?? "unknown")")
+            logDebug("Attempt \(attempt + 1)/\(maxAttempts): received \(content.count) chars, stop reason: \(stopReason ?? "unknown")")
 
             // Try to parse this response
             do {
@@ -141,16 +156,16 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
                 }
 
                 allSegments.append(contentsOf: newSegments)
-                print("[ClaudeVLMProvider] Parsed \(response.segments.count) segments, added \(newSegments.count) new (attempt \(attempt + 1))")
+                logDebug("Parsed \(response.segments.count) segments, added \(newSegments.count) new (attempt \(attempt + 1))")
 
                 if !isTruncated {
                     // Complete - return merged result with deduplication
                     let deduplicated = deduplicateSegments(allSegments)
-                    print("[ClaudeVLMProvider] Complete response received, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
+                    logDebug("Complete response received, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
                     return VLMAnalysisResponse(segments: deduplicated)
                 }
             } catch {
-                print("[ClaudeVLMProvider] Parse error on attempt \(attempt + 1): \(error)")
+                logWarning("Parse error on attempt \(attempt + 1) [\(String(describing: type(of: error)))]")
 
                 // Try partial parsing for truncated response
                 if isTruncated {
@@ -161,7 +176,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
                             new: partial.segments
                         )
                         allSegments.append(contentsOf: newSegments)
-                        print("[ClaudeVLMProvider] Partial parse recovered \(partial.segments.count) segments, added \(newSegments.count) new")
+                        logDebug("Partial parse recovered \(partial.segments.count) segments, added \(newSegments.count) new")
                     }
                 }
 
@@ -172,7 +187,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
             }
 
             // Response truncated, need to continue
-            print("[ClaudeVLMProvider] Response truncated, requesting continuation...")
+            logDebug("Response truncated, requesting continuation")
 
             // Add assistant's partial response to conversation
             conversationHistory.append(ClaudeMessage(
@@ -189,7 +204,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
         // Final deduplication before returning
         let deduplicated = deduplicateSegments(allSegments)
-        print("[ClaudeVLMProvider] Max continuation attempts reached, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
+        logWarning("Max continuation attempts reached, \(allSegments.count) -> \(deduplicated.count) segments after dedup")
         return VLMAnalysisResponse(segments: deduplicated)
     }
 
@@ -205,7 +220,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
     private func deduplicateSegments(_ segments: [VLMTextSegment]) -> [VLMTextSegment] {
         VLMTextDeduplicator.deduplicate(segments) { length, count, threshold in
             // Log only safe statistics, not plaintext content
-            print("[ClaudeVLMProvider] Detected overrepresented text: length=\(length), count=\(count), threshold=\(threshold)")
+            logDebug("Detected overrepresented text: length=\(length), count=\(count), threshold=\(threshold)")
         }
     }
 
@@ -368,11 +383,11 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
         // Try to find the last complete textBlock object
         // Look for the last complete "}]}" pattern which ends a text block
-        if let lastCompleteBlockEnd = cleanedContent.range(of: "}", options: .backwards) {
-            let truncatedContent = String(cleanedContent[..<lastCompleteBlockEnd.upperBound])
+            if let lastCompleteBlockEnd = cleanedContent.range(of: "}", options: .backwards) {
+                let truncatedContent = String(cleanedContent[..<lastCompleteBlockEnd.upperBound])
 
-            // Try to complete the JSON structure
-            var completedJSON = truncatedContent
+                // Try to complete the JSON structure
+                var completedJSON = truncatedContent
             if !truncatedContent.hasSuffix("]") {
                 completedJSON += "]"
             }
@@ -386,11 +401,11 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
             do {
                 let response = try JSONDecoder().decode(VLMAnalysisResponse.self, from: jsonData)
-                print("[ClaudeVLMProvider] Successfully parsed partial response with \(response.segments.count) segments")
+                logDebug("Successfully parsed partial response with \(response.segments.count) segments")
                 return response
             } catch {
                 // If that didn't work, return empty result with warning
-                print("[ClaudeVLMProvider] Partial parse failed, returning empty result")
+                logWarning("Partial parse failed, returning empty result")
                 return VLMAnalysisResponse(segments: [])
             }
         }

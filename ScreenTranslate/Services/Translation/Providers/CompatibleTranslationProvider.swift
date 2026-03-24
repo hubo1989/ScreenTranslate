@@ -9,7 +9,7 @@ import Foundation
 import os.log
 
 /// OpenAI-compatible translation provider for custom endpoints
-actor CompatibleTranslationProvider: TranslationProvider {
+actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfigurable, TranslationPromptContextProviding {
     // MARK: - Properties
 
     nonisolated let id: String
@@ -18,7 +18,7 @@ actor CompatibleTranslationProvider: TranslationProvider {
 
     private let config: TranslationEngineConfig
     private let compatibleConfig: CompatibleConfig
-    private let instanceIndex: Int
+    private let promptConfigID: String?
     private let keychain: KeychainService
     private let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "ScreenTranslate",
@@ -75,16 +75,24 @@ actor CompatibleTranslationProvider: TranslationProvider {
     init(config: TranslationEngineConfig, keychain: KeychainService) async throws {
         self.config = config
         self.keychain = keychain
-        self.instanceIndex = 0
 
         // Parse compatible config from customName or create default
+        let resolvedCompatibleConfig: CompatibleConfig
         if let customName = config.customName,
            let jsonData = customName.data(using: .utf8),
            let compatibleConfig = try? JSONDecoder().decode(CompatibleConfig.self, from: jsonData) {
-            self.compatibleConfig = compatibleConfig
+            resolvedCompatibleConfig = compatibleConfig
         } else {
-            self.compatibleConfig = .default
+            resolvedCompatibleConfig = .default
         }
+
+        let resolvedPromptConfigID = await MainActor.run {
+            AppSettings.shared.compatibleProviderConfigs.contains(where: { $0.id == resolvedCompatibleConfig.id })
+                ? resolvedCompatibleConfig.id.uuidString
+                : nil
+        }
+        self.compatibleConfig = resolvedCompatibleConfig
+        self.promptConfigID = resolvedPromptConfigID
 
         self.id = "custom"
         self.name = self.compatibleConfig.displayName
@@ -94,12 +102,11 @@ actor CompatibleTranslationProvider: TranslationProvider {
     init(
         config: TranslationEngineConfig,
         compatibleConfig: CompatibleConfig,
-        instanceIndex: Int,
         keychain: KeychainService
     ) async throws {
         self.config = config
         self.compatibleConfig = compatibleConfig
-        self.instanceIndex = instanceIndex
+        self.promptConfigID = compatibleConfig.id.uuidString
         self.keychain = keychain
         self.id = compatibleConfig.keychainId
         self.name = compatibleConfig.displayName
@@ -123,38 +130,11 @@ actor CompatibleTranslationProvider: TranslationProvider {
         from sourceLanguage: String?,
         to targetLanguage: String
     ) async throws -> TranslationResult {
-        guard !text.isEmpty else {
-            throw TranslationProviderError.emptyInput
-        }
-
-        let keychainId = compatibleConfig.keychainId
-        let credentials: StoredCredentials?
-        if compatibleConfig.hasAPIKey {
-            guard let creds = try await keychain.getCredentials(forCompatibleId: keychainId) else {
-                throw TranslationProviderError.invalidConfiguration("API key required but not found for \(compatibleConfig.displayName)")
-            }
-            credentials = creds
-        } else {
-            credentials = nil
-        }
-
-        let prompt = buildPrompt(
+        try await translate(
             text: text,
-            sourceLanguage: sourceLanguage,
-            targetLanguage: targetLanguage
-        )
-
-        let start = Date()
-        let translatedText = try await callAPI(prompt: prompt, credentials: credentials)
-        let latency = Date().timeIntervalSince(start)
-
-        logger.info("Custom translation completed in \(latency)s")
-
-        return TranslationResult(
-            sourceText: text,
-            translatedText: translatedText,
-            sourceLanguage: sourceLanguage ?? "Auto",
-            targetLanguage: targetLanguage
+            from: sourceLanguage,
+            to: targetLanguage,
+            promptTemplate: nil
         )
     }
 
@@ -163,6 +143,20 @@ actor CompatibleTranslationProvider: TranslationProvider {
         from sourceLanguage: String?,
         to targetLanguage: String
     ) async throws -> [TranslationResult] {
+        try await translate(
+            texts: texts,
+            from: sourceLanguage,
+            to: targetLanguage,
+            promptTemplate: nil
+        )
+    }
+
+    func translate(
+        texts: [String],
+        from sourceLanguage: String?,
+        to targetLanguage: String,
+        promptTemplate: String?
+    ) async throws -> [TranslationResult] {
         guard !texts.isEmpty else { return [] }
 
         // Combine texts for efficiency
@@ -170,7 +164,8 @@ actor CompatibleTranslationProvider: TranslationProvider {
         let combinedResult = try await translate(
             text: combinedText,
             from: sourceLanguage,
-            to: targetLanguage
+            to: targetLanguage,
+            promptTemplate: promptTemplate
         )
 
         let translatedTexts = combinedResult.translatedText.components(separatedBy: "\n---\n")
@@ -194,7 +189,8 @@ actor CompatibleTranslationProvider: TranslationProvider {
             let result = try await translate(
                 text: text,
                 from: sourceLanguage,
-                to: targetLanguage
+                to: targetLanguage,
+                promptTemplate: promptTemplate
             )
             results.append(result)
         }
@@ -211,15 +207,28 @@ actor CompatibleTranslationProvider: TranslationProvider {
         }
     }
 
+    func compatiblePromptIdentifier() async -> String? {
+        promptConfigID
+    }
+
     // MARK: - Private Methods
 
     private func buildPrompt(
         text: String,
         sourceLanguage: String?,
-        targetLanguage: String
+        targetLanguage: String,
+        promptTemplate: String?
     ) -> String {
         let source = TranslationLanguage.promptDisplayName(for: sourceLanguage)
         let target = TranslationLanguage.promptDisplayName(for: targetLanguage)
+
+        if let template = promptTemplate {
+            return template
+                .replacingOccurrences(of: "{source_language}", with: source)
+                .replacingOccurrences(of: "{target_language}", with: target)
+                .replacingOccurrences(of: "{text}", with: text)
+        }
+
         return """
             Translate the following text from \(source) to \(target).
             Provide ONLY the translated text without any explanations or additional text.
@@ -295,5 +304,47 @@ actor CompatibleTranslationProvider: TranslationProvider {
         }
 
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func translate(
+        text: String,
+        from sourceLanguage: String?,
+        to targetLanguage: String,
+        promptTemplate: String?
+    ) async throws -> TranslationResult {
+        guard !text.isEmpty else {
+            throw TranslationProviderError.emptyInput
+        }
+
+        let keychainId = compatibleConfig.keychainId
+        let credentials: StoredCredentials?
+        if compatibleConfig.hasAPIKey {
+            guard let creds = try await keychain.getCredentials(forCompatibleId: keychainId) else {
+                throw TranslationProviderError.invalidConfiguration("API key required but not found for \(compatibleConfig.displayName)")
+            }
+            credentials = creds
+        } else {
+            credentials = nil
+        }
+
+        let prompt = buildPrompt(
+            text: text,
+            sourceLanguage: sourceLanguage,
+            targetLanguage: targetLanguage,
+            promptTemplate: promptTemplate
+        )
+
+        let start = Date()
+        let translatedText = try await callAPI(prompt: prompt, credentials: credentials)
+        let latency = Date().timeIntervalSince(start)
+
+        logger.info("Custom translation completed in \(latency)s")
+
+        return TranslationResult(
+            sourceText: text,
+            translatedText: translatedText,
+            sourceLanguage: sourceLanguage ?? "Auto",
+            targetLanguage: targetLanguage
+        )
     }
 }

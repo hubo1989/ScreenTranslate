@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import CoreImage
+import os
 
 /// SwiftUI Canvas view for drawing and displaying annotations.
 /// Renders existing annotations and in-progress drawing.
@@ -8,6 +9,7 @@ struct AnnotationCanvas: View {
     // MARK: - Shared CIContext for performance
     
     private static let sharedCIContext = CIContext()
+    private static let logger = Logger.ui
     
     // MARK: - Properties
 
@@ -399,14 +401,14 @@ struct AnnotationCanvas: View {
 
         // Apply pixelation using CIPixellate filter
         guard let pixellateFilter = CIFilter(name: "CIPixellate") else {
-            print("[Mosaic] Warning: CIPixellate filter not available, falling back to gray block")
+            Self.logger.warning("CIPixellate filter not available, falling back to gray block")
             return nil
         }
         pixellateFilter.setValue(ciImage, forKey: kCIInputImageKey)
         pixellateFilter.setValue(max(1, blockSize), forKey: kCIInputScaleKey)
 
         guard let outputImage = pixellateFilter.outputImage else {
-            print("[Mosaic] Warning: Pixellation failed, falling back to gray block")
+            Self.logger.warning("Pixellation failed, falling back to gray block")
             return nil
         }
 

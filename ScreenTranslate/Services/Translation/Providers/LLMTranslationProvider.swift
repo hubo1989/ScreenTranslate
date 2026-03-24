@@ -9,7 +9,7 @@ import Foundation
 import os.log
 
 /// LLM-based translation provider supporting OpenAI, Claude, and Ollama
-actor LLMTranslationProvider: TranslationProvider {
+actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable {
     // MARK: - Properties
 
     nonisolated let id: String
@@ -22,9 +22,6 @@ actor LLMTranslationProvider: TranslationProvider {
         subsystem: Bundle.main.bundleIdentifier ?? "ScreenTranslate",
         category: "LLMTranslationProvider"
     )
-
-    // Custom prompt template (nil = use default)
-    private var customPromptTemplate: String?
 
     // MARK: - Initialization
 
@@ -70,15 +67,35 @@ actor LLMTranslationProvider: TranslationProvider {
         from sourceLanguage: String?,
         to targetLanguage: String
     ) async throws -> TranslationResult {
-        guard !text.isEmpty else {
-            throw TranslationProviderError.emptyInput
-        }
+        let results = try await translate(
+            texts: [text],
+            from: sourceLanguage,
+            to: targetLanguage,
+            promptTemplate: nil
+        )
 
+        guard let result = results.first else {
+            throw TranslationProviderError.translationFailed("No translation returned")
+        }
+        return result
+    }
+
+    func translate(
+        texts: [String],
+        from sourceLanguage: String?,
+        to targetLanguage: String,
+        promptTemplate: String?
+    ) async throws -> [TranslationResult] {
+        guard !texts.isEmpty else { return [] }
+
+        // For multiple texts, combine into single request for efficiency
+        let combinedText = texts.joined(separator: "\n---\n")
         let credentials = try await getCredentials()
         let prompt = buildPrompt(
-            text: text,
+            text: combinedText,
             sourceLanguage: sourceLanguage,
-            targetLanguage: targetLanguage
+            targetLanguage: targetLanguage,
+            promptTemplate: promptTemplate
         )
 
         let start = Date()
@@ -90,33 +107,15 @@ actor LLMTranslationProvider: TranslationProvider {
 
         logger.info("Translation completed in \(latency)s")
 
-        return TranslationResult(
-            sourceText: text,
+        let combinedResult = TranslationResult(
+            sourceText: combinedText,
             translatedText: translatedText,
             sourceLanguage: sourceLanguage ?? "Auto",
             targetLanguage: targetLanguage
         )
-    }
 
-    func translate(
-        texts: [String],
-        from sourceLanguage: String?,
-        to targetLanguage: String
-    ) async throws -> [TranslationResult] {
-        guard !texts.isEmpty else { return [] }
-
-        // For multiple texts, combine into single request for efficiency
-        let combinedText = texts.joined(separator: "\n---\n")
-        let combinedResult = try await translate(
-            text: combinedText,
-            from: sourceLanguage,
-            to: targetLanguage
-        )
-
-        // Split the combined result back into individual results
         let translatedTexts = combinedResult.translatedText.components(separatedBy: "\n---\n")
 
-        // Handle case where split doesn't match
         if translatedTexts.count == texts.count {
             return zip(texts, translatedTexts).map { source, translated in
                 TranslationResult(
@@ -128,19 +127,43 @@ actor LLMTranslationProvider: TranslationProvider {
             }
         }
 
-        // Split failed - translate individually to ensure correct mapping
         logger.warning("Batch split failed, falling back to individual translations")
         var results: [TranslationResult] = []
         results.reserveCapacity(texts.count)
         for text in texts {
-            let result = try await translate(
+            let prompt = buildPrompt(
                 text: text,
-                from: sourceLanguage,
-                to: targetLanguage
+                sourceLanguage: sourceLanguage,
+                targetLanguage: targetLanguage,
+                promptTemplate: promptTemplate
             )
-            results.append(result)
+            let translatedText = try await callLLMAPI(
+                prompt: prompt,
+                credentials: credentials
+            )
+            results.append(
+                TranslationResult(
+                    sourceText: text,
+                    translatedText: translatedText,
+                    sourceLanguage: sourceLanguage ?? "Auto",
+                    targetLanguage: targetLanguage
+                )
+            )
         }
         return results
+    }
+
+    func translate(
+        texts: [String],
+        from sourceLanguage: String?,
+        to targetLanguage: String
+    ) async throws -> [TranslationResult] {
+        try await translate(
+            texts: texts,
+            from: sourceLanguage,
+            to: targetLanguage,
+            promptTemplate: nil
+        )
     }
 
     func checkConnection() async -> Bool {
@@ -159,12 +182,6 @@ actor LLMTranslationProvider: TranslationProvider {
 
     // MARK: - Custom Prompt
 
-    /// Set a custom prompt template for this provider
-    /// - Parameter template: The prompt template with {source_language}, {target_language}, {text} placeholders
-    func setCustomPromptTemplate(_ template: String?) {
-        self.customPromptTemplate = template
-    }
-
     // MARK: - Private Methods
 
     private func getCredentials() async throws -> StoredCredentials? {
@@ -178,13 +195,13 @@ actor LLMTranslationProvider: TranslationProvider {
     private func buildPrompt(
         text: String,
         sourceLanguage: String?,
-        targetLanguage: String
+        targetLanguage: String,
+        promptTemplate: String?
     ) -> String {
         let source = TranslationLanguage.promptDisplayName(for: sourceLanguage)
         let target = TranslationLanguage.promptDisplayName(for: targetLanguage)
 
-        // Use custom template if available
-        if let template = customPromptTemplate {
+        if let template = promptTemplate {
             return template
                 .replacingOccurrences(of: "{source_language}", with: source)
                 .replacingOccurrences(of: "{target_language}", with: target)
