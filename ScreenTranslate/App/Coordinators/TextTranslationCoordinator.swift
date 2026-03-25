@@ -89,6 +89,11 @@ final class TextTranslationCoordinator {
         if !permissionManager.hasAccessibilityPermission {
             // Directly trigger system permission prompt
             permissionManager.requestAccessibilityPermission()
+
+            // If still not granted (user denied), guide to System Settings
+            if !permissionManager.hasAccessibilityPermission {
+                permissionManager.showPermissionDeniedError(for: .accessibility)
+            }
             return false
         }
         return true
