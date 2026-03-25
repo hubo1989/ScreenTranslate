@@ -81,7 +81,7 @@ final class PermissionManager: ObservableObject {
         }
     }
 
-    /// Requests accessibility permission with a user-friendly explanation dialog.
+    /// Requests accessibility permission directly via system prompt.
     /// - Returns: Whether permission was granted after the prompt.
     @discardableResult
     func requestAccessibilityPermission() -> Bool {
@@ -90,25 +90,18 @@ final class PermissionManager: ObservableObject {
             return true
         }
 
-        // Show explanation dialog first
-        let shouldPrompt = showAccessibilityExplanationDialog()
+        // Directly trigger the system permission dialog
+        let options: CFDictionary = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+        let granted = AXIsProcessTrustedWithOptions(options)
 
-        if shouldPrompt {
-            // Request the permission (shows system dialog)
-            let options: CFDictionary = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-            let granted = AXIsProcessTrustedWithOptions(options)
+        // Update our status
+        hasAccessibilityPermission = granted
+        cachePermissions()
 
-            // Update our status
-            hasAccessibilityPermission = granted
-            cachePermissions()
-
-            return granted
-        }
-
-        return false
+        return granted
     }
 
-    /// Requests input monitoring permission with a user-friendly explanation dialog.
+    /// Requests input monitoring permission by opening System Settings directly.
     /// - Returns: Whether permission was granted.
     @discardableResult
     func requestInputMonitoringPermission() -> Bool {
@@ -117,19 +110,10 @@ final class PermissionManager: ObservableObject {
             return true
         }
 
-        // Show explanation dialog
-        let shouldPrompt = showInputMonitoringExplanationDialog()
+        // Directly open System Settings to Privacy & Security > Input Monitoring
+        openInputMonitoringSettings()
 
-        if shouldPrompt {
-            // Open System Settings to Privacy & Security > Input Monitoring
-            openInputMonitoringSettings()
-
-            // We can't directly request this permission - user must enable in System Settings
-            // Return current status
-            return hasInputMonitoringPermission
-        }
-
-        return false
+        return hasInputMonitoringPermission
     }
 
     /// Opens System Settings to the Accessibility pane.
@@ -191,93 +175,6 @@ final class PermissionManager: ObservableObject {
     private func checkInputMonitoringPermission() -> Bool {
         let options = ["AXTrustedCheckOptionPrompt": false] as CFDictionary
         return AXIsProcessTrustedWithOptions(options)
-    }
-
-    // MARK: - Dialogs
-
-    /// Shows an explanation dialog for accessibility permission.
-    /// - Returns: Whether the user wants to proceed with granting permission.
-    private func showAccessibilityExplanationDialog() -> Bool {
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = NSLocalizedString(
-            "permission.accessibility.title",
-            value: "Accessibility Permission Required",
-            comment: "Title for accessibility permission dialog"
-        )
-        alert.informativeText = NSLocalizedString(
-            "permission.accessibility.message",
-            value: "ScreenTranslate needs accessibility permission to capture selected text and insert translations.\n\nThis allows the app to:\n• Copy selected text from any application\n• Insert translated text into input fields\n\nYour privacy is protected - ScreenTranslate only uses this for text translation.",
-            comment: "Message explaining why accessibility permission is needed"
-        )
-        alert.addButton(withTitle: NSLocalizedString(
-            "permission.accessibility.grant",
-            value: "Grant Permission",
-            comment: "Button to grant accessibility permission"
-        ))
-        alert.addButton(withTitle: NSLocalizedString(
-            "permission.accessibility.open.settings",
-            value: "Open System Settings",
-            comment: "Button to open System Settings"
-        ))
-        alert.addButton(withTitle: NSLocalizedString(
-            "permission.later",
-            value: "Later",
-            comment: "Button to skip permission request"
-        ))
-
-        let response = alert.runModal()
-
-        switch response {
-        case .alertFirstButtonReturn:
-            // Grant Permission - will show system prompt
-            return true
-        case .alertSecondButtonReturn:
-            // Open System Settings
-            openAccessibilitySettings()
-            return false
-        default:
-            // Later
-            return false
-        }
-    }
-
-    /// Shows an explanation dialog for input monitoring permission.
-    /// - Returns: Whether the user wants to proceed with granting permission.
-    private func showInputMonitoringExplanationDialog() -> Bool {
-        let alert = NSAlert()
-        alert.alertStyle = .informational
-        alert.messageText = NSLocalizedString(
-            "permission.input.monitoring.title",
-            value: "Input Monitoring Permission Required",
-            comment: "Title for input monitoring permission dialog"
-        )
-        alert.informativeText = NSLocalizedString(
-            "permission.input.monitoring.message",
-            value: "ScreenTranslate needs input monitoring permission to insert translated text into applications.\n\nYou'll need to enable this in:\nSystem Settings > Privacy & Security > Input Monitoring",
-            comment: "Message explaining why input monitoring permission is needed"
-        )
-        alert.addButton(withTitle: NSLocalizedString(
-            "permission.input.monitoring.open.settings",
-            value: "Open System Settings",
-            comment: "Button to open System Settings for input monitoring"
-        ))
-        alert.addButton(withTitle: NSLocalizedString(
-            "permission.later",
-            value: "Later",
-            comment: "Button to skip permission request"
-        ))
-
-        let response = alert.runModal()
-
-        switch response {
-        case .alertFirstButtonReturn:
-            // Open System Settings
-            return true
-        default:
-            // Later
-            return false
-        }
     }
 
     /// Shows a permission denied error in the translation popup.

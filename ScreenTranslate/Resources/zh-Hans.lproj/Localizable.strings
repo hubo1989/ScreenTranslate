@@ -741,6 +741,7 @@
 "textTranslation.error.translationFailed" = "翻译失败：%@";
 "textTranslation.error.cancelled" = "翻译已取消";
 "textTranslation.error.serviceUnavailable" = "翻译服务不可用";
+"textTranslation.error.insertFailed" = "插入翻译文本失败";
 
 "textTranslation.recovery.emptyInput" = "请先选择一些文本";
 "textTranslation.recovery.translationFailed" = "请重试";

@@ -16,9 +16,15 @@ struct TextTranslationPopupContentView: View {
     let translatedText: String
     let sourceLanguage: String
     let targetLanguage: String
+    let engineResults: [EngineTranslationInfo]
     let onCopy: () -> Void
 
     @State private var showCopySuccess = false
+
+    /// Whether to show multi-engine results
+    private var showMultiEngine: Bool {
+        engineResults.count > 1
+    }
 
     private var isOriginalRTL: Bool {
         Self.isRTLLanguage(sourceLanguage) || Self.containsRTLText(originalText)
@@ -30,60 +36,20 @@ struct TextTranslationPopupContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Content area
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     // Original text section
-                    VStack(alignment: isOriginalRTL ? .trailing : .leading, spacing: 6) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "text.bubble")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.secondary)
-                            Text(sourceLanguage.uppercased())
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.tertiary)
-                                .tracking(0.5)
-                            Spacer()
+                    originalTextSection
+
+                    if showMultiEngine {
+                        // Multi-engine results
+                        ForEach(engineResults) { result in
+                            engineResultSection(result)
                         }
-
-                        Text(originalText)
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(isOriginalRTL ? .trailing : .leading)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: isOriginalRTL ? .trailing : .leading)
+                    } else {
+                        // Single result (backward compatible)
+                        translatedTextSection
                     }
-                    .padding(14)
-                    .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                    // Translated text section
-                    VStack(alignment: isTranslatedRTL ? .trailing : .leading, spacing: 6) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "checkmark.bubble")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.blue)
-                            Text(targetLanguage.uppercased())
-                                .font(.system(size: 10, weight: .semibold))
-                                .foregroundStyle(.blue)
-                                .tracking(0.5)
-                            Spacer()
-                        }
-
-                        Text(translatedText)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(.primary)
-                            .multilineTextAlignment(isTranslatedRTL ? .trailing : .leading)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: isTranslatedRTL ? .trailing : .leading)
-                    }
-                    .padding(14)
-                    .background(Color.blue.opacity(0.05))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Color.blue.opacity(0.15), lineWidth: 0.5)
-                    )
                 }
                 .padding(16)
             }
@@ -92,7 +58,6 @@ struct TextTranslationPopupContentView: View {
 
             Divider()
 
-            // Toolbar
             toolbar
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
@@ -104,6 +69,125 @@ struct TextTranslationPopupContentView: View {
             return .handled
         }
     }
+
+    // MARK: - Original Text
+
+    private var originalTextSection: some View {
+        VStack(alignment: isOriginalRTL ? .trailing : .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "text.bubble")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text(sourceLanguage.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .tracking(0.5)
+                Spacer()
+            }
+
+            Text(originalText)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(isOriginalRTL ? .trailing : .leading)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: isOriginalRTL ? .trailing : .leading)
+        }
+        .padding(14)
+        .background(Color(nsColor: .controlBackgroundColor).opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: - Single Translated Text (backward compatible)
+
+    private var translatedTextSection: some View {
+        VStack(alignment: isTranslatedRTL ? .trailing : .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "checkmark.bubble")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.blue)
+                Text(targetLanguage.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.blue)
+                    .tracking(0.5)
+                Spacer()
+            }
+
+            Text(translatedText)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.primary)
+                .multilineTextAlignment(isTranslatedRTL ? .trailing : .leading)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: isTranslatedRTL ? .trailing : .leading)
+        }
+        .padding(14)
+        .background(Color.blue.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.blue.opacity(0.15), lineWidth: 0.5)
+        )
+    }
+
+    // MARK: - Per-Engine Result
+
+    private func engineResultSection(_ result: EngineTranslationInfo) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                if result.isSuccess {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.green)
+                } else {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.red)
+                }
+                Text(result.engine.localizedName)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(result.isSuccess ? .green : .red)
+                    .tracking(0.3)
+                Spacer()
+                if result.isSuccess {
+                    Text(String(format: "%.1fs", result.latency))
+                        .font(.system(size: 9, weight: .regular, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            if let text = result.translatedText {
+                Text(text)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else if let error = result.errorMessage {
+                Text(error)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(.red)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(12)
+        .background(
+            result.isSuccess
+                ? Color.green.opacity(0.04)
+                : Color.red.opacity(0.04)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(
+                    result.isSuccess
+                        ? Color.green.opacity(0.12)
+                        : Color.red.opacity(0.12),
+                    lineWidth: 0.5
+                )
+        )
+    }
+
+    // MARK: - Toolbar
 
     private var toolbar: some View {
         HStack(spacing: 12) {
@@ -158,7 +242,7 @@ struct TextTranslationPopupContentView: View {
                (value >= 0xFB50 && value <= 0xFDFF) ||
                (value >= 0xFE70 && value <= 0xFEFF) {
                 rtlCount += 1
-            } else if (value >= 0x41 && value <= 0x5A) || (value >= 0x61 && value <= 0x7A) {
+            } else if value >= 0x41 && value <= 0x5A || value >= 0x61 && value <= 0x7A {
                 ltrCount += 1
             }
         }
@@ -175,7 +259,24 @@ struct TextTranslationPopupContentView: View {
         translatedText: "你好，今天怎么样？",
         sourceLanguage: "English",
         targetLanguage: "Chinese",
+        engineResults: [],
         onCopy: {}
     )
     .frame(width: 420, height: 280)
+}
+
+#Preview("Multi-Engine") {
+    TextTranslationPopupContentView(
+        originalText: "Hello, how are you today?",
+        translatedText: "你好，今天怎么样？",
+        sourceLanguage: "English",
+        targetLanguage: "Chinese",
+        engineResults: [
+            EngineTranslationInfo(engine: .mtranServer, translatedText: nil, errorMessage: "Connection refused", latency: 2.1),
+            EngineTranslationInfo(engine: .apple, translatedText: "你好，今天怎么样？", errorMessage: nil, latency: 0.5),
+            EngineTranslationInfo(engine: .google, translatedText: "你好，你今天好吗？", errorMessage: nil, latency: 1.0),
+        ],
+        onCopy: {}
+    )
+    .frame(width: 420, height: 380)
 }

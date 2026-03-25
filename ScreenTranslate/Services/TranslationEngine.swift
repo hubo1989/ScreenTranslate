@@ -39,13 +39,14 @@ enum TranslationLanguage: String, CaseIterable, Sendable, Codable {
     case malay = "ms"
     case romanian = "ro"
 
-    /// The Locale.Language identifier for this language
+    /// The Locale.Language identifier for this language.
+    /// Uses the full rawValue (BCP 47 tag) to preserve script subtags
+    /// (e.g. "zh-Hans", "zh-Hant") which Apple's Translation framework requires.
     var localeLanguage: Locale.Language {
         if self == .auto {
             return Locale.Language(identifier: "en")
         }
-        let languageCode = rawValue.components(separatedBy: "-").first ?? rawValue
-        return Locale.Language(identifier: languageCode)
+        return Locale.Language(identifier: rawValue)
     }
 
     /// Localized display name
@@ -68,7 +69,28 @@ enum TranslationLanguage: String, CaseIterable, Sendable, Codable {
               code.lowercased() != TranslationLanguage.auto.rawValue else {
             return nil
         }
-        return TranslationLanguage(rawValue: code)
+
+        // Normalize underscores to hyphens
+        let normalized = code.replacingOccurrences(of: "_", with: "-")
+
+        // Exact match
+        if let match = TranslationLanguage(rawValue: normalized) {
+            return match
+        }
+
+        // Fuzzy match: map bare language codes (e.g. "zh") to their default script
+        let lowercased = normalized.lowercased()
+        switch lowercased {
+        case "zh", "zh-cn", "zh-sg":
+            return .chineseSimplified
+        case "zh-tw", "zh-hk", "zh-mo":
+            return .chineseTraditional
+        default:
+            break
+        }
+
+        // Prefix match (e.g. "en-US" → .english, "zh-Hans-CN" → .chineseSimplified)
+        return TranslationLanguage.allCases.first(where: { lowercased.hasPrefix($0.rawValue.lowercased()) })
     }
 
     static func promptDisplayName(for code: String?) -> String {
@@ -208,13 +230,6 @@ actor TranslationEngine {
         } else {
             effectiveTargetLanguage = Self.systemTargetLanguage()
         }
-
-        // Check language availability before attempting translation
-        try await validateLanguageAvailability(
-            for: effectiveTargetLanguage,
-            sourceLanguage: config.sourceLanguage,
-            text: text
-        )
 
         // Perform translation with signpost for profiling
         os_signpost(.begin, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
@@ -452,16 +467,26 @@ actor TranslationEngine {
         do {
             status = try await availability.status(for: text, to: target)
         } catch {
-            return .unsupported(languageName: target.minimalIdentifier)
+            return .unsupported(languageName: fullIdentifier(for: target))
         }
         return languageAvailabilityStatus(from: status, target: target)
+    }
+
+    /// Builds a full BCP 47 identifier from a Locale.Language (e.g. "zh-Hans")
+    /// Unlike minimalIdentifier which strips script/region to just "zh"
+    private static func fullIdentifier(for language: Locale.Language) -> String {
+        var components: [String] = []
+        if let code = language.languageCode?.identifier { components.append(code) }
+        if let script = language.script?.identifier { components.append(script) }
+        return components.joined(separator: "-")
     }
 
     private static func languageAvailabilityStatus(
         from status: LanguageAvailability.Status,
         target: Locale.Language
     ) -> LanguageAvailabilityStatus {
-        let languageName = target.minimalIdentifier
+        // Build full identifier (e.g. "zh-Hans") instead of minimalIdentifier ("zh")
+        let languageName = fullIdentifier(for: target)
 
         switch status {
         case .installed:

@@ -756,6 +756,7 @@ Conceda permissão em Configurações do Sistema > Privacidade e Segurança > Mo
 "textTranslation.error.translationFailed" = "Falha na tradução: %@";
 "textTranslation.error.cancelled" = "Tradução foi cancelada";
 "textTranslation.error.serviceUnavailable" = "Serviço de tradução indisponível";
+"textTranslation.error.insertFailed" = "Falha ao inserir texto traduzido";
 
 "textTranslation.recovery.emptyInput" = "Selecione algum texto primeiro";
 "textTranslation.recovery.translationFailed" = "Tente novamente";

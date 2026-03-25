@@ -741,6 +741,7 @@
 "textTranslation.error.translationFailed" = "翻訳失敗：%@";
 "textTranslation.error.cancelled" = "翻訳がキャンセルされました";
 "textTranslation.error.serviceUnavailable" = "翻訳サービスが利用できません";
+"textTranslation.error.insertFailed" = "翻訳テキストの挿入に失敗しました";
 
 "textTranslation.recovery.emptyInput" = "最初にテキストを選択してください";
 "textTranslation.recovery.translationFailed" = "もう一度お試しください";

@@ -105,13 +105,13 @@ final class SettingsViewModel {
     /// PaddleOCR mode: fast or precise
     var paddleOCRMode: PaddleOCRMode {
         get { settings.paddleOCRMode }
-        set { settings.paddleOCRMode = newValue }
+        set { settings.paddleOCRMode = newValue; settings.save(newValue.rawValue, forKey: AppSettings.Keys.paddleOCRMode) }
     }
 
     /// Whether to use cloud API
     var paddleOCRUseCloud: Bool {
         get { settings.paddleOCRUseCloud }
-        set { settings.paddleOCRUseCloud = newValue }
+        set { settings.paddleOCRUseCloud = newValue; settings.save(newValue, forKey: AppSettings.Keys.paddleOCRUseCloud) }
     }
 
     /// Cloud API base URL
@@ -176,13 +176,13 @@ final class SettingsViewModel {
     /// Default export format
     var defaultFormat: ExportFormat {
         get { settings.defaultFormat }
-        set { settings.defaultFormat = newValue }
+        set { settings.defaultFormat = newValue; settings.save(newValue.rawValue, forKey: AppSettings.Keys.defaultFormat) }
     }
 
     /// JPEG quality (0.0-1.0)
     var jpegQuality: Double {
         get { settings.jpegQuality }
-        set { settings.jpegQuality = newValue }
+        set { settings.jpegQuality = newValue; settings.save(newValue, forKey: AppSettings.Keys.jpegQuality) }
     }
 
     /// JPEG quality as percentage (0-100)
@@ -194,7 +194,7 @@ final class SettingsViewModel {
     /// HEIC quality (0.0-1.0)
     var heicQuality: Double {
         get { settings.heicQuality }
-        set { settings.heicQuality = newValue }
+        set { settings.heicQuality = newValue; settings.save(newValue, forKey: AppSettings.Keys.heicQuality) }
     }
 
     /// HEIC quality as percentage (0-100)
@@ -209,6 +209,7 @@ final class SettingsViewModel {
         set {
             settings.fullScreenShortcut = newValue
             appDelegate?.updateHotkeys()
+            settings.saveShortcut(newValue, forKey: AppSettings.Keys.fullScreenShortcut)
         }
     }
 
@@ -218,6 +219,7 @@ final class SettingsViewModel {
         set {
             settings.selectionShortcut = newValue
             appDelegate?.updateHotkeys()
+            settings.saveShortcut(newValue, forKey: AppSettings.Keys.selectionShortcut)
         }
     }
 
@@ -227,6 +229,7 @@ final class SettingsViewModel {
         set {
             settings.translationModeShortcut = newValue
             appDelegate?.updateHotkeys()
+            settings.saveShortcut(newValue, forKey: AppSettings.Keys.translationModeShortcut)
         }
     }
 
@@ -236,6 +239,7 @@ final class SettingsViewModel {
         set {
             settings.textSelectionTranslationShortcut = newValue
             appDelegate?.updateHotkeys()
+            settings.saveShortcut(newValue, forKey: AppSettings.Keys.textSelectionTranslationShortcut)
         }
     }
 
@@ -245,61 +249,69 @@ final class SettingsViewModel {
         set {
             settings.translateAndInsertShortcut = newValue
             appDelegate?.updateHotkeys()
+            settings.saveShortcut(newValue, forKey: AppSettings.Keys.translateAndInsertShortcut)
         }
     }
 
     /// Annotation stroke color
     var strokeColor: Color {
         get { settings.strokeColor.color }
-        set { settings.strokeColor = CodableColor(newValue) }
+        set { settings.strokeColor = CodableColor(newValue); settings.saveColor(CodableColor(newValue), forKey: AppSettings.Keys.strokeColor) }
     }
 
     /// Annotation stroke width
     var strokeWidth: CGFloat {
         get { settings.strokeWidth }
-        set { settings.strokeWidth = newValue }
+        set { settings.strokeWidth = newValue; settings.save(newValue, forKey: AppSettings.Keys.strokeWidth) }
     }
 
     /// Text annotation font size
     var textSize: CGFloat {
         get { settings.textSize }
-        set { settings.textSize = newValue }
+        set { settings.textSize = newValue; settings.save(newValue, forKey: AppSettings.Keys.textSize) }
     }
 
     /// OCR engine type
     var ocrEngine: OCREngineType {
         get { settings.ocrEngine }
-        set { settings.ocrEngine = newValue }
+        set { settings.ocrEngine = newValue; settings.save(newValue.rawValue, forKey: AppSettings.Keys.ocrEngine) }
     }
 
     /// Translation engine type
     var translationEngine: TranslationEngineType {
         get { settings.translationEngine }
-        set { settings.translationEngine = newValue }
+        set { settings.translationEngine = newValue; settings.save(newValue.rawValue, forKey: AppSettings.Keys.translationEngine) }
     }
 
     /// Translation display mode
     var translationMode: TranslationMode {
         get { settings.translationMode }
-        set { settings.translationMode = newValue }
+        set { settings.translationMode = newValue; settings.save(newValue.rawValue, forKey: AppSettings.Keys.translationMode) }
     }
 
     /// Translation source language
     var translationSourceLanguage: TranslationLanguage {
         get { settings.translationSourceLanguage }
-        set { settings.translationSourceLanguage = newValue }
+        set { settings.translationSourceLanguage = newValue; settings.save(newValue.rawValue, forKey: AppSettings.Keys.translationSourceLanguage) }
     }
 
     /// Translation target language
     var translationTargetLanguage: TranslationLanguage? {
         get { settings.translationTargetLanguage }
-        set { settings.translationTargetLanguage = newValue }
+        set {
+            settings.translationTargetLanguage = newValue
+            if let value = newValue {
+                settings.save(value.rawValue, forKey: AppSettings.Keys.translationTargetLanguage)
+            } else {
+                UserDefaults.standard.removeObject(forKey: AppSettings.Keys.translationTargetLanguage)
+            }
+        }
     }
 
     /// Whether to automatically detect source language
     var translationAutoDetect: Bool {
         get { settings.translationAutoDetect }
-        set { settings.translationAutoDetect = newValue }
+        set { settings.translationAutoDetect = newValue; settings.save(newValue, forKey: AppSettings.Keys.translationAutoDetect) }
     }
 
     /// Available languages for the current translation engine
@@ -317,13 +329,20 @@ final class SettingsViewModel {
     /// Source language for translate and insert
     var translateAndInsertSourceLanguage: TranslationLanguage {
         get { settings.translateAndInsertSourceLanguage }
-        set { settings.translateAndInsertSourceLanguage = newValue }
+        set { settings.translateAndInsertSourceLanguage = newValue; settings.save(newValue.rawValue, forKey: AppSettings.Keys.translateAndInsertSourceLanguage) }
     }
 
     /// Target language for translate and insert (nil = follow system)
     var translateAndInsertTargetLanguage: TranslationLanguage? {
         get { settings.translateAndInsertTargetLanguage }
-        set { settings.translateAndInsertTargetLanguage = newValue }
+        set {
+            settings.translateAndInsertTargetLanguage = newValue
+            if let value = newValue {
+                settings.save(value.rawValue, forKey: AppSettings.Keys.translateAndInsertTargetLanguage)
+            } else {
+                UserDefaults.standard.removeObject(forKey: AppSettings.Keys.translateAndInsertTargetLanguage)
+            }
+        }
     }
 
     // MARK: - VLM Configuration
@@ -348,23 +367,24 @@ final class SettingsViewModel {
 
     var vlmAPIKey: String {
         get { settings.vlmAPIKey }
-        set { settings.vlmAPIKey = newValue }
+        set { settings.vlmAPIKey = newValue; settings.save(newValue, forKey: AppSettings.Keys.vlmAPIKey) }
     }
 
     var vlmBaseURL: String {
         get { settings.vlmBaseURL }
-        set { settings.vlmBaseURL = newValue }
+        set { settings.vlmBaseURL = newValue; settings.save(newValue, forKey: AppSettings.Keys.vlmBaseURL) }
     }
 
     var vlmModelName: String {
         get { settings.vlmModelName }
-        set { settings.vlmModelName = newValue }
+        set { settings.vlmModelName = newValue; settings.save(newValue, forKey: AppSettings.Keys.vlmModelName) }
     }
 
     var glmOCRMode: GLMOCRMode {
         get { settings.glmOCRMode }
         set {
             settings.glmOCRMode = newValue
+            settings.save(newValue.rawValue, forKey: AppSettings.Keys.glmOCRMode)
 
             guard settings.vlmProvider == .glmOCR else {
                 return
@@ -389,13 +409,14 @@ final class SettingsViewModel {
 
     var preferredTranslationEngine: PreferredTranslationEngine {
         get { settings.preferredTranslationEngine }
-        set { settings.preferredTranslationEngine = newValue }
+        set { settings.preferredTranslationEngine = newValue; settings.save(newValue.rawValue, forKey: AppSettings.Keys.preferredTranslationEngine) }
     }
 
     var mtranServerURL: String {
         get { settings.mtranServerURL }
         set {
             settings.mtranServerURL = newValue
+            settings.save(newValue, forKey: AppSettings.Keys.mtranServerURL)
             // Clear test result when URL changes
             mtranTestResult = nil
             mtranTestSuccess = false
@@ -404,7 +425,7 @@ final class SettingsViewModel {
 
     var translationFallbackEnabled: Bool {
         get { settings.translationFallbackEnabled }
-        set { settings.translationFallbackEnabled = newValue }
+        set { settings.translationFallbackEnabled = newValue; settings.save(newValue, forKey: AppSettings.Keys.translationFallbackEnabled) }
     }
 
     // MARK: - Validation Ranges

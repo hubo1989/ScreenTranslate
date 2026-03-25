@@ -137,6 +137,7 @@ struct MultiEngineSettingsSection: View {
                             } else {
                                 viewModel.settings.parallelEngines[0] = engine
                             }
+                            viewModel.settings.saveParallelEngines()
                         }
                     )) {
                         // Standard engines
@@ -187,6 +188,7 @@ struct MultiEngineSettingsSection: View {
                             } else {
                                 viewModel.settings.parallelEngines.append(engine)
                             }
+                            viewModel.settings.saveParallelEngines()
                         }
                     )) {
                         // Standard engines
@@ -239,6 +241,7 @@ struct MultiEngineSettingsSection: View {
                         ForEach(enabledEngines.filter { $0.id != .custom }, id: \.id) { config in
                             Button(config.id.localizedName) {
                                 viewModel.settings.parallelEngines[index] = config.id
+                                viewModel.settings.saveParallelEngines()
                             }
                         }
                         if !compatibleConfigs.isEmpty {
@@ -261,6 +264,7 @@ struct MultiEngineSettingsSection: View {
                     if viewModel.settings.parallelEngines.count > 1 {
                         Button {
                             viewModel.settings.parallelEngines.remove(at: index)
+                            viewModel.settings.saveParallelEngines()
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.caption)
@@ -283,6 +287,7 @@ struct MultiEngineSettingsSection: View {
                         if !viewModel.settings.parallelEngines.contains(config.id) {
                             Button {
                                 viewModel.settings.parallelEngines.append(config.id)
+                                viewModel.settings.saveParallelEngines()
                             } label: {
                                 HStack {
                                     Image(systemName: engineIcon(config.id))
@@ -361,7 +366,15 @@ struct MultiEngineSettingsSection: View {
                 engine: engine,
                 config: Binding(
                     get: { viewModel.settings.engineConfigs[engine] ?? .default(for: engine) },
-                    set: { viewModel.settings.engineConfigs[engine] = $0 }
+                    set: { newValue in
+                        // Use full property assignment instead of subscript
+                        // to guarantee @Observable persistence
+                        Logger.settings.info("Engine config updated: \(engine.rawValue), isEnabled=\(newValue.isEnabled)")
+                        var configs = viewModel.settings.engineConfigs
+                        configs[engine] = newValue
+                        viewModel.settings.engineConfigs = configs
+                        viewModel.settings.saveEngineConfigs()
+                    }
                 )
             )
         }
@@ -376,6 +389,7 @@ struct MultiEngineSettingsSection: View {
                     } else {
                         viewModel.settings.compatibleProviderConfigs[state.index] = savedConfig
                     }
+                    viewModel.settings.saveCompatibleConfigs()
                 }
             )
         }
@@ -503,6 +517,7 @@ struct MultiEngineSettingsSection: View {
 
                 await MainActor.run {
                     viewModel.settings.compatibleProviderConfigs.remove(at: index)
+                    viewModel.settings.saveCompatibleConfigs()
                 }
             } catch {
                 // Log error but don't remove config if credential migration fails
@@ -538,7 +553,9 @@ struct MultiEngineSettingsSection: View {
                         customConfig.customName = jsonString
                         customConfig.isEnabled = true
                         viewModel.settings.engineConfigs[.custom] = customConfig
+                        viewModel.settings.saveEngineConfigs()
                         viewModel.settings.parallelEngines[index] = .custom
+                        viewModel.settings.saveParallelEngines()
                     }
                 }
             } catch {
@@ -567,7 +584,9 @@ struct MultiEngineSettingsSection: View {
                         customConfig.customName = jsonString
                         customConfig.isEnabled = true
                         viewModel.settings.engineConfigs[.custom] = customConfig
+                        viewModel.settings.saveEngineConfigs()
                         viewModel.settings.parallelEngines.append(.custom)
+                        viewModel.settings.saveParallelEngines()
                     }
                 }
             } catch {
@@ -599,6 +618,7 @@ struct MultiEngineSettingsSection: View {
                         customConfig.customName = jsonString
                         customConfig.isEnabled = true
                         viewModel.settings.engineConfigs[.custom] = customConfig
+                        viewModel.settings.saveEngineConfigs()
 
                         // Set as primary engine
                         if viewModel.settings.parallelEngines.isEmpty {
@@ -606,6 +626,7 @@ struct MultiEngineSettingsSection: View {
                         } else {
                             viewModel.settings.parallelEngines[0] = .custom
                         }
+                        viewModel.settings.saveParallelEngines()
                     }
                 }
             } catch {
@@ -617,6 +638,7 @@ struct MultiEngineSettingsSection: View {
     @ViewBuilder
     private func engineCard(_ engine: TranslationEngineType) -> some View {
         let config = viewModel.settings.engineConfigs[engine] ?? .default(for: engine)
+        let _ = Logger.settings.info("engineCard \(engine.rawValue): isEnabled=\(config.isEnabled), fromDefault=\(viewModel.settings.engineConfigs[engine] == nil)")
         // Built-in engines (apple, mtranServer) and Ollama don't need API keys
         // For others, we check if they require API key (simplified check - in real use would check keychain)
         let isConfigured = !engine.requiresAPIKey || config.isEnabled
@@ -697,6 +719,7 @@ struct MultiEngineSettingsSection: View {
                         } else {
                             viewModel.settings.parallelEngines.append(config.id)
                         }
+                        viewModel.settings.saveParallelEngines()
                     }
                 }
                 
@@ -738,6 +761,7 @@ struct MultiEngineSettingsSection: View {
     private func toggleCompatibleEngineInParallel(config: CompatibleTranslationProvider.CompatibleConfig) {
         if isCompatibleEngineSelected(config) {
             viewModel.settings.parallelEngines.removeAll { $0 == .custom }
+            viewModel.settings.saveParallelEngines()
         } else {
             // Set this compatible config as custom and add to parallel engines
             var customConfig = viewModel.settings.engineConfigs[.custom] ?? .default(for: .custom)
@@ -746,8 +770,10 @@ struct MultiEngineSettingsSection: View {
                 customConfig.customName = jsonString
                 customConfig.isEnabled = true
                 viewModel.settings.engineConfigs[.custom] = customConfig
+                viewModel.settings.saveEngineConfigs()
                 if !viewModel.settings.parallelEngines.contains(.custom) {
                     viewModel.settings.parallelEngines.append(.custom)
+                    viewModel.settings.saveParallelEngines()
                 }
             }
         }
@@ -794,6 +820,7 @@ struct MultiEngineSettingsSection: View {
                                         customConfig.customName = jsonString
                                         customConfig.isEnabled = true
                                         viewModel.settings.engineConfigs[.custom] = customConfig
+                                        viewModel.settings.saveEngineConfigs()
                                         binding.primaryEngine = .custom
                                     }
                                 }
@@ -801,6 +828,7 @@ struct MultiEngineSettingsSection: View {
                                 binding.primaryEngine = TranslationEngineType(rawValue: newValue) ?? .apple
                             }
                             viewModel.settings.sceneBindings[scene] = binding
+                            viewModel.settings.saveSceneBindings()
                         }
                     )) {
                         ForEach(enabledEngines.filter { $0.id != .custom }, id: \.id) { config in

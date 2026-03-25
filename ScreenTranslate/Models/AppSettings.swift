@@ -96,7 +96,7 @@ final class AppSettings {
 
     // MARK: - UserDefaults Keys
 
-    private enum Keys {
+    enum Keys {
         static let prefix = "ScreenTranslate."
         static let saveLocation = prefix + "saveLocation"
         static let defaultFormat = prefix + "defaultFormat"
@@ -362,9 +362,10 @@ final class AppSettings {
     }
 
     /// Engine configurations (JSON encoded)
-    var engineConfigs: [TranslationEngineType: TranslationEngineConfig] {
-        didSet { saveEngineConfigs() }
-    }
+    /// Note: no didSet because @Observable does not reliably trigger
+    /// didSet for value-type mutations, which can cause stale data to overwrite
+    /// fresh saves. Always call saveEngineConfigs() explicitly after modifying.
+    var engineConfigs: [TranslationEngineType: TranslationEngineConfig]
 
     /// Prompt configuration
     var promptConfig: TranslationPromptConfig {
@@ -631,9 +632,10 @@ final class AppSettings {
             defaultConfigs[type] = .default(for: type)
         }
         engineConfigs = defaultConfigs
+        saveEngineConfigs()
         promptConfig = TranslationPromptConfig()
         sceneBindings = SceneEngineBinding.allDefaults
-        parallelEngines = [.apple, .mtranServer]
+        parallelEngines = [.apple]
         compatibleProviderConfigs = []
     }
 
@@ -652,9 +654,12 @@ final class AppSettings {
     /// Posted when any keyboard shortcut is changed
     static let shortcutDidChangeNotification = Notification.Name("AppSettings.shortcutDidChange")
 
-    // MARK: - Private Persistence Helpers
+    // MARK: - Persistence Helpers
+    // Made internal so SettingsViewModel can call them explicitly
+    // to guarantee persistence (since @Observable does not reliably
+    // trigger didSet for value-type subscript mutations).
 
-    private func save(_ value: Any, forKey key: String) {
+    func save(_ value: Any, forKey key: String) {
         UserDefaults.standard.set(value, forKey: key)
     }
 
@@ -671,7 +676,7 @@ final class AppSettings {
         }
     }
 
-    private func saveShortcut(_ shortcut: KeyboardShortcut, forKey key: String) {
+    func saveShortcut(_ shortcut: KeyboardShortcut, forKey key: String) {
         let data: [String: UInt32] = [
             "keyCode": shortcut.keyCode,
             "modifiers": shortcut.modifiers
@@ -689,7 +694,7 @@ final class AppSettings {
         return KeyboardShortcut(keyCode: keyCode, modifiers: modifiers)
     }
 
-    private func saveColor(_ color: CodableColor, forKey key: String) {
+    func saveColor(_ color: CodableColor, forKey key: String) {
         if let data = try? JSONEncoder().encode(color) {
             UserDefaults.standard.set(data, forKey: key)
         }
@@ -727,10 +732,17 @@ final class AppSettings {
 
     // MARK: - Multi-Engine Persistence Helpers
 
-    private func saveEngineConfigs() {
+    /// Explicitly save engine configs to UserDefaults.
+    /// Call this after modifying `engineConfigs` to ensure persistence,
+    /// since `@Observable` does not guarantee `didSet` fires for value-type subscript mutations.
+    func saveEngineConfigs() {
         let configArray = Array(engineConfigs.values)
+        Logger.settings.info("Saving engine configs: \(configArray.map { "\($0.id.rawValue)=\($0.isEnabled)" })")
         if let data = try? JSONEncoder().encode(configArray) {
             UserDefaults.standard.set(data, forKey: Keys.engineConfigs)
+            Logger.settings.info("Engine configs saved (\(data.count) bytes)")
+        } else {
+            Logger.settings.error("Failed to encode engine configs")
         }
     }
 
@@ -742,13 +754,17 @@ final class AppSettings {
         }
 
         // Load saved configs and merge
-        guard let data = UserDefaults.standard.data(forKey: Keys.engineConfigs),
+        let data = UserDefaults.standard.data(forKey: Keys.engineConfigs)
+        Logger.settings.info("Loading engine configs from UserDefaults: data exists = \(data != nil), size = \(data?.count ?? 0)")
+        guard let data,
               let configs = try? JSONDecoder().decode([TranslationEngineConfig].self, from: data) else {
+            Logger.settings.warning("No saved engine configs found, using defaults")
             return result
         }
+        Logger.settings.info("Decoded engine configs: \(configs.map { "\($0.id.rawValue)=\($0.isEnabled)" })")
 
-        // Merge loaded configs over defaults (using reduce to handle duplicates safely)
-        _ = configs.reduce(into: result) { dict, config in
+        // Merge loaded configs over defaults
+        result = configs.reduce(into: result) { dict, config in
             dict[config.id] = config
         }
 
@@ -823,7 +839,8 @@ final class AppSettings {
         }
     }
 
-    private func saveSceneBindings() {
+    /// Explicitly save scene bindings to UserDefaults.
+    func saveSceneBindings() {
         let bindingArray = Array(sceneBindings.values)
         if let data = try? JSONEncoder().encode(bindingArray) {
             UserDefaults.standard.set(data, forKey: Keys.sceneBindings)
@@ -832,7 +849,7 @@ final class AppSettings {
 
     private static func loadSceneBindings() -> [TranslationScene: SceneEngineBinding] {
         // Start with defaults
-        let result = SceneEngineBinding.allDefaults
+        var result = SceneEngineBinding.allDefaults
 
         // Load saved bindings and merge
         guard let data = UserDefaults.standard.data(forKey: Keys.sceneBindings),
@@ -840,29 +857,31 @@ final class AppSettings {
             return result
         }
 
-        // Merge loaded bindings over defaults (using reduce to handle duplicates safely)
-        _ = bindings.reduce(into: result) { dict, binding in
+        // Merge loaded bindings over defaults
+        result = bindings.reduce(into: result) { dict, binding in
             dict[binding.scene] = binding
         }
 
         return result
     }
 
-    private func saveParallelEngines() {
+    /// Explicitly save parallel engines to UserDefaults.
+    func saveParallelEngines() {
         let rawValues = parallelEngines.map { $0.rawValue }
         UserDefaults.standard.set(rawValues, forKey: Keys.parallelEngines)
     }
 
     private static func loadParallelEngines() -> [TranslationEngineType] {
         guard let rawValues = UserDefaults.standard.array(forKey: Keys.parallelEngines) as? [String] else {
-            return [.apple, .mtranServer]
+            return [.apple]
         }
         let engines = rawValues.compactMap { TranslationEngineType(rawValue: $0) }
         // Return default if result is empty (dirty data case)
-        return engines.isEmpty ? [.apple, .mtranServer] : engines
+        return engines.isEmpty ? [.apple] : engines
     }
 
-    private func saveCompatibleConfigs() {
+    /// Explicitly save compatible provider configs to UserDefaults.
+    func saveCompatibleConfigs() {
         if let data = try? JSONEncoder().encode(compatibleProviderConfigs) {
             UserDefaults.standard.set(data, forKey: Keys.compatibleProviderConfigs)
         }

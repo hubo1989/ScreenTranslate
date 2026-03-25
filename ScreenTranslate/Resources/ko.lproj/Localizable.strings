@@ -741,6 +741,7 @@
 "textTranslation.error.translationFailed" = "번역 실패: %@";
 "textTranslation.error.cancelled" = "번역이 취소되었습니다";
 "textTranslation.error.serviceUnavailable" = "번역 서비스를 사용할 수 없습니다";
+"textTranslation.error.insertFailed" = "번역된 텍스트를 삽입하지 못했습니다";
 
 "textTranslation.recovery.emptyInput" = "먼저 텍스트를 선택하세요";
 "textTranslation.recovery.translationFailed" = "다시 시도하세요";

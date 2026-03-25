@@ -742,6 +742,7 @@
 "textTranslation.error.translationFailed" = "Traduzione fallita: %@";
 "textTranslation.error.cancelled" = "Traduzione annullata";
 "textTranslation.error.serviceUnavailable" = "Servizio di traduzione non disponibile";
+"textTranslation.error.insertFailed" = "Impossibile inserire il testo tradotto";
 
 "textTranslation.recovery.emptyInput" = "Seleziona prima del testo";
 "textTranslation.recovery.translationFailed" = "Riprova";

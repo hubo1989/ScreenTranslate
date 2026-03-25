@@ -54,6 +54,7 @@ final class TextTranslationPopupController: NSObject {
             translatedText: result.translatedText,
             sourceLanguage: sourceLanguageName,
             targetLanguage: targetLanguageName,
+            engineResults: result.engineResults,
             onCopy: { [weak self] in
                 self?.copyToClipboard(result.translatedText)
             }

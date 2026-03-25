@@ -741,6 +741,7 @@
 "textTranslation.error.translationFailed" = "Ошибка перевода: %@";
 "textTranslation.error.cancelled" = "Перевод отменён";
 "textTranslation.error.serviceUnavailable" = "Сервис перевода недоступен";
+"textTranslation.error.insertFailed" = "Не удалось вставить переведённый текст";
 
 "textTranslation.recovery.emptyInput" = "Сначала выберите текст";
 "textTranslation.recovery.translationFailed" = "Попробуйте снова";
