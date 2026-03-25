@@ -89,8 +89,8 @@ enum TranslationLanguage: String, CaseIterable, Sendable, Codable {
             break
         }
 
-        // Prefix match (e.g. "en-US" → .english)
-        return TranslationLanguage.allCases.first(where: { $0.rawValue.lowercased().hasPrefix(lowercased) })
+        // Prefix match (e.g. "en-US" → .english, "zh-Hans-CN" → .chineseSimplified)
+        return TranslationLanguage.allCases.first(where: { lowercased.hasPrefix($0.rawValue.lowercased()) })
     }
 
     static func promptDisplayName(for code: String?) -> String {

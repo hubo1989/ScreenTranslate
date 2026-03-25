@@ -408,7 +408,7 @@ actor TranslationService {
             AppSettings.shared.engineConfigs
         }
         return engines.filter { engine in
-            configs[engine]?.isEnabled ?? (engine == .apple)
+            engine == .apple || configs[engine]?.isEnabled == true
         }
     }
 

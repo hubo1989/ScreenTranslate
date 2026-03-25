@@ -243,7 +243,7 @@ final class TextTranslationCoordinator {
     private func showTranslationError(_ error: TextTranslationError) {
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = error.errorDescription ?? String(localized: "textTranslation.error.translationFailed")
+        alert.messageText = error.errorDescription ?? String(localized: "error.translation.failed")
         alert.informativeText = error.recoverySuggestion ?? ""
         alert.addButton(withTitle: String(localized: "common.ok"))
         alert.runModal()

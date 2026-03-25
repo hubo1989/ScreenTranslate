@@ -877,7 +877,7 @@ final class AppSettings {
         }
         let engines = rawValues.compactMap { TranslationEngineType(rawValue: $0) }
         // Return default if result is empty (dirty data case)
-        return engines.isEmpty ? [.apple, .mtranServer] : engines
+        return engines.isEmpty ? [.apple] : engines
     }
 
     /// Explicitly save compatible provider configs to UserDefaults.
