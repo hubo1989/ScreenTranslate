@@ -28,17 +28,20 @@ struct OnboardingView: View {
                         canGoPrevious: viewModel.canGoPrevious,
                         canGoNext: viewModel.canGoNext,
                         isLastStep: viewModel.isLastStep,
+                        permissionCheckTimedOut: viewModel.permissionCheckTimedOut,
                         onRequestScreenRecording: { viewModel.requestScreenRecordingPermission() },
                         onOpenScreenRecordingSettings: { viewModel.openScreenRecordingSettings() },
                         onRequestAccessibility: { viewModel.requestAccessibilityPermission() },
                         onOpenAccessibilitySettings: { viewModel.openAccessibilitySettings() },
                         onPrevious: { viewModel.goToPreviousStep() },
-                        onNext: { viewModel.goToNextStep() }
+                        onNext: { viewModel.goToNextStep() },
+                        onSkip: { viewModel.skipPermissions() }
                     )
                 case 2:
-                    OnboardingConfigurationStepView(viewModel: viewModel)
-                case 3:
-                    OnboardingCompleteStepView(onStart: { viewModel.goToNextStep() })
+                    OnboardingCompleteStepView(
+                        onStart: { viewModel.goToNextStep() },
+                        hasSkippedPermissions: viewModel.hasSkippedPermissions
+                    )
                 default:
                     OnboardingWelcomeStepView(
                         onContinue: { viewModel.goToNextStep() },
@@ -48,7 +51,7 @@ struct OnboardingView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 600, height: 620)
+        .frame(width: 600, height: 520)
         .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
             dismiss()
         }

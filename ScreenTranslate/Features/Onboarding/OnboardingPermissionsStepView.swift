@@ -6,12 +6,14 @@ struct OnboardingPermissionsStepView: View {
     let canGoPrevious: Bool
     let canGoNext: Bool
     let isLastStep: Bool
+    let permissionCheckTimedOut: Bool
     let onRequestScreenRecording: () -> Void
     let onOpenScreenRecordingSettings: () -> Void
     let onRequestAccessibility: () -> Void
     let onOpenAccessibilitySettings: () -> Void
     let onPrevious: () -> Void
     let onNext: () -> Void
+    let onSkip: () -> Void
 
     var body: some View {
         VStack(spacing: 24) {
@@ -36,6 +38,7 @@ struct OnboardingPermissionsStepView: View {
                 OnboardingPermissionRow(
                     icon: "video.fill",
                     title: NSLocalizedString("onboarding.permission.screen.recording", comment: ""),
+                    subtitle: NSLocalizedString("onboarding.permission.screen.recording.subtitle", comment: ""),
                     isGranted: hasScreenRecordingPermission,
                     requestAction: onRequestScreenRecording,
                     openSettingsAction: onOpenScreenRecordingSettings
@@ -44,10 +47,18 @@ struct OnboardingPermissionsStepView: View {
                 OnboardingPermissionRow(
                     icon: "command.square.fill",
                     title: NSLocalizedString("onboarding.permission.accessibility", comment: ""),
+                    subtitle: NSLocalizedString("onboarding.permission.accessibility.subtitle", comment: ""),
                     isGranted: hasAccessibilityPermission,
                     requestAction: onRequestAccessibility,
                     openSettingsAction: onOpenAccessibilitySettings
                 )
+            }
+
+            if permissionCheckTimedOut {
+                Text(NSLocalizedString("onboarding.permissions.timeout.hint", comment: ""))
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
             }
 
             Spacer()
@@ -56,13 +67,35 @@ struct OnboardingPermissionsStepView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            OnboardingNavigationButtons(
-                canGoPrevious: canGoPrevious,
-                canGoNext: canGoNext,
-                isLastStep: isLastStep,
-                onPrevious: onPrevious,
-                onNext: onNext
-            )
+            HStack(spacing: 16) {
+                if canGoPrevious {
+                    Button {
+                        onPrevious()
+                    } label: {
+                        Text(NSLocalizedString("onboarding.back", comment: ""))
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                Spacer()
+
+                Button {
+                    onSkip()
+                } label: {
+                    Text(NSLocalizedString("onboarding.skip.permissions", comment: ""))
+                }
+                .buttonStyle(.bordered)
+                .tint(.secondary)
+
+                if canGoNext && !isLastStep {
+                    Button {
+                        onNext()
+                    } label: {
+                        Text(NSLocalizedString("onboarding.continue", comment: ""))
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
         }
         .padding(32)
     }

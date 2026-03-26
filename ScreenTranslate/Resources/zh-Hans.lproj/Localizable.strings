@@ -539,54 +539,30 @@
 "onboarding.permissions.title" = "权限";
 "onboarding.permissions.message" = "ScreenTranslate 需要一些权限才能正常工作。请授予以下权限：";
 "onboarding.permissions.hint" = "授权后，状态将自动更新。";
+"onboarding.permissions.timeout.hint" = "授权遇到困难？可以暂时跳过，稍后在菜单栏 → 设置中配置";
 
 "onboarding.permission.screen.recording" = "屏幕录制";
+"onboarding.permission.screen.recording.subtitle" = "用于截取屏幕内容进行 OCR 文字识别";
 "onboarding.permission.accessibility" = "辅助功能";
+"onboarding.permission.accessibility.subtitle" = "用于注册全局快捷键，在任何应用中触发截图翻译";
 "onboarding.permission.granted" = "已授权";
 "onboarding.permission.not.granted" = "未授权";
 "onboarding.permission.grant" = "授权";
 
-/* 引导 - 配置步骤 */
-"onboarding.configuration.title" = "可选配置";
-"onboarding.configuration.message" = "您的本地 OCR 和翻译功能已启用。可选择配置外部服务：";
-"onboarding.configuration.paddleocr" = "PaddleOCR 服务器地址";
-"onboarding.configuration.paddleocr.hint" = "留空则使用 macOS Vision OCR";
-"onboarding.configuration.mtran" = "MTranServer 地址";
-"onboarding.configuration.mtran.hint" = "留空则使用 Apple 翻译";
-"onboarding.configuration.placeholder" = "http://localhost:8080";
-"onboarding.configuration.placeholder.address" = "localhost";
-"onboarding.configuration.test" = "测试翻译";
-"onboarding.configuration.test.button" = "测试翻译";
-"onboarding.configuration.testing" = "测试中...";
-"onboarding.test.success" = "翻译测试成功：\"%@\" → \"%@\"";
-"onboarding.test.failed" = "翻译测试失败：%@";
-
 /* 引导 - 完成步骤 */
 "onboarding.complete.title" = "设置完成！";
 "onboarding.complete.message" = "ScreenTranslate 已准备就绪。以下是使用方法：";
+"onboarding.complete.menubar.hint" = "ScreenTranslate 将在菜单栏运行，点击菜单栏图标即可使用";
 "onboarding.complete.shortcuts" = "使用 ⌘⇧F 全屏截图";
 "onboarding.complete.selection" = "使用 ⌘⇧A 区域截图并翻译";
 "onboarding.complete.settings" = "从菜单栏打开设置自定义选项";
 "onboarding.complete.start" = "开始使用 ScreenTranslate";
+"onboarding.complete.permissions.warning" = "部分权限尚未授予，可在菜单栏 → 设置中随时配置";
 
 /* 引导 - 导航 */
 "onboarding.back" = "上一步";
 "onboarding.continue" = "继续";
-"onboarding.next" = "下一步";
-"onboarding.skip" = "跳过";
-"onboarding.complete" = "完成";
-
-/* 引导 - PaddleOCR */
-"onboarding.paddleocr.title" = "PaddleOCR（可选）";
-"onboarding.paddleocr.description" = "增强型 OCR 引擎，文字识别更准确，尤其适合中文。";
-"onboarding.paddleocr.installed" = "已安装";
-"onboarding.paddleocr.not.installed" = "未安装";
-"onboarding.paddleocr.install" = "安装";
-"onboarding.paddleocr.installing" = "安装中...";
-"onboarding.paddleocr.install.hint" = "需要 Python 3 和 pip。执行命令：pip3 install paddleocr paddlepaddle";
-"onboarding.paddleocr.copy.command" = "复制命令";
-"onboarding.paddleocr.refresh" = "刷新状态";
-"onboarding.paddleocr.version" = "版本：%@";
+"onboarding.skip.permissions" = "暂时跳过";
 
 /* 设置 - PaddleOCR */
 "settings.paddleocr.installed" = "已安装";
