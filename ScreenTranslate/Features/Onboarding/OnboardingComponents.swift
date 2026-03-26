@@ -110,7 +110,6 @@ struct OnboardingPermissionRow: View {
                     .font(.title2)
             } else {
                 Button {
-                    openSettingsAction()
                     requestAction()
                 } label: {
                     Text(NSLocalizedString("onboarding.permission.grant", comment: ""))
