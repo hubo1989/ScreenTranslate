@@ -84,6 +84,8 @@ final class CaptureCoordinator {
                 // Show preview window
                 PreviewWindowController.shared.showPreview(for: screenshot)
 
+            } catch ScreenTranslateError.permissionDenied {
+                await CaptureManager.shared.requestPermission()
             } catch let error as ScreenTranslateError {
                 appDelegate?.showCaptureError(error)
             } catch {
@@ -124,6 +126,9 @@ final class CaptureCoordinator {
 
                 try await overlayController.presentOverlay()
 
+            } catch ScreenTranslateError.permissionDenied {
+                isCaptureInProgress = false
+                await CaptureManager.shared.requestPermission()
             } catch {
                 isCaptureInProgress = false
                 logger.error("Failed to present selection overlay: \(error.localizedDescription)")
@@ -161,6 +166,9 @@ final class CaptureCoordinator {
 
                 try await overlayController.presentOverlay()
 
+            } catch ScreenTranslateError.permissionDenied {
+                isCaptureInProgress = false
+                await CaptureManager.shared.requestPermission()
             } catch {
                 isCaptureInProgress = false
                 logger.error("Failed to present translation overlay: \(error.localizedDescription)")
@@ -187,6 +195,8 @@ final class CaptureCoordinator {
                 PreviewWindowController.shared.showPreview(for: screenshot)
             }
 
+        } catch ScreenTranslateError.permissionDenied {
+            await CaptureManager.shared.requestPermission()
         } catch let error as ScreenTranslateError {
             appDelegate?.showCaptureError(error)
         } catch {
@@ -210,6 +220,8 @@ final class CaptureCoordinator {
                 scaleFactor: screenshot.sourceDisplay.scaleFactor
             )
 
+        } catch ScreenTranslateError.permissionDenied {
+            await CaptureManager.shared.requestPermission()
         } catch let error as ScreenTranslateError {
             appDelegate?.showCaptureError(error)
         } catch {
