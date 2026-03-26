@@ -538,7 +538,7 @@
 /* 引导 - 权限步骤 */
 "onboarding.permissions.title" = "权限";
 "onboarding.permissions.message" = "ScreenTranslate 需要一些权限才能正常工作。请授予以下权限：";
-"onboarding.permissions.hint" = "授权后，状态将自动更新。";
+"onboarding.permissions.hint" = "授权后，状态将自动更新。如果应用曾在权限列表中，需要先移除再重新添加才能生效。";
 "onboarding.permissions.timeout.hint" = "授权遇到困难？可以暂时跳过，稍后在菜单栏 → 设置中配置";
 
 "onboarding.permission.screen.recording" = "屏幕录制";

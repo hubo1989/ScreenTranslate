@@ -554,7 +554,8 @@ final class AppSettings {
         paddleOCRCloudBaseURL = defaults.string(forKey: Keys.paddleOCRCloudBaseURL) ?? ""
 
         // Load PaddleOCR cloud API key from Keychain (secure storage)
-        paddleOCRCloudAPIKey = Self.loadPaddleOCRAPIKeyFromKeychain()
+        // Defer keychain access to avoid triggering UI on first launch
+        paddleOCRCloudAPIKey = ""
 
         // Load cloud model ID
         paddleOCRCloudModelId = defaults.string(forKey: Keys.paddleOCRCloudModelId) ?? ""

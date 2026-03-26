@@ -51,7 +51,7 @@ struct OnboardingView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(width: 600, height: 520)
+        .frame(width: 600, height: 580)
         .onReceive(NotificationCenter.default.publisher(for: .onboardingCompleted)) { _ in
             dismiss()
         }

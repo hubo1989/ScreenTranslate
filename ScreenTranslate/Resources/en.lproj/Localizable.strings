@@ -538,7 +538,7 @@
 /* Onboarding - Permissions Step */
 "onboarding.permissions.title" = "Permissions";
 "onboarding.permissions.message" = "ScreenTranslate needs a few permissions to work properly. Please grant the following permissions:";
-"onboarding.permissions.hint" = "After granting permissions, the status will update automatically.";
+"onboarding.permissions.hint" = "After granting permissions, the status will update automatically. If the app was previously in the list, remove and re-add it for changes to take effect.";
 "onboarding.permissions.timeout.hint" = "Having trouble? Skip for now and configure later in Menu Bar → Settings";
 
 "onboarding.permission.screen.recording" = "Screen Recording";
