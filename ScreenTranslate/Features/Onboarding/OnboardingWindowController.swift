@@ -56,7 +56,7 @@ final class OnboardingWindowController: NSObject {
 
         // Create the window
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 620),
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 580),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -95,6 +95,11 @@ final class OnboardingWindowController: NSObject {
 extension OnboardingWindowController: NSWindowDelegate {
     nonisolated func windowWillClose(_ notification: Notification) {
         Task { @MainActor in
+            // Initialize Sparkle updater if onboarding was dismissed without completing
+            if !AppSettings.shared.onboardingCompleted {
+                NotificationCenter.default.post(name: .onboardingDismissed, object: nil)
+            }
+
             // Notify completion
             completionHandler?()
 

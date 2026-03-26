@@ -350,6 +350,7 @@ final class SettingsViewModel {
     var vlmProvider: VLMProviderType {
         get { settings.vlmProvider }
         set {
+            let oldValue = settings.vlmProvider
             settings.vlmProvider = newValue
             vlmBaseURL = newValue == .glmOCR
                 ? (settings.storedGLMOCRBaseURL(for: settings.glmOCRMode)

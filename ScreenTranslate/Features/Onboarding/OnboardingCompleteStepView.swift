@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OnboardingCompleteStepView: View {
     let onStart: () -> Void
+    let hasSkippedPermissions: Bool
 
     var body: some View {
         VStack(spacing: 24) {
@@ -24,6 +25,13 @@ struct OnboardingCompleteStepView: View {
 
             VStack(alignment: .leading, spacing: 12) {
                 OnboardingInfoRow(
+                    icon: "menubar.rectangle",
+                    text: NSLocalizedString("onboarding.complete.menubar.hint", comment: "")
+                )
+
+                Divider()
+
+                OnboardingInfoRow(
                     icon: "command",
                     text: NSLocalizedString("onboarding.complete.shortcuts", comment: "")
                 )
@@ -37,6 +45,19 @@ struct OnboardingCompleteStepView: View {
                 )
             }
             .padding(.vertical, 8)
+
+            if hasSkippedPermissions {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                    Text(NSLocalizedString("onboarding.complete.permissions.warning", comment: ""))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(12)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .clipShape(.rect(cornerRadius: 8))
+            }
 
             Spacer()
 

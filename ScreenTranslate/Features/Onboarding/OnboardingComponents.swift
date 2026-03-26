@@ -77,6 +77,7 @@ struct OnboardingNavigationButtons: View {
 struct OnboardingPermissionRow: View {
     let icon: String
     let title: String
+    let subtitle: String
     let isGranted: Bool
     let requestAction: () -> Void
     let openSettingsAction: () -> Void
@@ -91,6 +92,9 @@ struct OnboardingPermissionRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.headline)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Text(isGranted
                      ? NSLocalizedString("onboarding.permission.granted", comment: "")
                      : NSLocalizedString("onboarding.permission.not.granted", comment: ""))
@@ -106,7 +110,6 @@ struct OnboardingPermissionRow: View {
                     .font(.title2)
             } else {
                 Button {
-                    openSettingsAction()
                     requestAction()
                 } label: {
                     Text(NSLocalizedString("onboarding.permission.grant", comment: ""))
