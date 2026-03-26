@@ -68,7 +68,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         PaddleOCRChecker.checkAvailabilityAsync()
 
         // Initialize updater controller to register notification observer
-        _ = updaterController
+        // Skip during first launch to avoid overlapping with onboarding
+        if settings.onboardingCompleted {
+            _ = updaterController
+        }
 
         Logger.general.info("ScreenTranslate launched - settings loaded from: \(self.settings.saveLocation.path)")
     }
@@ -78,9 +81,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !settings.onboardingCompleted {
             // Show onboarding for first-time users - already @MainActor
             OnboardingWindowController.shared.showOnboarding(settings: settings)
+
+            // Initialize updater after onboarding completes
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(initializeUpdaterIfNeeded),
+                name: .onboardingCompleted,
+                object: nil
+            )
         }
         // Note: Don't auto-check screen recording permission on launch
         // to avoid triggering system dialog. Users can check in Settings.
+    }
+
+    /// Initializes the updater controller if not already done.
+    @objc private func initializeUpdaterIfNeeded() {
+        _ = updaterController
     }
 
     func applicationWillTerminate(_ notification: Notification) {
