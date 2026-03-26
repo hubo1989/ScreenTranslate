@@ -63,6 +63,7 @@ final class AppSettings {
         static let translationEngine = prefix + "translationEngine"
         static let translationMode = prefix + "translationMode"
         static let onboardingCompleted = prefix + "onboardingCompleted"
+        static let userSkippedPermissions = prefix + "userSkippedPermissions"
         static let paddleOCRServerAddress = prefix + "paddleOCRServerAddress"
         static let mtranServerHost = prefix + "mtranServerHost"
         static let mtranServerPort = prefix + "mtranServerPort"
@@ -210,6 +211,11 @@ final class AppSettings {
     /// Whether the user has completed the first launch onboarding
     var onboardingCompleted: Bool {
         didSet { save(onboardingCompleted, forKey: Keys.onboardingCompleted) }
+    }
+
+    /// Whether the user skipped permissions during onboarding
+    var userSkippedPermissions: Bool {
+        didSet { save(userSkippedPermissions, forKey: Keys.userSkippedPermissions) }
     }
 
     var paddleOCRServerAddress: String {
@@ -416,6 +422,7 @@ final class AppSettings {
         translationMode = defaults.string(forKey: Keys.translationMode)
             .flatMap { TranslationMode(rawValue: $0) } ?? .below
         onboardingCompleted = defaults.object(forKey: Keys.onboardingCompleted) as? Bool ?? false
+        userSkippedPermissions = defaults.object(forKey: Keys.userSkippedPermissions) as? Bool ?? false
         paddleOCRServerAddress = defaults.string(forKey: Keys.paddleOCRServerAddress) ?? ""
         mtranServerHost = defaults.string(forKey: Keys.mtranServerHost) ?? "localhost"
         mtranServerPort = defaults.object(forKey: Keys.mtranServerPort) as? Int ?? 8989
@@ -504,6 +511,7 @@ final class AppSettings {
         translationEngine = .apple
         translationMode = .below
         onboardingCompleted = false
+        userSkippedPermissions = false
         translateAndInsertSourceLanguage = .auto
         translateAndInsertTargetLanguage = nil
         // Reset PaddleOCR settings
