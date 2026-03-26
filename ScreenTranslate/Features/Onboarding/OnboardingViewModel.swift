@@ -221,6 +221,10 @@ final class OnboardingViewModel {
                     let granted = await checkScreenRecordingPermission()
                     if granted {
                         hasScreenRecordingPermission = true
+                        // Clear skipped flag if all permissions are now granted
+                        if hasAccessibilityPermission {
+                            hasSkippedPermissions = false
+                        }
                         permissionCheckTask = nil
                         return
                     }
@@ -229,6 +233,10 @@ final class OnboardingViewModel {
                     let granted = AccessibilityPermissionChecker.hasPermission
                     if granted {
                         hasAccessibilityPermission = granted
+                        // Clear skipped flag if all permissions are now granted
+                        if hasScreenRecordingPermission {
+                            hasSkippedPermissions = false
+                        }
                         permissionCheckTask = nil
                         return
                     }
@@ -241,9 +249,9 @@ final class OnboardingViewModel {
 
     private func completeOnboarding() {
         settings.onboardingCompleted = true
-        if hasSkippedPermissions {
-            settings.userSkippedPermissions = true
-        }
+        settings.userSkippedPermissions =
+            hasSkippedPermissions &&
+            (!hasScreenRecordingPermission || !hasAccessibilityPermission)
         NotificationCenter.default.post(name: .onboardingCompleted, object: nil)
     }
 }
