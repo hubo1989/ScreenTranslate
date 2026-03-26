@@ -82,11 +82,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Show onboarding for first-time users - already @MainActor
             OnboardingWindowController.shared.showOnboarding(settings: settings)
 
-            // Initialize updater after onboarding completes
+            // Initialize updater after onboarding completes or is dismissed
             NotificationCenter.default.addObserver(
                 self,
                 selector: #selector(initializeUpdaterIfNeeded),
                 name: .onboardingCompleted,
+                object: nil
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(initializeUpdaterIfNeeded),
+                name: .onboardingDismissed,
                 object: nil
             )
         }

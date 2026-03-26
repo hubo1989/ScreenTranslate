@@ -86,6 +86,7 @@ struct OnboardingPermissionsStepView: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(.secondary)
+                .disabled(canGoNext)
 
                 if canGoNext && !isLastStep {
                     Button {

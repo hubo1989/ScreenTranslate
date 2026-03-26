@@ -106,10 +106,12 @@ final class OnboardingViewModel {
         }
     }
 
-    /// Skips the permissions step and completes onboarding
+    /// Skips the permissions step and navigates to the complete step
     func skipPermissions() {
         hasSkippedPermissions = true
-        completeOnboarding()
+        permissionCheckTask?.cancel()
+        permissionCheckTask = nil
+        currentStep = totalSteps - 1
     }
 
     /// Checks all permission statuses
@@ -251,4 +253,5 @@ final class OnboardingViewModel {
 extension Notification.Name {
     /// Posted when onboarding is completed
     static let onboardingCompleted = Notification.Name("onboardingCompleted")
+    static let onboardingDismissed = Notification.Name("onboardingDismissed")
 }

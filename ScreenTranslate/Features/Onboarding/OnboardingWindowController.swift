@@ -95,6 +95,11 @@ final class OnboardingWindowController: NSObject {
 extension OnboardingWindowController: NSWindowDelegate {
     nonisolated func windowWillClose(_ notification: Notification) {
         Task { @MainActor in
+            // Initialize Sparkle updater if onboarding was dismissed without completing
+            if !AppSettings.shared.onboardingCompleted {
+                NotificationCenter.default.post(name: .onboardingDismissed, object: nil)
+            }
+
             // Notify completion
             completionHandler?()
 
