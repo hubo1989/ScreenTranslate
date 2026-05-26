@@ -92,3 +92,8 @@ release/
 
 # OMD session data
 .omd/
+
+# Local custom paths
+build_artifacts/
+.omc/
+*.dmg

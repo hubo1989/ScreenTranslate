@@ -3,6 +3,7 @@ import SwiftUI
 import AppKit
 import Carbon.HIToolbox
 @preconcurrency import ScreenCaptureKit
+import PermissionFlow
 
 // MARK: - Shortcut Recording Type
 
@@ -457,40 +458,11 @@ final class SettingsViewModel {
     func checkPermissions() {
         isCheckingPermissions = true
 
-        // Check accessibility permission using AXIsProcessTrusted() without any prompt
-        let accessibilityGranted = AXIsProcessTrusted()
-        hasAccessibilityPermission = accessibilityGranted
-
-        // Check folder access permission by testing if we can write to the save location
+        hasAccessibilityPermission = PermissionStatusRegistry.provider(for: .accessibility).authorizationState() == .granted
         hasFolderAccessPermission = checkFolderAccess(to: saveLocation)
+        hasScreenRecordingPermission = PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted
 
-        // Check screen recording permission using ScreenCaptureKit
-        // Cancel any existing task to avoid race conditions
-        permissionCheckTask?.cancel()
-
-        permissionCheckTask = Task {
-            let granted = await checkScreenRecordingPermission()
-            self.hasScreenRecordingPermission = granted
-            self.isCheckingPermissions = false
-            permissionCheckTask = nil
-        }
-    }
-
-    /// Checks screen recording permission using ScreenCaptureKit for reliable detection
-    private func checkScreenRecordingPermission() async -> Bool {
-        // First do a quick check with CGPreflightScreenCaptureAccess
-        if !CGPreflightScreenCaptureAccess() {
-            return false
-        }
-        
-        // Verify by actually trying to get shareable content
-        // This ensures permission is truly granted (not just cached)
-        do {
-            _ = try await SCShareableContent.current
-            return true
-        } catch {
-            return false
-        }
+        isCheckingPermissions = false
     }
 
     /// Checks if we have write access to the specified folder
@@ -509,95 +481,50 @@ final class SettingsViewModel {
 
     /// Requests screen recording permission
     func requestScreenRecordingPermission() {
-        // First check if already granted
-        if CGPreflightScreenCaptureAccess() {
+        if PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted {
             hasScreenRecordingPermission = true
             return
         }
 
-        // Request permission - CGRequestScreenCaptureAccess() returns true if granted
-        let granted = CGRequestScreenCaptureAccess()
-        if granted {
-            hasScreenRecordingPermission = true
-            return
-        }
-
-        // Trigger ScreenCaptureKit API to register app in permission list
-        Task {
-            do {
-                // This will trigger the system to register the app in Screen Recording permissions
-                _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-            } catch {
-                // Expected when permission not granted - app is now registered
-            }
-
-            // Open System Settings after triggering the API
-            await MainActor.run {
-                openScreenRecordingSettings()
-            }
-        }
-
-        // Start polling for permission status
         startPermissionCheck(for: .screenRecording)
-    }
-
-    /// Opens System Settings for screen recording permission
-    func openScreenRecordingSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            NSWorkspace.shared.open(url)
-        }
     }
 
     /// Requests accessibility permission - triggers system dialog only
     func requestAccessibilityPermission() {
-        // Check current status first
-        if AXIsProcessTrusted() {
+        if PermissionStatusRegistry.provider(for: .accessibility).authorizationState() == .granted {
             hasAccessibilityPermission = true
             return
         }
 
-        // Request accessibility - triggers system dialog (will guide user to settings if needed)
-        let options: CFDictionary = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
-        // Start checking for permission
+        // Just start polling, let PermissionFlow handle the drag & drop authorization
         startPermissionCheck(for: .accessibility)
-    }
-
-    /// Opens System Settings for accessibility permission
-    func openAccessibilitySettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-            NSWorkspace.shared.open(url)
-        }
     }
 
     /// Starts checking for permission status periodically
     private func startPermissionCheck(for type: PermissionType) {
-        // Cancel any existing permission check task
         permissionCheckTask?.cancel()
 
         permissionCheckTask = Task {
-            for _ in 0..<60 {  // Check for up to 30 seconds
+            for _ in 0..<150 {  // Check for up to 30 seconds
                 do {
-                    try await Task.sleep(for: .milliseconds(500))
+                    try await Task.sleep(for: .milliseconds(200))
                 } catch {
-                    // Task was cancelled
                     return
                 }
 
                 switch type {
                 case .screenRecording:
-                    // Use the same reliable check method
-                    let granted = await checkScreenRecordingPermission()
-                    if granted {
+                    let isGranted = PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted
+                    if isGranted {
                         hasScreenRecordingPermission = true
                         permissionCheckTask = nil
                         return
                     }
 
                 case .accessibility:
-                    let granted = AXIsProcessTrusted()
-                    if granted {
-                        hasAccessibilityPermission = granted
+                    let isGranted = PermissionStatusRegistry.provider(for: .accessibility).authorizationState() == .granted
+                    if isGranted {
+                        hasAccessibilityPermission = true
                         permissionCheckTask = nil
                         return
                     }

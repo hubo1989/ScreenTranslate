@@ -299,7 +299,20 @@ final class AppSettings {
     }
 
     var vlmAPIKey: String {
-        didSet { save(vlmAPIKey, forKey: Keys.vlmAPIKey) }
+        didSet {
+            // Save to Keychain instead of UserDefaults for security
+            let capturedKey = vlmAPIKey
+            Task.detached {
+                do {
+                    try await KeychainService.shared.saveCredentials(
+                        apiKey: capturedKey,
+                        forCompatibleId: "vlm_api_key"
+                    )
+                } catch {
+                    Logger.settings.error("Failed to save VLM API key to Keychain: \(error)")
+                }
+            }
+        }
     }
 
     var vlmBaseURL: String {
@@ -513,7 +526,7 @@ final class AppSettings {
         let resolvedGLMOCRMode = defaults.string(forKey: Keys.glmOCRMode)
             .flatMap { GLMOCRMode(rawValue: $0) } ?? .cloud
         vlmProvider = resolvedVLMProvider
-        vlmAPIKey = defaults.string(forKey: Keys.vlmAPIKey) ?? ""
+        vlmAPIKey = ""  // Will be loaded from Keychain in post-init below
         glmOCRMode = resolvedGLMOCRMode
         if resolvedVLMProvider == .glmOCR {
             let modeSpecificBaseURLKey = resolvedGLMOCRMode == .cloud ? Keys.glmOCRCloudBaseURL : Keys.glmOCRLocalBaseURL
@@ -561,6 +574,17 @@ final class AppSettings {
 
         // Load vLLM model directory
         paddleOCRLocalVLModelDir = defaults.string(forKey: Keys.paddleOCRLocalVLModelDir) ?? ""
+
+        // Post-init: Load VLM API key from Keychain (after all stored properties are initialized)
+        let keychainKey = Self.loadVLMAPIKeyFromKeychain()
+        if !keychainKey.isEmpty {
+            vlmAPIKey = keychainKey
+        } else if let legacyKey = defaults.string(forKey: Keys.vlmAPIKey), !legacyKey.isEmpty {
+            // Migrate from UserDefaults to Keychain
+            vlmAPIKey = legacyKey  // triggers didSet -> saves to Keychain
+            defaults.removeObject(forKey: Keys.vlmAPIKey)  // remove plaintext
+            Logger.settings.info("Migrated VLM API key from UserDefaults to Keychain")
+        }
 
         Logger.settings.info("ScreenCapture launched - settings loaded from: \(loadedLocation.path)")
     }
@@ -722,6 +746,28 @@ final class AppSettings {
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: KeychainService.serviceIdentifier,
             kSecAttrAccount as String: KeychainService.paddleOCRAccount,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
+            return ""
+        }
+
+        return credentials.apiKey
+    }
+
+    /// Load VLM API key from Keychain synchronously
+    private static func loadVLMAPIKeyFromKeychain() -> String {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: KeychainService.serviceIdentifier,
+            kSecAttrAccount as String: "vlm_api_key",
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
         ]

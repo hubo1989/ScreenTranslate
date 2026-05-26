@@ -77,7 +77,7 @@ actor KeychainService {
             // Item exists - update it
             let updateQuery: [String: Any] = [
                 kSecValueData as String: encodedData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
             ]
             let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
             guard updateStatus == errSecSuccess else {
@@ -92,7 +92,7 @@ actor KeychainService {
                 kSecAttrService as String: service,
                 kSecAttrAccount as String: account,
                 kSecValueData as String: encodedData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlocked
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
             ]
             let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
             guard addStatus == errSecSuccess else {

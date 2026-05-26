@@ -450,13 +450,21 @@ actor PaddleOCREngine {
 
     /// Executes PaddleOCR with the given arguments
     private func executePaddleOCR(arguments: [String]) async throws -> String {
-        let fullCommand = "\(executablePath) \(arguments.joined(separator: " "))"
-        Logger.ocr.info("Executing: \(fullCommand)")
-        
+        let exePath = executablePath
+        Logger.ocr.info("Executing: \(exePath) \(arguments.joined(separator: " "))")
+
+        // Security: validate executable path doesn't contain shell metacharacters
+        let dangerousChars = CharacterSet(charactersIn: ";|&$`\"'\\(){}[]!#~")
+        if exePath.unicodeScalars.contains(where: { dangerousChars.contains($0) }) {
+            throw PaddleOCREngineError.invalidConfiguration("Executable path contains unsafe characters: \(exePath)")
+        }
+
+        // Security: use Process with direct executableURL + arguments instead of shell
+        // This prevents command injection since arguments aren't parsed by a shell
         let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        task.arguments = ["-c", fullCommand]
-        
+        task.executableURL = URL(fileURLWithPath: exePath)
+        task.arguments = arguments
+
         task.environment = [
             "PATH": "\(NSHomeDirectory())/.pyenv/shims:\(NSHomeDirectory())/.pyenv/bin:/usr/local/bin:/usr/bin:/bin",
             "HOME": NSHomeDirectory(),

@@ -30,9 +30,7 @@ struct OnboardingView: View {
                         isLastStep: viewModel.isLastStep,
                         permissionCheckTimedOut: viewModel.permissionCheckTimedOut,
                         onRequestScreenRecording: { viewModel.requestScreenRecordingPermission() },
-                        onOpenScreenRecordingSettings: { viewModel.openScreenRecordingSettings() },
                         onRequestAccessibility: { viewModel.requestAccessibilityPermission() },
-                        onOpenAccessibilitySettings: { viewModel.openAccessibilitySettings() },
                         onPrevious: { viewModel.goToPreviousStep() },
                         onNext: { viewModel.goToNextStep() },
                         onSkip: { viewModel.skipPermissions() }
