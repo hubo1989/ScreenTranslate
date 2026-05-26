@@ -234,6 +234,12 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
             // Claude uses /v1/messages endpoint
             endpoint = baseURL.appendingPathComponent("v1/messages")
             if let apiKey = credentials?.apiKey {
+                // Security: reject non-HTTPS endpoints (except localhost) when sending API keys
+                if let host = baseURL.host, !Self.isLocalhost(host) && baseURL.scheme != "https" {
+                    throw TranslationProviderError.invalidConfiguration(
+                        "Refusing to send API key over insecure connection (HTTP). Use HTTPS or a localhost URL."
+                    )
+                }
                 headers["x-api-key"] = apiKey
                 headers["anthropic-version"] = "2023-06-01"
             }
@@ -241,6 +247,12 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
             // OpenAI, Gemini, Ollama use /chat/completions endpoint
             endpoint = baseURL.appendingPathComponent("chat/completions")
             if let apiKey = credentials?.apiKey {
+                // Security: reject non-HTTPS endpoints (except localhost) when sending API keys
+                if let host = baseURL.host, !Self.isLocalhost(host) && baseURL.scheme != "https" {
+                    throw TranslationProviderError.invalidConfiguration(
+                        "Refusing to send API key over insecure connection (HTTP). Use HTTPS or a localhost URL."
+                    )
+                }
                 headers["Authorization"] = "Bearer \(apiKey)"
             }
         }
@@ -346,5 +358,15 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
 
     private func getModelName() -> String {
         return config.options?.modelName ?? engineType.defaultModelName ?? "gpt-4o-mini"
+    }
+
+    /// Check if a hostname refers to localhost (safe for HTTP)
+    private nonisolated static func isLocalhost(_ host: String) -> Bool {
+        let lowered = host.lowercased()
+        return lowered == "localhost"
+            || lowered == "127.0.0.1"
+            || lowered == "::1"
+            || lowered == "0.0.0.0"
+            || lowered.hasSuffix(".local")
     }
 }

@@ -74,13 +74,19 @@ struct OnboardingNavigationButtons: View {
     }
 }
 
+import SwiftUI
+import PermissionFlow
+
 struct OnboardingPermissionRow: View {
     let icon: String
     let title: String
     let subtitle: String
     let isGranted: Bool
+    let pane: PermissionFlowPane
     let requestAction: () -> Void
-    let openSettingsAction: () -> Void
+
+    @StateObject private var controller = PermissionFlowController()
+    @State private var buttonFrame: CGRect = .zero
 
     var body: some View {
         HStack(spacing: 16) {
@@ -110,15 +116,42 @@ struct OnboardingPermissionRow: View {
                     .font(.title2)
             } else {
                 Button {
+                    let screenRect = convertToScreen(buttonFrame)
+                    controller.authorize(
+                        pane: pane,
+                        suggestedAppURLs: [Bundle.main.bundleURL],
+                        sourceFrameInScreen: screenRect
+                    )
                     requestAction()
                 } label: {
                     Text(NSLocalizedString("onboarding.permission.grant", comment: ""))
                 }
                 .buttonStyle(.borderedProminent)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear
+                            .onAppear {
+                                buttonFrame = geo.frame(in: .global)
+                            }
+                            .onChange(of: geo.frame(in: .global)) { _, newValue in
+                                buttonFrame = newValue
+                            }
+                    }
+                )
             }
         }
         .padding()
         .background(Color(nsColor: .controlBackgroundColor))
         .clipShape(.rect(cornerRadius: 8))
+        .onChange(of: isGranted) { _, newValue in
+            if newValue {
+                controller.closePanel()
+            }
+        }
+    }
+
+    private func convertToScreen(_ rect: CGRect) -> CGRect {
+        guard let window = NSApp.keyWindow else { return rect }
+        return window.convertToScreen(rect)
     }
 }

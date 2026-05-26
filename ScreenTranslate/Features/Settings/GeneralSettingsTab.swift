@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import PermissionFlow
 
 struct GeneralSettingsContent: View {
     @Bindable var viewModel: SettingsViewModel
@@ -36,6 +37,7 @@ struct PermissionRow: View {
                 hint: localized("settings.permission.screen.recording.hint"),
                 isGranted: viewModel.hasScreenRecordingPermission,
                 isChecking: viewModel.isCheckingPermissions,
+                pane: .screenRecording,
                 onGrant: { viewModel.requestScreenRecordingPermission() }
             )
 
@@ -47,6 +49,7 @@ struct PermissionRow: View {
                 hint: localized("settings.permission.accessibility.hint"),
                 isGranted: viewModel.hasAccessibilityPermission,
                 isChecking: viewModel.isCheckingPermissions,
+                pane: .accessibility,
                 onGrant: { viewModel.requestAccessibilityPermission() }
             )
 
@@ -83,7 +86,11 @@ struct PermissionItem: View {
     let hint: String
     let isGranted: Bool
     let isChecking: Bool
+    var pane: PermissionFlowPane? = nil
     let onGrant: () -> Void
+
+    @StateObject private var controller = PermissionFlowController()
+    @State private var buttonFrame: CGRect = .zero
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -112,12 +119,31 @@ struct PermissionItem: View {
                                 .foregroundStyle(.red)
 
                             Button {
+                                if let pane {
+                                    let screenRect = convertToScreen(buttonFrame)
+                                    controller.authorize(
+                                        pane: pane,
+                                        suggestedAppURLs: [Bundle.main.bundleURL],
+                                        sourceFrameInScreen: screenRect
+                                    )
+                                }
                                 onGrant()
                             } label: {
                                 Text(localized("settings.permission.grant"))
                             }
                             .buttonStyle(.borderedProminent)
                             .controlSize(.small)
+                            .background(
+                                GeometryReader { geo in
+                                    Color.clear
+                                        .onAppear {
+                                            buttonFrame = geo.frame(in: .global)
+                                        }
+                                        .onChange(of: geo.frame(in: .global)) { _, newValue in
+                                            buttonFrame = newValue
+                                        }
+                                }
+                            )
                         }
                     }
                 }
@@ -136,6 +162,16 @@ struct PermissionItem: View {
                 \(isGranted ? localized("settings.permission.granted") : localized("settings.permission.required"))
                 """)
         )
+        .onChange(of: isGranted) { _, newValue in
+            if newValue {
+                controller.closePanel()
+            }
+        }
+    }
+
+    private func convertToScreen(_ rect: CGRect) -> CGRect {
+        guard let window = NSApp.keyWindow else { return rect }
+        return window.convertToScreen(rect)
     }
 }
 

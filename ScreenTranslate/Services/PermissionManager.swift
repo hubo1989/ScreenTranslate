@@ -9,6 +9,7 @@ import Foundation
 import ApplicationServices
 import AppKit
 import Combine
+import SystemSettingsKit
 
 /// Manager for handling system permissions required by the app.
 /// Centralizes permission checking, requesting, and caching logic.
@@ -118,16 +119,12 @@ final class PermissionManager: ObservableObject {
 
     /// Opens System Settings to the Accessibility pane.
     func openAccessibilitySettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
-            NSWorkspace.shared.open(url)
-        }
+        SystemSettings.open(.privacy(anchor: .privacyAccessibility))
     }
 
     /// Opens System Settings to the Input Monitoring pane.
     func openInputMonitoringSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
-            NSWorkspace.shared.open(url)
-        }
+        SystemSettings.open(.privacy(anchor: .privacyListenEvent))
     }
 
     /// Checks if text selection capture is possible (requires accessibility).

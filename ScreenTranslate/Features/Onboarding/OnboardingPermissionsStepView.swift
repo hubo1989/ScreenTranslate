@@ -1,4 +1,5 @@
 import SwiftUI
+import PermissionFlow
 
 struct OnboardingPermissionsStepView: View {
     let hasScreenRecordingPermission: Bool
@@ -8,9 +9,7 @@ struct OnboardingPermissionsStepView: View {
     let isLastStep: Bool
     let permissionCheckTimedOut: Bool
     let onRequestScreenRecording: () -> Void
-    let onOpenScreenRecordingSettings: () -> Void
     let onRequestAccessibility: () -> Void
-    let onOpenAccessibilitySettings: () -> Void
     let onPrevious: () -> Void
     let onNext: () -> Void
     let onSkip: () -> Void
@@ -40,8 +39,8 @@ struct OnboardingPermissionsStepView: View {
                     title: NSLocalizedString("onboarding.permission.screen.recording", comment: ""),
                     subtitle: NSLocalizedString("onboarding.permission.screen.recording.subtitle", comment: ""),
                     isGranted: hasScreenRecordingPermission,
-                    requestAction: onRequestScreenRecording,
-                    openSettingsAction: onOpenScreenRecordingSettings
+                    pane: .screenRecording,
+                    requestAction: onRequestScreenRecording
                 )
 
                 OnboardingPermissionRow(
@@ -49,8 +48,8 @@ struct OnboardingPermissionsStepView: View {
                     title: NSLocalizedString("onboarding.permission.accessibility", comment: ""),
                     subtitle: NSLocalizedString("onboarding.permission.accessibility.subtitle", comment: ""),
                     isGranted: hasAccessibilityPermission,
-                    requestAction: onRequestAccessibility,
-                    openSettingsAction: onOpenAccessibilitySettings
+                    pane: .accessibility,
+                    requestAction: onRequestAccessibility
                 )
             }
 

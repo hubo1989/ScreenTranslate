@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5CBB85A94547D02088035C0B /* PermissionFlow in Frameworks */ = {isa = PBXBuildFile; productRef = F49C82A9A918036DFB0D690D /* PermissionFlow */; };
 		86DCC59B2F56BB9D000ECF4B /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 86DCC59A2F56BB9D000ECF4B /* Sparkle */; };
 /* End PBXBuildFile section */
 
@@ -26,7 +27,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		862C98FC2F32309800ABAC92 /* Exceptions for "ScreenTranslate" folder in "ScreenTranslate" target */ = {
+		862C98FC2F32309800ABAC92 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"Supporting Files/Info.plist",
@@ -39,7 +40,7 @@
 		SC000002 /* ScreenTranslate */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				862C98FC2F32309800ABAC92 /* Exceptions for "ScreenTranslate" folder in "ScreenTranslate" target */,
+				862C98FC2F32309800ABAC92 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
 			);
 			path = ScreenTranslate;
 			sourceTree = "<group>";
@@ -57,6 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				86DCC59B2F56BB9D000ECF4B /* Sparkle in Frameworks */,
+				5CBB85A94547D02088035C0B /* PermissionFlow in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,6 +105,7 @@
 			name = ScreenTranslate;
 			packageProductDependencies = (
 				86DCC59A2F56BB9D000ECF4B /* Sparkle */,
+				F49C82A9A918036DFB0D690D /* PermissionFlow */,
 			);
 			productName = ScreenTranslate;
 			productReference = SC000001 /* ScreenTranslate.app */;
@@ -170,6 +173,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				86DCC5992F56BB9D000ECF4B /* XCRemoteSwiftPackageReference "Sparkle" */,
+				CE5436FF8ECB77DA00F4A8BB /* XCRemoteSwiftPackageReference "PermissionFlow" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = SC000005 /* Products */;
@@ -528,6 +532,14 @@
 				minimumVersion = 2.9.0;
 			};
 		};
+		CE5436FF8ECB77DA00F4A8BB /* XCRemoteSwiftPackageReference "PermissionFlow" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/jaywcjlove/PermissionFlow.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -535,6 +547,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 86DCC5992F56BB9D000ECF4B /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		F49C82A9A918036DFB0D690D /* PermissionFlow */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CE5436FF8ECB77DA00F4A8BB /* XCRemoteSwiftPackageReference "PermissionFlow" */;
+			productName = PermissionFlow;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

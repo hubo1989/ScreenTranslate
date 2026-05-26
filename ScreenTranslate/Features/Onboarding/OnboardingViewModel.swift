@@ -4,6 +4,7 @@ import AppKit
 @preconcurrency import ScreenCaptureKit
 import Translation
 import os.log
+import PermissionFlow
 
 /// ViewModel for the first launch onboarding experience.
 @MainActor
@@ -76,8 +77,8 @@ final class OnboardingViewModel {
         self.settings = settings
         Task {
             await MainActor.run {
-                // Only check accessibility permission on init (no system dialog)
-                hasAccessibilityPermission = AccessibilityPermissionChecker.hasPermission
+                // Check all permissions on init
+                checkPermissions()
             }
         }
     }
@@ -116,127 +117,56 @@ final class OnboardingViewModel {
 
     /// Checks all permission statuses
     func checkPermissions() {
-        hasAccessibilityPermission = AccessibilityPermissionChecker.hasPermission
+        hasAccessibilityPermission = PermissionStatusRegistry.provider(for: .accessibility).authorizationState() == .granted
+        hasScreenRecordingPermission = PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted
         permissionCheckTimedOut = false
-
-        // Check screen recording permission using async method
-        Task {
-            hasScreenRecordingPermission = await checkScreenRecordingPermission()
-        }
-    }
-
-    /// Checks screen recording permission using ScreenCaptureKit for reliable detection
-    private func checkScreenRecordingPermission() async -> Bool {
-        // First do a quick check with CGPreflightScreenCaptureAccess
-        if !CGPreflightScreenCaptureAccess() {
-            return false
-        }
-
-        // Verify by actually trying to get shareable content
-        do {
-            _ = try await SCShareableContent.current
-            return true
-        } catch {
-            return false
-        }
     }
 
     /// Requests screen recording permission
     func requestScreenRecordingPermission() {
-        // First check if already granted
-        if CGPreflightScreenCaptureAccess() {
+        if PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted {
             hasScreenRecordingPermission = true
             return
         }
-
-        // Request permission - CGRequestScreenCaptureAccess() returns true if granted
-        let granted = CGRequestScreenCaptureAccess()
-        if granted {
-            hasScreenRecordingPermission = true
-            return
-        }
-
-        // Trigger ScreenCaptureKit API to register app in permission list
-        Task {
-            do {
-                // This will trigger the system to register the app in Screen Recording permissions
-                _ = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
-            } catch {
-                // Expected when permission not granted - app is now registered
-            }
-
-            // Open System Settings after triggering the API
-            // Class is @MainActor so no explicit MainActor.run needed
-            openScreenRecordingSettings()
-        }
-
-        // Start polling for permission status
-        permissionCheckTimedOut = false
         startPermissionCheck(for: .screenRecording)
-    }
-
-    /// Opens System Settings for screen recording permission
-    func openScreenRecordingSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            NSWorkspace.shared.open(url)
-        }
     }
 
     /// Requests accessibility permission - triggers system dialog only
     func requestAccessibilityPermission() {
-        // Check current status first
-        if AccessibilityPermissionChecker.hasPermission {
+        if PermissionStatusRegistry.provider(for: .accessibility).authorizationState() == .granted {
             hasAccessibilityPermission = true
             return
         }
 
-        // Request accessibility - triggers system dialog (will guide user to settings if needed)
-        _ = AccessibilityPermissionChecker.requestPermission()
-        // Start checking for permission
-        permissionCheckTimedOut = false
+        // Just start polling, let PermissionFlow handle the drag & drop authorization
         startPermissionCheck(for: .accessibility)
-    }
-
-    /// Opens System Settings for accessibility permission
-    func openAccessibilitySettings() {
-        AccessibilityPermissionChecker.openAccessibilitySettings()
     }
 
     /// Starts checking for permission status periodically
     private func startPermissionCheck(for type: PermissionType) {
-        // Cancel any existing permission check task
         permissionCheckTask?.cancel()
 
         permissionCheckTask = Task {
-            for _ in 0..<60 {
+            for _ in 0..<150 {
                 do {
-                    try await Task.sleep(for: .milliseconds(500))
+                    try await Task.sleep(for: .milliseconds(200))
                 } catch {
-                    // Task was cancelled
                     return
                 }
 
                 switch type {
                 case .screenRecording:
-                    let granted = await checkScreenRecordingPermission()
-                    if granted {
+                    let isGranted = PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted
+                    if isGranted {
                         hasScreenRecordingPermission = true
-                        // Clear skipped flag if all permissions are now granted
-                        if hasAccessibilityPermission {
-                            hasSkippedPermissions = false
-                        }
                         permissionCheckTask = nil
                         return
                     }
 
                 case .accessibility:
-                    let granted = AccessibilityPermissionChecker.hasPermission
-                    if granted {
-                        hasAccessibilityPermission = granted
-                        // Clear skipped flag if all permissions are now granted
-                        if hasScreenRecordingPermission {
-                            hasSkippedPermissions = false
-                        }
+                    let isGranted = PermissionStatusRegistry.provider(for: .accessibility).authorizationState() == .granted
+                    if isGranted {
+                        hasAccessibilityPermission = true
                         permissionCheckTask = nil
                         return
                     }
