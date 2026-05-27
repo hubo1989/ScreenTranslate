@@ -191,6 +191,21 @@ actor MockTranslationServicing: TranslationServicing {
 
 @available(macOS 13.0, *)
 final class TranslationServicePipelineTests: XCTestCase {
+
+    override func setUp() async throws {
+        try await super.setUp()
+        await MainActor.run {
+            let settings = AppSettings.shared
+            for engine in TranslationEngineType.allCases {
+                if var config = settings.engineConfigs[engine] {
+                    config.isEnabled = true
+                    settings.engineConfigs[engine] = config
+                }
+            }
+            settings.saveEngineConfigs()
+        }
+    }
+
     private func makeResult(
         source: String,
         translated: String,
@@ -713,4 +728,117 @@ final class TranslationServicePipelineTests: XCTestCase {
         }
         XCTAssertEqual(serviceRequestCount, 1)
     }
+
+    func testSelfLanguageTranslationBypass() async throws {
+        let registry = TranslationEngineRegistry(registerBuiltInProviders: false)
+        let apple = MockTranslationProvider(
+            id: "apple",
+            name: "Apple",
+            batchResults: []
+        )
+        await registry.register(apple, for: .apple)
+
+        let service = TranslationService(registry: registry)
+
+        let bundle = try await service.translate(
+            segments: ["你好", "Hello"],
+            to: "zh-Hans",
+            from: nil,
+            mode: .primaryWithFallback,
+            preferredEngine: .apple,
+            fallbackEnabled: false
+        )
+
+        let appleRequests = await apple.requests
+        print("DEBUG_APPLE_REQUESTS: \(appleRequests)")
+        XCTAssertEqual(appleRequests.count, 1)
+        if appleRequests.count > 0 {
+            print("DEBUG_APPLE_REQUEST_0_TEXTS: \(appleRequests[0].texts)")
+            XCTAssertEqual(appleRequests[0].texts, ["Hello"])
+        }
+
+        let primaryResult = bundle.primaryResult
+        print("DEBUG_PRIMARY_RESULT_COUNT: \(primaryResult.count)")
+        for (i, res) in primaryResult.enumerated() {
+            print("DEBUG_PRIMARY_RESULT_\(i): source=\(res.sourceText), translated=\(res.translated)")
+        }
+        XCTAssertEqual(primaryResult.count, 2)
+        XCTAssertEqual(primaryResult[0].translated, "你好")
+        XCTAssertEqual(primaryResult[1].translated, "Hello -> zh-Hans")
+    }
+
+    func testPrintRealUserSettings() async {
+        await MainActor.run {
+            print("--- USER SETTINGS PRINT ---")
+            let settings = AppSettings.shared
+            print("ocrEngine: \(settings.ocrEngine.rawValue)")
+            print("translationEngine: \(settings.translationEngine.rawValue)")
+            print("translationTargetLanguage: \(String(describing: settings.translationTargetLanguage?.rawValue))")
+            print("translationSourceLanguage: \(settings.translationSourceLanguage.rawValue)")
+            print("translationFallbackEnabled: \(settings.translationFallbackEnabled)")
+            print("engineSelectionMode: \(settings.engineSelectionMode.rawValue)")
+            print("vlmProvider: \(settings.vlmProvider.rawValue)")
+            print("---------------------------")
+        }
+    }
+
+    func testSanitizeTranslationCurlyBraces() async throws {
+        let registry = TranslationEngineRegistry(registerBuiltInProviders: false)
+        let apple = MockTranslationProvider(
+            id: "apple",
+            name: "Apple",
+            batchResults: [
+                makeResult(source: "Hello world", translated: #"{""}"#),
+                makeResult(source: "Good morning", translated: "{}"),
+                makeResult(source: "Screen Translate", translated: "屏幕翻译"),
+                makeResult(source: "Welcome", translated: ""),
+                makeResult(source: "Nice to meet you", translated: #"{ "" }"#),
+                makeResult(source: "How are you", translated: "{“”}"),
+                makeResult(source: "Goodbye", translated: #"{ "": "" }"#),
+                makeResult(source: "Apple", translated: #"{"translation": "苹果"}"#),
+                makeResult(source: "Orange", translated: #"{"translatedText": "  "}"#),
+                makeResult(source: "Banana", translated: #"{"result":}"#)
+            ]
+        )
+        await registry.register(apple, for: .apple)
+
+        let service = TranslationService(registry: registry)
+
+        let bundle = try await service.translate(
+            segments: [
+                "Hello world", "Good morning", "Screen Translate", "Welcome",
+                "Nice to meet you", "How are you", "Goodbye", "Apple", "Orange", "Banana"
+            ],
+            to: "zh-Hans",
+            from: "en",
+            scene: .screenshot,
+            mode: .primaryWithFallback,
+            preferredEngine: .apple,
+            fallbackEnabled: false
+        )
+        let results = bundle.primaryResult
+
+        XCTAssertEqual(results.count, 10)
+        // {""} -> "Hello world"
+        XCTAssertEqual(results[0].translated, "Hello world")
+        // {} -> "Good morning"
+        XCTAssertEqual(results[1].translated, "Good morning")
+        // Normal -> "屏幕翻译"
+        XCTAssertEqual(results[2].translated, "屏幕翻译")
+        // Empty -> "Welcome"
+        XCTAssertEqual(results[3].translated, "Welcome")
+        // { "" } -> "Nice to meet you"
+        XCTAssertEqual(results[4].translated, "Nice to meet you")
+        // {“”} -> "How are you"
+        XCTAssertEqual(results[5].translated, "How are you")
+        // { "": "" } -> "Goodbye"
+        XCTAssertEqual(results[6].translated, "Goodbye")
+        // {"translation": "苹果"} -> "苹果" (深度提取成功)
+        XCTAssertEqual(results[7].translated, "苹果")
+        // {"translatedText": "  "} -> "Orange" (空提取，安全回退)
+        XCTAssertEqual(results[8].translated, "Orange")
+        // {"result":} -> "Banana" (语法错误损坏JSON，安全回退)
+        XCTAssertEqual(results[9].translated, "Banana")
+    }
 }
+

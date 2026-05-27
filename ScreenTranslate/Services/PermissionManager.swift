@@ -10,6 +10,7 @@ import ApplicationServices
 import AppKit
 import Combine
 import SystemSettingsKit
+import PermissionFlow
 
 /// Manager for handling system permissions required by the app.
 /// Centralizes permission checking, requesting, and caching logic.
@@ -26,6 +27,12 @@ final class PermissionManager: ObservableObject {
 
     /// Current input monitoring permission status
     @Published private(set) var hasInputMonitoringPermission: Bool = false
+
+    /// Controller for the PermissionFlow drag & drop authorization overlay
+    private let flowController = PermissionFlowController()
+
+    /// Active task for polling permission status during drag authorization
+    private var flowPollingTask: Task<Void, Never>? = nil
 
     // MARK: - Private Properties
 
@@ -278,6 +285,97 @@ final class PermissionManager: ObservableObject {
     /// Removes notification observers.
     func stopPermissionMonitoring() {
         NotificationCenter.default.removeObserver(self)
+    }
+
+    /// Checks Screen Recording permission and triggers the drag-to-authorize flow if denied.
+    /// - Returns: True if permission is granted, False if we had to request it (flow started).
+    @discardableResult
+    func ensureScreenRecordingPermission() -> Bool {
+        let isGranted = PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted
+        if isGranted {
+            return true
+        }
+
+        // Show the drag-to-authorize panel in the center of the main screen
+        let screenRect: CGRect
+        if let mainScreen = NSScreen.main {
+            let frame = mainScreen.frame
+            screenRect = CGRect(x: frame.midX - 50, y: frame.midY - 50, width: 100, height: 100)
+        } else {
+            screenRect = CGRect(x: 100, y: 100, width: 100, height: 100)
+        }
+
+        flowController.authorize(
+            pane: .screenRecording,
+            suggestedAppURLs: [Bundle.main.bundleURL],
+            sourceFrameInScreen: screenRect
+        )
+
+        // Start polling to auto-close when granted
+        startFlowPolling(for: .screenRecording)
+
+        return false
+    }
+
+    /// Checks Accessibility permission and triggers the drag-to-authorize flow if denied.
+    /// - Returns: True if permission is granted, False if we had to request it (flow started).
+    @discardableResult
+    func ensureAccessibilityPermissionFlow() -> Bool {
+        refreshPermissionStatus()
+        if hasAccessibilityPermission {
+            return true
+        }
+
+        // Show the drag-to-authorize panel in the center of the main screen
+        let screenRect: CGRect
+        if let mainScreen = NSScreen.main {
+            let frame = mainScreen.frame
+            screenRect = CGRect(x: frame.midX - 50, y: frame.midY - 50, width: 100, height: 100)
+        } else {
+            screenRect = CGRect(x: 100, y: 100, width: 100, height: 100)
+        }
+
+        flowController.authorize(
+            pane: .accessibility,
+            suggestedAppURLs: [Bundle.main.bundleURL],
+            sourceFrameInScreen: screenRect
+        )
+
+        // Start polling to auto-close when granted
+        startFlowPolling(for: .accessibility)
+
+        return false
+    }
+
+    /// Polls permission status to automatically close the panel once granted
+    private func startFlowPolling(for pane: PermissionFlowPane) {
+        flowPollingTask?.cancel()
+        flowPollingTask = Task {
+            for _ in 0..<150 { // Poll for up to 30 seconds
+                do {
+                    try await Task.sleep(for: .milliseconds(200))
+                } catch {
+                    return
+                }
+
+                let isGranted: Bool
+                switch pane {
+                case .screenRecording:
+                    isGranted = PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted
+                case .accessibility:
+                    isGranted = AXIsProcessTrusted()
+                default:
+                    isGranted = false
+                }
+
+                if isGranted {
+                    flowController.closePanel()
+                    refreshPermissionStatus()
+                    flowPollingTask = nil
+                    return
+                }
+            }
+        }
     }
 }
 

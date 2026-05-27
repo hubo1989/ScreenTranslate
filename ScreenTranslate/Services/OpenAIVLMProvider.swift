@@ -248,7 +248,7 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     }
 
     /// Extracts content text and truncation status from OpenAI response
-    private func extractContentAndStatus(from data: Data) throws -> (content: String, isTruncated: Bool, finishReason: String?) {
+    func extractContentAndStatus(from data: Data) throws -> (content: String, isTruncated: Bool, finishReason: String?) {
         logDebug("Received raw response payload: \(data.count) bytes")
 
         // Check for error response first
@@ -259,7 +259,6 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
 
         // Try to parse as OpenAI response
         let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
 
         let openAIResponse: OpenAIChatResponse
         do {
@@ -290,9 +289,17 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             throw VLMProviderError.invalidResponse("No message in choice")
         }
 
-        guard let content = message.content else {
-            let reason = choice.finishReason ?? "unknown"
-            throw VLMProviderError.invalidResponse("No content in response (finish_reason: \(reason))")
+        var content = message.content ?? ""
+
+        // Fallback to reasoningContent or reasoning if content is empty
+        if content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if let reasoning = message.reasoningContent, !reasoning.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                logInfo("Main content is empty, falling back to reasoning_content")
+                content = reasoning
+            } else if let reasoningObj = message.reasoning, !reasoningObj.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                logInfo("Main content is empty, falling back to reasoning")
+                content = reasoningObj
+            }
         }
 
         let isTruncated = choice.finishReason == "length"
@@ -300,59 +307,86 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     }
 
     /// Attempts to extract content field manually when JSON decoder fails
-    private func extractContentManually(from json: String) -> String? {
+    func extractContentManually(from json: String) -> String? {
         let patterns = ["\"content\":\"", "\"content\": \""]
+        let reasoningPatterns = [
+            "\"reasoning_content\":\"",
+            "\"reasoning_content\": \"",
+            "\"reasoning\":\"",
+            "\"reasoning\": \""
+        ]
 
+        var extractedContent: String? = nil
+
+        // Try extracting content first
         for pattern in patterns {
-            if let range = json.range(of: pattern) {
-                let start = range.upperBound
-
-                var end = start
-                var escaped = false
-                var depth = 0
-                var charCount = 0
-
-                for char in json[start...] {
-                    charCount += 1
-                    if escaped {
-                        escaped = false
-                        end = json.index(after: end)
-                    } else if char == "\\" {
-                        escaped = true
-                        end = json.index(after: end)
-                    } else if char == "{" || char == "[" {
-                        depth += 1
-                        end = json.index(after: end)
-                    } else if char == "}" || char == "]" {
-                        depth -= 1
-                        end = json.index(after: end)
-                        if depth < 0 { break }
-                    } else if char == "\"" && depth == 0 {
-                        break
-                    } else {
-                        end = json.index(after: end)
-                    }
-                }
-
-                let content = String(json[start..<end])
-                logDebug("extractContentManually found content of \(content.count) chars")
-
-                return content
-                    .replacingOccurrences(of: "\\\"", with: "\"")
-                    .replacingOccurrences(of: "\\\\", with: "\\")
-                    .replacingOccurrences(of: "\\n", with: "\n")
+            if let content = extractField(from: json, pattern: pattern) {
+                extractedContent = content
+                break
             }
+        }
+
+        // If content is empty or not found, try extracting reasoning fields as fallback
+        if extractedContent == nil || extractedContent?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true {
+            for pattern in reasoningPatterns {
+                if let reasoning = extractField(from: json, pattern: pattern) {
+                    logInfo("Manually extracted reasoning field as fallback")
+                    extractedContent = reasoning
+                    break
+                }
+            }
+        }
+
+        if let content = extractedContent {
+            logDebug("extractContentManually found content of \(content.count) chars")
+            return content
         }
 
         logDebug("extractContentManually found no content pattern")
         return nil
     }
 
+    private func extractField(from json: String, pattern: String) -> String? {
+        guard let range = json.range(of: pattern) else { return nil }
+        let start = range.upperBound
+
+        var end = start
+        var escaped = false
+        var depth = 0
+
+        for char in json[start...] {
+            if escaped {
+                escaped = false
+                end = json.index(after: end)
+            } else if char == "\\" {
+                escaped = true
+                end = json.index(after: end)
+            } else if char == "{" || char == "[" {
+                depth += 1
+                end = json.index(after: end)
+            } else if char == "}" || char == "]" {
+                depth -= 1
+                end = json.index(after: end)
+                if depth < 0 { break }
+            } else if char == "\"" && depth == 0 {
+                break
+            } else {
+                end = json.index(after: end)
+            }
+        }
+
+        let content = String(json[start..<end])
+        return content
+            .replacingOccurrences(of: "\\\"", with: "\"")
+            .replacingOccurrences(of: "\\\\", with: "\\")
+            .replacingOccurrences(of: "\\n", with: "\n")
+    }
+
     // MARK: - Private Methods
 
     /// Builds the URLRequest for OpenAI Chat Completions API with custom messages
     private func buildRequest(messages: [OpenAIChatMessage], isContinuation: Bool = false) throws -> URLRequest {
-        let endpoint = configuration.baseURL.appendingPathComponent("chat/completions")
+        let endpoint = configuration.baseURL.resolvingLocalhost.appendingPathComponent("chat/completions")
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
@@ -478,13 +512,26 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
     }
 
     /// Parses the VLM JSON content from assistant message
-    private func parseVLMContent(_ content: String, wasTruncated: Bool = false) throws -> VLMAnalysisResponse {
+    func parseVLMContent(_ content: String, wasTruncated: Bool = false) throws -> VLMAnalysisResponse {
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw VLMProviderError.parsingFailed(
+                "Received empty response from model. This may happen if the model is not vision-capable, does not support the request format, or has content filters active."
+            )
+        }
+
         var cleanedContent = extractJSON(from: content)
 
         // If response was truncated, try to repair the JSON by closing open brackets
         if wasTruncated {
             logDebug("Attempting to repair truncated JSON")
             cleanedContent = attemptToRepairJSON(cleanedContent)
+        }
+
+        guard !cleanedContent.isEmpty else {
+            let escapedRaw = content.replacingOccurrences(of: "\n", with: " ")
+            throw VLMProviderError.parsingFailed(
+                "Cleaned content is empty. Raw content received: '\(escapedRaw.prefix(200))'"
+            )
         }
 
         guard let jsonData = cleanedContent.data(using: .utf8) else {
@@ -505,8 +552,11 @@ struct OpenAIVLMProvider: VLMProvider, Sendable {
             if wasTruncated {
                 throw VLMProviderError.invalidResponse("Response was truncated due to token limit. Try selecting a smaller area or using a model with larger context window.")
             }
+            
+            let escapedCleaned = cleanedContent.replacingOccurrences(of: "\n", with: " ")
+            let escapedRaw = content.replacingOccurrences(of: "\n", with: " ")
             throw VLMProviderError.parsingFailed(
-                "Failed to parse VLM response JSON: \(error.localizedDescription). Content length: \(cleanedContent.count) chars"
+                "Failed to parse VLM response JSON: \(error.localizedDescription). Cleaned content (first 200 chars): '\(escapedCleaned.prefix(200))'. Raw content (first 200 chars): '\(escapedRaw.prefix(200))'"
             )
         }
     }
@@ -652,11 +702,13 @@ private struct OpenAIChatRequest: Encodable, Sendable {
     let messages: [OpenAIChatMessage]
     let maxTokens: Int
     let temperature: Double
+    let stream: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case model, messages
         case maxTokens = "max_tokens"
         case temperature
+        case stream
     }
 }
 
@@ -739,6 +791,14 @@ private struct OpenAIChatChoice: Decodable, Sendable {
 private struct OpenAIResponseMessage: Decodable, Sendable {
     let role: String?
     let content: String?
+    let reasoningContent: String?
+    let reasoning: String?
+
+    enum CodingKeys: String, CodingKey {
+        case role, content
+        case reasoningContent = "reasoning_content"
+        case reasoning
+    }
 }
 
 private struct OpenAIUsage: Decodable, Sendable {

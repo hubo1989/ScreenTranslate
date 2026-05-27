@@ -8,6 +8,7 @@
 
 import Foundation
 import os.log
+import NaturalLanguage
 
 /// Orchestrates multiple translation providers with various selection modes
 @available(macOS 13.0, *)
@@ -350,6 +351,32 @@ actor TranslationService {
         return promptConfig
     }
 
+    /// Determines if a text contains translatable characters (letters or ideographs)
+    private func isTranslatable(_ text: String) -> Bool {
+        return text.unicodeScalars.contains { scalar in
+            if CharacterSet.letters.contains(scalar) {
+                return true
+            }
+            if (0x4E00...0x9FFF).contains(scalar.value) {
+                return true
+            }
+            return false
+        }
+    }
+
+    /// Checks if the text contains any Chinese characters
+    private func containsHanCharacters(_ text: String) -> Bool {
+        return text.unicodeScalars.contains { (0x4E00...0x9FFF).contains($0.value) }
+    }
+
+    /// Detects the language of the given text using NaturalLanguage framework.
+    private func detectLanguage(for text: String) -> TranslationLanguage? {
+        guard let dominantLanguage = NLLanguageRecognizer.dominantLanguage(for: text) else {
+            return nil
+        }
+        return TranslationLanguage.fromTranslationCode(dominantLanguage.rawValue)
+    }
+
     private func translateWithResolvedPrompt(
         provider: any TranslationProvider,
         engine: TranslationEngineType,
@@ -358,26 +385,170 @@ actor TranslationService {
         to targetLanguage: String,
         scene: TranslationScene?
     ) async throws -> [TranslationResult] {
-        guard let promptConfigurableProvider = provider as? TranslationPromptConfigurable else {
-            return try await provider.translate(
-                texts: texts,
-                from: sourceLanguage,
-                to: targetLanguage
-            )
+        let targetLang = TranslationLanguage.fromTranslationCode(targetLanguage)
+        let explicitSourceLang = sourceLanguage.flatMap { TranslationLanguage.fromTranslationCode($0) }
+
+        var finalResults = [TranslationResult?](repeating: nil, count: texts.count)
+        var pendingIndices: [Int] = []
+        var pendingTexts: [String] = []
+
+        for (index, text) in texts.enumerated() {
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty {
+                finalResults[index] = TranslationResult(
+                    sourceText: text,
+                    translatedText: text,
+                    sourceLanguage: sourceLanguage ?? "auto",
+                    targetLanguage: targetLanguage
+                )
+                continue
+            }
+
+            // 1. Non-translatable text bypass (e.g. pure numbers, punctuation like "{""}")
+            if !isTranslatable(text) {
+                finalResults[index] = TranslationResult(
+                    sourceText: text,
+                    translatedText: text,
+                    sourceLanguage: sourceLanguage ?? "auto",
+                    targetLanguage: targetLanguage
+                )
+                continue
+            }
+
+            let detectedSourceLang = detectLanguage(for: text)
+            var resolvedSourceLang = explicitSourceLang ?? detectedSourceLang
+
+            // 2. Handle cases where text clearly contains Chinese and target is Chinese
+            if let targetLang,
+               (targetLang == .chineseSimplified || targetLang == .chineseTraditional),
+               containsHanCharacters(text) {
+                resolvedSourceLang = targetLang
+            }
+
+            // 3. Self-translation bypass
+            if let resolvedSourceLang, let targetLang, resolvedSourceLang == targetLang {
+                finalResults[index] = TranslationResult(
+                    sourceText: text,
+                    translatedText: text,
+                    sourceLanguage: resolvedSourceLang.rawValue,
+                    targetLanguage: targetLang.rawValue
+                )
+            } else {
+                pendingIndices.append(index)
+                pendingTexts.append(text)
+            }
         }
 
-        let promptTemplate = await resolvedPromptTemplate(
-            for: provider,
-            engine: engine,
-            scene: scene
-        )
+        if !pendingTexts.isEmpty {
+            let translatedResults: [TranslationResult]
+            
+            if let promptConfigurableProvider = provider as? TranslationPromptConfigurable {
+                let promptTemplate = await resolvedPromptTemplate(
+                    for: provider,
+                    engine: engine,
+                    scene: scene
+                )
+                translatedResults = try await promptConfigurableProvider.translate(
+                    texts: pendingTexts,
+                    from: sourceLanguage,
+                    to: targetLanguage,
+                    promptTemplate: promptTemplate
+                )
+            } else {
+                translatedResults = try await provider.translate(
+                    texts: pendingTexts,
+                    from: sourceLanguage,
+                    to: targetLanguage
+                )
+            }
 
-        return try await promptConfigurableProvider.translate(
-            texts: texts,
-            from: sourceLanguage,
-            to: targetLanguage,
-            promptTemplate: promptTemplate
-        )
+            if translatedResults.count == pendingTexts.count {
+                for (offset, result) in translatedResults.enumerated() {
+                    let originalIndex = pendingIndices[offset]
+                    finalResults[originalIndex] = result
+                }
+            } else {
+                logger.error("Provider returned mismatch count. Expected: \(pendingTexts.count), got: \(translatedResults.count)")
+                for (offset, originalIndex) in pendingIndices.enumerated() {
+                    if offset < translatedResults.count {
+                        finalResults[originalIndex] = translatedResults[offset]
+                    } else {
+                        let originalText = texts[originalIndex]
+                        finalResults[originalIndex] = TranslationResult(
+                            sourceText: originalText,
+                            translatedText: originalText,
+                            sourceLanguage: sourceLanguage ?? "auto",
+                            targetLanguage: targetLanguage
+                        )
+                    }
+                }
+            }
+        }
+
+        return finalResults.map { result in
+            let res = result ?? TranslationResult(
+                sourceText: "",
+                translatedText: "",
+                sourceLanguage: sourceLanguage ?? "auto",
+                targetLanguage: targetLanguage
+            )
+            let sanitizedText = self.sanitizeTranslation(translated: res.translatedText, source: res.sourceText)
+            return TranslationResult(
+                sourceText: res.sourceText,
+                translatedText: sanitizedText,
+                sourceLanguage: res.sourceLanguage,
+                targetLanguage: res.targetLanguage
+            )
+        }
+    }
+
+    /// Sanitizes the translated text, reverting to original if it is empty, a broken JSON, or just empty curly braces like {""}
+    private func sanitizeTranslation(translated: String, source: String) -> String {
+        let trimmed = translated.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        if trimmed.isEmpty {
+            return source
+        }
+        
+        // 1. 如果原文不包含大括号，且译文以 { 开头、以 } 结尾，进行深度 JSON 解析与内容提取
+        let sourceContainsBraces = source.contains("{") || source.contains("}")
+        if !sourceContainsBraces && trimmed.hasPrefix("{") && trimmed.hasSuffix("}") {
+            if let data = trimmed.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                // 常见大模型输出的翻译字段
+                let translationKeys = ["translated_text", "translatedText", "translation", "result", "text"]
+                for key in translationKeys {
+                    if let value = json[key] as? String {
+                        let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                        return trimmedValue.isEmpty ? source : value
+                    }
+                }
+                // 空 JSON 字典或没有找到任何已知翻译字段的字典，安全回退到原文
+                return source
+            } else {
+                // 损坏的以大括号包围的字符串，大概率也是泄露的大模型 JSON 结构，安全回退到原文
+                return source
+            }
+        }
+        
+        // 2. 彻底的字符集排查防御：若原文不含大括号，且译文仅由大括号、冒号、空格、各种单双引号组成，直接回退到原文
+        if !sourceContainsBraces {
+            let isOnlyBracesAndQuotes = trimmed.allSatisfy { char in
+                char == "{" || char == "}" || char == "\"" || char == "'" || char == "`" || 
+                char == "“" || char == "”" || char == "‘" || char == "’" || char == ":" ||
+                char.isWhitespace
+            }
+            if isOnlyBracesAndQuotes {
+                return source
+            }
+        }
+        
+        // 3. 兜底兼容变体
+        if trimmed.hasPrefix("{") && trimmed.hasSuffix("}") && (trimmed.contains("\"\"") || trimmed.contains("“”")) {
+            return source
+        }
+        
+        return translated
     }
 
     private func resolvedPromptTemplate(
@@ -473,6 +644,17 @@ actor TranslationService {
     }
 
     // MARK: - Connection Testing
+
+    /// Verify connection and throw details on failure
+    func verifyConnection(for engine: TranslationEngineType) async throws {
+        let provider: any TranslationProvider
+        if let existing = await registry.provider(for: engine) {
+            provider = existing
+        } else {
+            provider = try await resolvedProvider(for: engine)
+        }
+        _ = try await provider.translate(text: "Hello", from: "en", to: "zh")
+    }
 
     /// Test connection to a specific engine
     func testConnection(for engine: TranslationEngineType) async -> Bool {

@@ -248,7 +248,7 @@ actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfi
         }
 
         // Build OpenAI-compatible endpoint: baseURL/chat/completions
-        let apiURL = url.appendingPathComponent("chat/completions")
+        let apiURL = url.resolvingLocalhost.appendingPathComponent("chat/completions")
 
         var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
@@ -266,12 +266,20 @@ actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfi
             "messages": [
                 ["role": "user", "content": prompt]
             ],
+            "stream": false,
             "temperature": config.options?.temperature ?? 0.3,
             "max_tokens": config.options?.maxTokens ?? 2048
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        if let headers = request.allHTTPHeaderFields {
+            var safeHeaders = headers
+            if let auth = safeHeaders["Authorization"] {
+                safeHeaders["Authorization"] = "Bearer " + String(auth.dropFirst(7).prefix(4)) + "..."
+            }
+            logger.info("Sending request to \(apiURL.absoluteString) with headers: \(safeHeaders)")
+        }
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -295,15 +303,91 @@ actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfi
     }
 
     private func parseResponse(_ data: Data) throws -> String {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
+        guard let rawString = String(data: data, encoding: .utf8) else {
+            throw TranslationProviderError.translationFailed("Unable to decode data to UTF-8 string")
+        }
+
+        let trimmedResponse = rawString.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Check if response is Server-Sent Events (SSE) stream format
+        if trimmedResponse.hasPrefix("data:") || trimmedResponse.contains("\ndata:") {
+            return try parseSSEStream(trimmedResponse)
+        }
+
+        let jsonObject: Any
+        do {
+            jsonObject = try JSONSerialization.jsonObject(with: data)
+        } catch {
+            let displayString = trimmedResponse.count > 1000 ? String(trimmedResponse.prefix(1000)) + "... [truncated]" : trimmedResponse
+            logger.error("JSON serialization failed: \(error.localizedDescription). Raw response: \(displayString)")
+            throw error
+        }
+
+        guard let json = jsonObject as? [String: Any] else {
+            logger.error("Response JSON is not a dictionary object")
+            throw TranslationProviderError.translationFailed("Response JSON is not a dictionary")
+        }
+
+        // Handle error responses from OpenAI compatible APIs
+        if let errorObj = json["error"] as? [String: Any],
+           let errorMessage = errorObj["message"] as? String {
+            logger.error("API returned error: \(errorMessage)")
+            throw TranslationProviderError.translationFailed("API error: \(errorMessage)")
+        }
+
+        guard let choices = json["choices"] as? [[String: Any]],
               let firstChoice = choices.first,
               let message = firstChoice["message"] as? [String: Any],
               let content = message["content"] as? String else {
-            throw TranslationProviderError.translationFailed("Failed to parse response")
+            let jsonString = (try? JSONSerialization.data(withJSONObject: json, options: .fragmentsAllowed))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? "\(json)"
+            logger.error("Unexpected JSON response structure: \(jsonString)")
+            throw TranslationProviderError.translationFailed("Unexpected JSON response structure")
         }
 
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func parseSSEStream(_ streamText: String) throws -> String {
+        var resultText = ""
+        let lines = streamText.components(separatedBy: .newlines)
+
+        for line in lines {
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedLine.isEmpty else { continue }
+
+            // Skip stream end marker
+            if trimmedLine == "data: [DONE]" {
+                continue
+            }
+
+            if trimmedLine.hasPrefix("data:") {
+                let jsonText = trimmedLine.dropFirst(5).trimmingCharacters(in: .whitespaces)
+                guard !jsonText.isEmpty else { continue }
+
+                guard let jsonData = jsonText.data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+                    continue
+                }
+
+                if let choices = json["choices"] as? [[String: Any]],
+                   let firstChoice = choices.first {
+                    if let delta = firstChoice["delta"] as? [String: Any],
+                       let content = delta["content"] as? String {
+                        resultText += content
+                    } else if let text = firstChoice["text"] as? String {
+                        resultText += text
+                    }
+                }
+            }
+        }
+
+        guard !resultText.isEmpty else {
+            logger.error("Failed to extract any text from SSE stream: \(streamText)")
+            throw TranslationProviderError.translationFailed("Empty text from SSE stream")
+        }
+
+        return resultText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func translate(

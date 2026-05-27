@@ -24,6 +24,11 @@ struct CompatibleEngineConfigSheet: View {
     @State private var testResult: String?
     @State private var testSuccess = false
 
+    @State private var availableModels: [String] = []
+    @State private var isFetchingModels = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
+
     var body: some View {
         VStack(spacing: 20) {
             // Header
@@ -72,8 +77,40 @@ struct CompatibleEngineConfigSheet: View {
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
-                        TextField("gpt-4o-mini", text: $modelName)
-                            .textFieldStyle(.roundedBorder)
+                        HStack {
+                            TextField("gpt-4o-mini", text: $modelName)
+                                .textFieldStyle(.roundedBorder)
+
+                            if !availableModels.isEmpty {
+                                Menu {
+                                    ForEach(availableModels, id: \.self) { model in
+                                        Button(model) {
+                                            modelName = model
+                                        }
+                                    }
+                                } label: {
+                                    Text("")
+                                        .frame(width: 8, height: 12)
+                                }
+                                .menuStyle(.borderlessButton)
+                                .fixedSize()
+                            }
+
+                            Button {
+                                Task {
+                                    await fetchModels()
+                                }
+                            } label: {
+                                if isFetchingModels {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                } else {
+                                    Text(localized("engine.config.fetchModels"))
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(isFetchingModels)
+                        }
                     }
 
                     // API Key Toggle
@@ -162,6 +199,13 @@ struct CompatibleEngineConfigSheet: View {
         .onAppear {
             loadConfig()
         }
+        .alert(isPresented: $showErrorAlert) {
+            Alert(
+                title: Text(localized("engine.config.fetchModels.failed")),
+                message: Text(errorMessage),
+                dismissButton: .default(Text(localized("button.ok")))
+            )
+        }
     }
 
     // MARK: - Computed Properties
@@ -242,13 +286,11 @@ struct CompatibleEngineConfigSheet: View {
                 keychain: KeychainService.shared
             )
 
-            let success = await provider.checkConnection()
+            _ = try await provider.translate(text: "Hello", from: "en", to: "zh")
 
             await MainActor.run {
-                testSuccess = success
-                testResult = success
-                    ? localized("engine.config.test.success")
-                    : localized("engine.config.test.failed")
+                testSuccess = true
+                testResult = localized("engine.config.test.success")
                 isTesting = false
             }
         } catch {
@@ -257,6 +299,28 @@ struct CompatibleEngineConfigSheet: View {
                 testResult = error.localizedDescription
                 isTesting = false
             }
+        }
+    }
+
+    @MainActor
+    private func fetchModels() async {
+        isFetchingModels = true
+        errorMessage = ""
+
+        let requestURL = baseURL.isEmpty ? "http://localhost:8000/v1" : baseURL
+
+        do {
+            let models = try await ModelDiscoveryService.fetchModels(
+                baseURL: requestURL,
+                apiKey: hasAPIKey ? apiKey : nil,
+                engineType: "custom"
+            )
+            self.availableModels = models
+            self.isFetchingModels = false
+        } catch {
+            self.errorMessage = error.localizedDescription
+            self.showErrorAlert = true
+            self.isFetchingModels = false
         }
     }
 }

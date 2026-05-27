@@ -64,6 +64,12 @@ final class CaptureCoordinator {
         Task {
             defer { isCaptureInProgress = false }
 
+            guard await CaptureManager.shared.hasPermission else {
+                logger.info("Screen recording permission denied, triggering drag-to-authorize flow")
+                PermissionManager.shared.ensureScreenRecordingPermission()
+                return
+            }
+
             do {
                 // Get available displays
                 let displays = try await CaptureManager.shared.availableDisplays()
@@ -105,6 +111,12 @@ final class CaptureCoordinator {
         isCaptureInProgress = true
 
         Task {
+            guard await CaptureManager.shared.hasPermission else {
+                logger.info("Screen recording permission denied, triggering drag-to-authorize flow")
+                PermissionManager.shared.ensureScreenRecordingPermission()
+                isCaptureInProgress = false
+                return
+            }
             do {
                 // Present the selection overlay on all displays
                 let overlayController = SelectionOverlayController.shared
@@ -144,6 +156,12 @@ final class CaptureCoordinator {
         isCaptureInProgress = true
 
         Task {
+            guard await CaptureManager.shared.hasPermission else {
+                logger.info("Screen recording permission denied, triggering drag-to-authorize flow")
+                PermissionManager.shared.ensureScreenRecordingPermission()
+                isCaptureInProgress = false
+                return
+            }
             do {
                 let overlayController = SelectionOverlayController.shared
 

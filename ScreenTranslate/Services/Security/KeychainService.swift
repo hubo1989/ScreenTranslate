@@ -48,132 +48,34 @@ actor KeychainService {
             additional: additionalData
         )
 
-        try saveCredentialsInternal(
-            credentials: credentials,
-            account: engine.rawValue,
-            label: engine.rawValue
-        )
-    }
-
-    /// Internal helper for saving credentials to keychain
-    /// - Parameters:
-    ///   - credentials: The credentials to save
-    ///   - account: The account identifier for the keychain item
-    ///   - label: A descriptive label for logging
-    private func saveCredentialsInternal(credentials: StoredCredentials, account: String, label: String) throws {
         guard let encodedData = try? JSONEncoder().encode(credentials) else {
             throw KeychainError.invalidData
         }
 
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-
-        // Check if item exists and update it, or add new if not found
-        let status = SecItemCopyMatching(query as CFDictionary, nil)
-        if status == errSecSuccess {
-            // Item exists - update it
-            let updateQuery: [String: Any] = [
-                kSecValueData as String: encodedData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            ]
-            let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
-            guard updateStatus == errSecSuccess else {
-                logger.error("Failed to update credentials for \(label): \(updateStatus)")
-                throw KeychainError.unexpectedStatus(updateStatus)
-            }
-            logger.info("Updated credentials for \(label)")
-        } else if status == errSecItemNotFound {
-            // Item doesn't exist - add new
-            let addQuery: [String: Any] = [
-                kSecClass as String: kSecClassGenericPassword,
-                kSecAttrService as String: service,
-                kSecAttrAccount as String: account,
-                kSecValueData as String: encodedData,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            ]
-            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
-            guard addStatus == errSecSuccess else {
-                logger.error("Failed to save credentials for \(label): \(addStatus)")
-                throw KeychainError.unexpectedStatus(addStatus)
-            }
-            logger.info("Saved credentials for \(label)")
-        } else {
-            logger.error("Failed to check credentials for \(label): \(status)")
-            throw KeychainError.unexpectedStatus(status)
-        }
+        try saveRaw(data: encodedData, account: engine.rawValue)
     }
 
     /// Retrieve stored credentials for an engine
     /// - Parameter engine: The engine type to get credentials for
     /// - Returns: The stored credentials, or nil if not found
     func getCredentials(for engine: TranslationEngineType) throws -> StoredCredentials? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: engine.rawValue,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess else {
-            if status == errSecItemNotFound {
-                logger.debug("No credentials found for \(engine.rawValue)")
-                return nil
-            }
-            logger.error("Failed to retrieve credentials for \(engine.rawValue): \(status)")
-            throw KeychainError.unexpectedStatus(status)
+        guard let data = try loadRaw(account: engine.rawValue) else {
+            return nil
         }
-
-        guard let data = result as? Data else {
-            throw KeychainError.invalidData
-        }
-
-        let credentials = try JSONDecoder().decode(StoredCredentials.self, from: data)
-        logger.debug("Retrieved credentials for \(engine.rawValue)")
-        return credentials
+        return try JSONDecoder().decode(StoredCredentials.self, from: data)
     }
 
     /// Delete stored credentials for an engine
     /// - Parameter engine: The engine type to delete credentials for
     func deleteCredentials(for engine: TranslationEngineType) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: engine.rawValue
-        ]
-
-        let status = SecItemDelete(query as CFDictionary)
-
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            logger.error("Failed to delete credentials for \(engine.rawValue): \(status)")
-            throw KeychainError.unexpectedStatus(status)
-        }
-
-        logger.info("Deleted credentials for \(engine.rawValue)")
+        try deleteRaw(account: engine.rawValue)
     }
 
     /// Check if credentials exist for an engine
     /// - Parameter engine: The engine type to check
     /// - Returns: True if credentials exist
     func hasCredentials(for engine: TranslationEngineType) -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: engine.rawValue,
-            kSecReturnData as String: false,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        return status == errSecSuccess
+        return existsRaw(account: engine.rawValue)
     }
 
     /// Get only the API key for an engine (convenience method)
@@ -196,97 +98,38 @@ actor KeychainService {
     ///   - compatibleId: The compatible engine identifier (e.g., "custom:0", "custom:1")
     func saveCredentials(apiKey: String, forCompatibleId compatibleId: String) throws {
         let credentials = StoredCredentials(apiKey: apiKey)
-        try saveCredentialsInternal(
-            credentials: credentials,
-            account: compatibleId,
-            label: "compatible engine \(compatibleId)"
-        )
+        guard let encodedData = try? JSONEncoder().encode(credentials) else {
+            throw KeychainError.invalidData
+        }
+        try saveRaw(data: encodedData, account: compatibleId)
     }
 
     /// Retrieve stored credentials for a compatible engine instance
     /// - Parameter compatibleId: The compatible engine identifier
     /// - Returns: The stored credentials, or nil if not found
     func getCredentials(forCompatibleId compatibleId: String) throws -> StoredCredentials? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: compatibleId,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess else {
-            if status == errSecItemNotFound {
-                logger.debug("No credentials found for \(compatibleId)")
-                return nil
-            }
-            logger.error("Failed to retrieve credentials for \(compatibleId): \(status)")
-            throw KeychainError.unexpectedStatus(status)
+        guard let data = try loadRaw(account: compatibleId) else {
+            return nil
         }
-
-        guard let data = result as? Data else {
-            throw KeychainError.invalidData
-        }
-
-        let credentials = try JSONDecoder().decode(StoredCredentials.self, from: data)
-        logger.debug("Retrieved credentials for \(compatibleId)")
-        return credentials
+        return try JSONDecoder().decode(StoredCredentials.self, from: data)
     }
 
     /// Check if credentials exist for a compatible engine instance
     /// - Parameter compatibleId: The compatible engine identifier
     /// - Returns: True if credentials exist
     func hasCredentials(forCompatibleId compatibleId: String) -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: compatibleId,
-            kSecReturnData as String: false,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        return status == errSecSuccess
+        return existsRaw(account: compatibleId)
     }
 
     /// Delete stored credentials for a compatible engine instance
     /// - Parameter compatibleId: The compatible engine identifier
     func deleteCredentials(forCompatibleId compatibleId: String) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: compatibleId
-        ]
-
-        let status = SecItemDelete(query as CFDictionary)
-
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            logger.error("Failed to delete credentials for \(compatibleId): \(status)")
-            throw KeychainError.unexpectedStatus(status)
-        }
-
-        logger.info("Deleted credentials for compatible engine \(compatibleId)")
+        try deleteRaw(account: compatibleId)
     }
 
     /// Delete all stored credentials
     func deleteAllCredentials() throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service
-        ]
-
-        let status = SecItemDelete(query as CFDictionary)
-
-        guard status == errSecSuccess || status == errSecItemNotFound else {
-            throw KeychainError.unexpectedStatus(status)
-        }
-
-        logger.info("Deleted all credentials")
+        try deleteAllRaw()
     }
 
     // MARK: - PaddleOCR Cloud Methods
@@ -295,18 +138,88 @@ actor KeychainService {
     /// - Parameter apiKey: The API key to store
     func savePaddleOCRCredentials(apiKey: String) throws {
         let credentials = StoredCredentials(apiKey: apiKey)
-        try saveCredentialsInternal(
-            credentials: credentials,
-            account: Self.paddleOCRAccount,
-            label: "PaddleOCR cloud"
-        )
+        guard let encodedData = try? JSONEncoder().encode(credentials) else {
+            throw KeychainError.invalidData
+        }
+        try saveRaw(data: encodedData, account: Self.paddleOCRAccount)
     }
 
     /// Retrieve stored PaddleOCR cloud API key
     /// - Returns: The stored API key, or nil if not found
     func getPaddleOCRCredentials() -> String? {
-        let account = Self.paddleOCRAccount
+        do {
+            guard let data = try loadRaw(account: Self.paddleOCRAccount) else {
+                return nil
+            }
+            let credentials = try JSONDecoder().decode(StoredCredentials.self, from: data)
+            return credentials.apiKey
+        } catch {
+            logger.error("Failed to retrieve PaddleOCR cloud credentials: \(error.localizedDescription)")
+            return nil
+        }
+    }
 
+    /// Delete stored PaddleOCR cloud credentials
+    func deletePaddleOCRCredentials() throws {
+        try deleteRaw(account: Self.paddleOCRAccount)
+    }
+
+    // MARK: - Core Storage Operations
+
+    private func saveRaw(data: Data, account: String) throws {
+        #if DEBUG
+        let key = debugKey(for: account)
+        UserDefaults.standard.set(data, forKey: key)
+        logger.info("[Debug Storage] Saved credentials for \(account)")
+        #else
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        if status == errSecSuccess {
+            let updateQuery: [String: Any] = [
+                kSecValueData as String: data,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            ]
+            let updateStatus = SecItemUpdate(query as CFDictionary, updateQuery as CFDictionary)
+            guard updateStatus == errSecSuccess else {
+                logger.error("Failed to update credentials for \(account): \(updateStatus)")
+                throw KeychainError.unexpectedStatus(updateStatus)
+            }
+            logger.info("Updated credentials for \(account)")
+        } else if status == errSecItemNotFound {
+            let addQuery: [String: Any] = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account,
+                kSecValueData as String: data,
+                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            ]
+            let addStatus = SecItemAdd(addQuery as CFDictionary, nil)
+            guard addStatus == errSecSuccess else {
+                logger.error("Failed to save credentials for \(account): \(addStatus)")
+                throw KeychainError.unexpectedStatus(addStatus)
+            }
+            logger.info("Saved credentials for \(account)")
+        } else {
+            logger.error("Failed to check credentials for \(account): \(status)")
+            throw KeychainError.unexpectedStatus(status)
+        }
+        #endif
+    }
+
+    private func loadRaw(account: String) throws -> Data? {
+        #if DEBUG
+        let key = debugKey(for: account)
+        let data = UserDefaults.standard.data(forKey: key)
+        if data != nil {
+            logger.debug("[Debug Storage] Retrieved credentials for \(account)")
+        }
+        return data
+        #else
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -320,25 +233,23 @@ actor KeychainService {
 
         guard status == errSecSuccess else {
             if status == errSecItemNotFound {
-                logger.debug("No PaddleOCR cloud credentials found")
+                logger.debug("No credentials found for \(account)")
                 return nil
             }
-            logger.error("Failed to retrieve PaddleOCR cloud credentials: \(status)")
-            return nil
+            logger.error("Failed to retrieve credentials for \(account): \(status)")
+            throw KeychainError.unexpectedStatus(status)
         }
 
-        guard let data = result as? Data else {
-            return nil
-        }
-
-        let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data)
-        return credentials?.apiKey
+        return result as? Data
+        #endif
     }
 
-    /// Delete stored PaddleOCR cloud credentials
-    func deletePaddleOCRCredentials() throws {
-        let account = Self.paddleOCRAccount
-
+    private func deleteRaw(account: String) throws {
+        #if DEBUG
+        let key = debugKey(for: account)
+        UserDefaults.standard.removeObject(forKey: key)
+        logger.info("[Debug Storage] Deleted credentials for \(account)")
+        #else
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -346,13 +257,58 @@ actor KeychainService {
         ]
 
         let status = SecItemDelete(query as CFDictionary)
-
         guard status == errSecSuccess || status == errSecItemNotFound else {
-            logger.error("Failed to delete PaddleOCR cloud credentials: \(status)")
+            logger.error("Failed to delete credentials for \(account): \(status)")
             throw KeychainError.unexpectedStatus(status)
         }
+        logger.info("Deleted credentials for \(account)")
+        #endif
+    }
 
-        logger.info("Deleted PaddleOCR cloud credentials")
+    private func existsRaw(account: String) -> Bool {
+        #if DEBUG
+        let key = debugKey(for: account)
+        return UserDefaults.standard.data(forKey: key) != nil
+        #else
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnData as String: false,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        return status == errSecSuccess
+        #endif
+    }
+
+    private func deleteAllRaw() throws {
+        #if DEBUG
+        let defaults = UserDefaults.standard
+        let prefix = "com.screentranslate.credentials.debug."
+        let keysToRemove = defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix(prefix) }
+        for key in keysToRemove {
+            defaults.removeObject(forKey: key)
+        }
+        logger.info("[Debug Storage] Deleted all credentials")
+        #else
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service
+        ]
+
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw KeychainError.unexpectedStatus(status)
+        }
+        logger.info("Deleted all credentials")
+        #endif
+    }
+
+    private func debugKey(for account: String) -> String {
+        return "com.screentranslate.credentials.debug.\(account)"
     }
 }
 

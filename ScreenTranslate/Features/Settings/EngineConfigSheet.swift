@@ -24,6 +24,11 @@ struct EngineConfigSheet: View {
     @State private var testSuccess = false
     private let logger = Logger.settings
 
+    @State private var availableModels: [String] = []
+    @State private var isFetchingModels = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
+
     var body: some View {
         VStack(spacing: 20) {
             // Header
@@ -131,6 +136,13 @@ struct EngineConfigSheet: View {
         .frame(width: 500, height: 450)
         .onAppear {
             loadConfig()
+        }
+        .alert(isPresented: $showErrorAlert) {
+            Alert(
+                title: Text(localized("engine.config.fetchModels.failed")),
+                message: Text(errorMessage),
+                dismissButton: .default(Text(localized("button.ok")))
+            )
         }
     }
 
@@ -255,8 +267,40 @@ struct EngineConfigSheet: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            TextField(engine.defaultModelName ?? "", text: $modelName)
-                .textFieldStyle(.roundedBorder)
+            HStack {
+                TextField(engine.defaultModelName ?? "", text: $modelName)
+                    .textFieldStyle(.roundedBorder)
+
+                if !availableModels.isEmpty {
+                    Menu {
+                        ForEach(availableModels, id: \.self) { model in
+                            Button(model) {
+                                modelName = model
+                            }
+                        }
+                    } label: {
+                        Text("")
+                            .frame(width: 8, height: 12)
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                }
+
+                Button {
+                    Task {
+                        await fetchModels()
+                    }
+                } label: {
+                    if isFetchingModels {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Text(localized("engine.config.fetchModels"))
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(isFetchingModels)
+            }
         }
     }
 
@@ -368,13 +412,11 @@ struct EngineConfigSheet: View {
             }
 
             // Test connection
-            let success = await TranslationService.shared.testConnection(for: engine)
+            try await TranslationService.shared.verifyConnection(for: engine)
 
             await MainActor.run {
-                testSuccess = success
-                testResult = success
-                    ? localized("engine.config.test.success")
-                    : localized("engine.config.test.failed")
+                testSuccess = true
+                testResult = localized("engine.config.test.success")
                 isTesting = false
             }
         } catch {
@@ -383,6 +425,28 @@ struct EngineConfigSheet: View {
                 testResult = error.localizedDescription
                 isTesting = false
             }
+        }
+    }
+
+    @MainActor
+    private func fetchModels() async {
+        isFetchingModels = true
+        errorMessage = ""
+
+        let requestURL = baseURL.isEmpty ? (engine.defaultBaseURL ?? "") : baseURL
+
+        do {
+            let models = try await ModelDiscoveryService.fetchModels(
+                baseURL: requestURL,
+                apiKey: engine.requiresAPIKey ? apiKey : nil,
+                engineType: engine.rawValue
+            )
+            self.availableModels = models
+            self.isFetchingModels = false
+        } catch {
+            self.errorMessage = error.localizedDescription
+            self.showErrorAlert = true
+            self.isFetchingModels = false
         }
     }
 }
