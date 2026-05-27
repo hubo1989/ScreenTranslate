@@ -45,7 +45,18 @@ enum ModelDiscoveryService {
         
         // Normalize URL protocol
         if !cleanURL.lowercased().hasPrefix("http://") && !cleanURL.lowercased().hasPrefix("https://") {
-            cleanURL = "https://" + cleanURL
+            let lowered = cleanURL.lowercased()
+            let isLocal = lowered.contains("localhost") || 
+                          lowered.contains("127.0.0.1") || 
+                          lowered.contains("::1") || 
+                          lowered.contains("0.0.0.0") ||
+                          lowered.hasSuffix(".local") || 
+                          lowered.contains(".local:")
+            if isLocal {
+                cleanURL = "http://" + cleanURL
+            } else {
+                cleanURL = "https://" + cleanURL
+            }
         }
         
         let isOllama = (engineType?.lowercased() == "ollama" || cleanURL.contains("11434"))

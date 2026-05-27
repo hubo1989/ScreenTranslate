@@ -166,17 +166,58 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
         )
     }
 
-    func checkConnection() async -> Bool {
-        do {
-            _ = try await translate(
-                text: "Hello",
-                from: "en",
-                to: "zh"
-            )
-            return true
-        } catch {
-            logger.error("Connection check failed: \(error.localizedDescription)")
-            return false
+    func verifyConnection() async throws {
+        let credentials = try await getCredentials()
+        let baseURL = try getBaseURL()
+        
+        // For OpenAI and Ollama, we can perform a models GET check (non-billing)
+        if engineType == .openai || engineType == .ollama {
+            let endpoint = engineType == .ollama ? baseURL.appendingPathComponent("api/tags") : baseURL.appendingPathComponent("models")
+            
+            var request = URLRequest(url: endpoint)
+            request.httpMethod = "GET"
+            request.timeoutInterval = 10.0
+            
+            if let apiKey = credentials?.apiKey {
+                // Security check
+                if let host = baseURL.host, !Self.isLocalhost(host) && baseURL.scheme != "https" {
+                    throw TranslationProviderError.invalidConfiguration(
+                        "Refusing to send API key over insecure connection (HTTP). Use HTTPS or a localhost URL."
+                    )
+                }
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            }
+            
+            if let headers = request.allHTTPHeaderFields {
+                var safeHeaders: [String: String] = [:]
+                for (key, value) in headers {
+                    let lowerKey = key.lowercased()
+                    if lowerKey == "authorization" {
+                        if value.lowercased().hasPrefix("bearer ") {
+                            safeHeaders[key] = "Bearer " + String(value.dropFirst(7).prefix(4)) + "..."
+                        } else {
+                            safeHeaders[key] = String(value.prefix(4)) + "..."
+                        }
+                    } else if lowerKey == "x-api-key" || lowerKey.contains("key") {
+                        safeHeaders[key] = String(value.prefix(4)) + "..."
+                    } else {
+                        safeHeaders[key] = value
+                    }
+                }
+                logger.info("Sending verifyConnection request to \(endpoint.absoluteString) with headers: \(safeHeaders)")
+            }
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw TranslationProviderError.connectionFailed("Invalid response")
+            }
+            guard httpResponse.statusCode == 200 else {
+                logger.error("Connection verify failed: status \(httpResponse.statusCode)")
+                throw TranslationProviderError.connectionFailed("Connection verify failed: HTTP \(httpResponse.statusCode)")
+            }
+        } else {
+            // Claude, Gemini, etc. fallback to translation of "1"
+            _ = try await translate(text: "1", from: "en", to: "zh")
         }
     }
 
@@ -293,9 +334,20 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
 
         // Execute request
         if let headers = request.allHTTPHeaderFields {
-            var safeHeaders = headers
-            if let auth = safeHeaders["Authorization"] {
-                safeHeaders["Authorization"] = "Bearer " + String(auth.dropFirst(7).prefix(4)) + "..."
+            var safeHeaders: [String: String] = [:]
+            for (key, value) in headers {
+                let lowerKey = key.lowercased()
+                if lowerKey == "authorization" {
+                    if value.lowercased().hasPrefix("bearer ") {
+                        safeHeaders[key] = "Bearer " + String(value.dropFirst(7).prefix(4)) + "..."
+                    } else {
+                        safeHeaders[key] = String(value.prefix(4)) + "..."
+                    }
+                } else if lowerKey == "x-api-key" || lowerKey.contains("key") {
+                    safeHeaders[key] = String(value.prefix(4)) + "..."
+                } else {
+                    safeHeaders[key] = value
+                }
             }
             logger.info("Sending request to \(endpoint.absoluteString) with headers: \(safeHeaders)")
         }
@@ -338,8 +390,7 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
         do {
             jsonObject = try JSONSerialization.jsonObject(with: data)
         } catch {
-            let displayString = trimmedResponse.count > 1000 ? String(trimmedResponse.prefix(1000)) + "... [truncated]" : trimmedResponse
-            logger.error("JSON serialization failed for \(engineType.rawValue): \(error.localizedDescription). Raw response: \(displayString)")
+            logger.error("JSON serialization failed for \(engineType.rawValue): \(error.localizedDescription). Response size: \(data.count) bytes")
             throw error
         }
 
@@ -367,9 +418,7 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
         }
 
         guard let text = content else {
-            let jsonString = (try? JSONSerialization.data(withJSONObject: json, options: .fragmentsAllowed))
-                .flatMap { String(data: $0, encoding: .utf8) } ?? "\(json)"
-            logger.error("Unexpected JSON response structure for \(engineType.rawValue): \(jsonString)")
+            logger.error("Unexpected JSON response structure for \(engineType.rawValue) (missing choices or content)")
             throw TranslationProviderError.translationFailed("Unexpected JSON response structure")
         }
 
@@ -422,7 +471,7 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
         }
 
         guard !resultText.isEmpty else {
-            logger.error("Failed to extract any text from SSE stream for \(engineType.rawValue): \(streamText)")
+            logger.error("Failed to extract any text from SSE stream for \(engineType.rawValue) (length: \(streamText.count))")
             throw TranslationProviderError.translationFailed("Empty text from SSE stream")
         }
 

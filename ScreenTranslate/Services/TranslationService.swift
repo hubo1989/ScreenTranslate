@@ -419,10 +419,19 @@ actor TranslationService {
             var resolvedSourceLang = explicitSourceLang ?? detectedSourceLang
 
             // 2. Handle cases where text clearly contains Chinese and target is Chinese
+            // Only force resolvedSourceLang to targetLang (Chinese) if:
+            // - The target is Chinese AND
+            // - The detected source is nil (NLP failed) or already detected as Chinese AND
+            // - The text actually contains Han characters
+            // This prevents misclassifying Japanese/Korean containing Kanji/Hanja as Chinese
             if let targetLang,
                (targetLang == .chineseSimplified || targetLang == .chineseTraditional),
                containsHanCharacters(text) {
-                resolvedSourceLang = targetLang
+                if detectedSourceLang == nil || 
+                   detectedSourceLang == .chineseSimplified || 
+                   detectedSourceLang == .chineseTraditional {
+                    resolvedSourceLang = targetLang
+                }
             }
 
             // 3. Self-translation bypass
@@ -653,7 +662,7 @@ actor TranslationService {
         } else {
             provider = try await resolvedProvider(for: engine)
         }
-        _ = try await provider.translate(text: "Hello", from: "en", to: "zh")
+        try await provider.verifyConnection()
     }
 
     /// Test connection to a specific engine

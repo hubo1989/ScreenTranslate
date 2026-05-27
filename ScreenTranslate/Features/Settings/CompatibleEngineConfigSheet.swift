@@ -286,7 +286,7 @@ struct CompatibleEngineConfigSheet: View {
                 keychain: KeychainService.shared
             )
 
-            _ = try await provider.translate(text: "Hello", from: "en", to: "zh")
+            try await provider.verifyConnection()
 
             await MainActor.run {
                 testSuccess = true

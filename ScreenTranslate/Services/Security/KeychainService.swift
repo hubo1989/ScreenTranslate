@@ -280,7 +280,14 @@ actor KeychainService {
 
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        return status == errSecSuccess
+        if status == errSecSuccess {
+            return true
+        } else if status == errSecItemNotFound {
+            return false
+        } else {
+            logger.error("Failed to check existence of credentials for \(account): status \(status)")
+            return false
+        }
         #endif
     }
 
@@ -309,6 +316,68 @@ actor KeychainService {
 
     private func debugKey(for account: String) -> String {
         return "com.screentranslate.credentials.debug.\(account)"
+    }
+
+    // MARK: - Synchronous Keychain Access for AppSettings (Non-isolated static helpers)
+
+    static func loadVLMAPIKeySynchronously() -> String {
+        #if DEBUG
+        let key = "com.screentranslate.credentials.debug.vlm_api_key"
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
+            return ""
+        }
+        return credentials.apiKey
+        #else
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: KeychainService.serviceIdentifier,
+            kSecAttrAccount as String: "vlm_api_key",
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
+            return ""
+        }
+
+        return credentials.apiKey
+        #endif
+    }
+
+    static func loadPaddleOCRAPIKeySynchronously() -> String {
+        #if DEBUG
+        let key = "com.screentranslate.credentials.debug.\(KeychainService.paddleOCRAccount)"
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
+            return ""
+        }
+        return credentials.apiKey
+        #else
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: KeychainService.serviceIdentifier,
+            kSecAttrAccount as String: KeychainService.paddleOCRAccount,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+        guard status == errSecSuccess,
+              let data = result as? Data,
+              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
+            return ""
+        }
+
+        return credentials.apiKey
+        #endif
     }
 }
 

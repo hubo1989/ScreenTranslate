@@ -48,6 +48,10 @@ protocol TranslationProvider: Sendable {
     /// Check connection status to the translation service
     /// - Returns: true if the service is reachable and operational
     func checkConnection() async -> Bool
+
+    /// Verify connection status to the translation service
+    /// - Throws: An error if the service is unreachable or misconfigured
+    func verifyConnection() async throws
 }
 
 /// Providers that can execute a translation request with a request-scoped prompt template.
@@ -127,6 +131,23 @@ enum TranslationProviderError: LocalizedError, Sendable {
 // MARK: - Default Implementation
 
 extension TranslationProvider {
+    /// Verify connection status to the translation service
+    /// - Throws: An error if the service is unreachable or misconfigured
+    func verifyConnection() async throws {
+        _ = try await translate(text: "1", from: "en", to: "zh")
+    }
+
+    /// Check connection status to the translation service
+    /// - Returns: true if the service is reachable and operational
+    func checkConnection() async -> Bool {
+        do {
+            try await verifyConnection()
+            return true
+        } catch {
+            return false
+        }
+    }
+
     /// Default batch translation implementation that calls single translate sequentially
     /// Providers can override this with more efficient batch implementations
     func translate(

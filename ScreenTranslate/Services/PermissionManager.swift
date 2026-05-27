@@ -28,11 +28,11 @@ final class PermissionManager: ObservableObject {
     /// Current input monitoring permission status
     @Published private(set) var hasInputMonitoringPermission: Bool = false
 
-    /// Controller for the PermissionFlow drag & drop authorization overlay
-    private let flowController = PermissionFlowController()
+    /// Controllers for the PermissionFlow drag & drop authorization overlay
+    private var flowControllers: [PermissionFlowPane: PermissionFlowController] = [:]
 
-    /// Active task for polling permission status during drag authorization
-    private var flowPollingTask: Task<Void, Never>? = nil
+    /// Active tasks for polling permission status during drag authorization
+    private var flowPollingTasks: [PermissionFlowPane: Task<Void, Never>] = [:]
 
     // MARK: - Private Properties
 
@@ -305,7 +305,8 @@ final class PermissionManager: ObservableObject {
             screenRect = CGRect(x: 100, y: 100, width: 100, height: 100)
         }
 
-        flowController.authorize(
+        let controller = getOrCreateFlowController(for: .screenRecording)
+        controller.authorize(
             pane: .screenRecording,
             suggestedAppURLs: [Bundle.main.bundleURL],
             sourceFrameInScreen: screenRect
@@ -335,7 +336,8 @@ final class PermissionManager: ObservableObject {
             screenRect = CGRect(x: 100, y: 100, width: 100, height: 100)
         }
 
-        flowController.authorize(
+        let controller = getOrCreateFlowController(for: .accessibility)
+        controller.authorize(
             pane: .accessibility,
             suggestedAppURLs: [Bundle.main.bundleURL],
             sourceFrameInScreen: screenRect
@@ -347,10 +349,20 @@ final class PermissionManager: ObservableObject {
         return false
     }
 
+    /// Gets or creates a PermissionFlowController for a specific pane
+    private func getOrCreateFlowController(for pane: PermissionFlowPane) -> PermissionFlowController {
+        if let controller = flowControllers[pane] {
+            return controller
+        }
+        let controller = PermissionFlowController()
+        flowControllers[pane] = controller
+        return controller
+    }
+
     /// Polls permission status to automatically close the panel once granted
     private func startFlowPolling(for pane: PermissionFlowPane) {
-        flowPollingTask?.cancel()
-        flowPollingTask = Task {
+        flowPollingTasks[pane]?.cancel()
+        flowPollingTasks[pane] = Task {
             for _ in 0..<150 { // Poll for up to 30 seconds
                 do {
                     try await Task.sleep(for: .milliseconds(200))
@@ -369,9 +381,11 @@ final class PermissionManager: ObservableObject {
                 }
 
                 if isGranted {
-                    flowController.closePanel()
+                    if let controller = flowControllers[pane] {
+                        controller.closePanel()
+                    }
                     refreshPermissionStatus()
-                    flowPollingTask = nil
+                    flowPollingTasks[pane] = nil
                     return
                 }
             }

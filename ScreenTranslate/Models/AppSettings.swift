@@ -741,65 +741,12 @@ final class AppSettings {
 
     /// Load PaddleOCR cloud API key from Keychain synchronously
     private static func loadPaddleOCRAPIKeyFromKeychain() -> String {
-        #if DEBUG
-        let key = "com.screentranslate.credentials.debug.\(KeychainService.paddleOCRAccount)"
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
-            return ""
-        }
-        return credentials.apiKey
-        #else
-        // Use shared constants from KeychainService
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: KeychainService.serviceIdentifier,
-            kSecAttrAccount as String: KeychainService.paddleOCRAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
-            return ""
-        }
-
-        return credentials.apiKey
-        #endif
+        KeychainService.loadPaddleOCRAPIKeySynchronously()
     }
 
     /// Load VLM API key from Keychain synchronously
     private static func loadVLMAPIKeyFromKeychain() -> String {
-        #if DEBUG
-        let key = "com.screentranslate.credentials.debug.vlm_api_key"
-        guard let data = UserDefaults.standard.data(forKey: key),
-              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
-            return ""
-        }
-        return credentials.apiKey
-        #else
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: KeychainService.serviceIdentifier,
-            kSecAttrAccount as String: "vlm_api_key",
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
-            return ""
-        }
-
-        return credentials.apiKey
-        #endif
+        KeychainService.loadVLMAPIKeySynchronously()
     }
 
     // MARK: - Multi-Engine Persistence Helpers

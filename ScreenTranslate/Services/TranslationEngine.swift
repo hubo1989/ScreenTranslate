@@ -233,8 +233,8 @@ actor TranslationEngine {
         os_signpost(.begin, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
         let startTime = CFAbsoluteTimeGetCurrent()
 
-        let detectedSource = config.sourceLanguage ?? Self.detectLanguage(for: text) ?? .english
-        if detectedSource == effectiveTargetLanguage {
+        let detectedSource = config.sourceLanguage ?? Self.detectLanguage(for: text)
+        if let detectedSource, detectedSource == effectiveTargetLanguage {
             let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
             os_signpost(.end, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
             #if DEBUG
