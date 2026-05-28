@@ -1,0 +1,426 @@
+//
+//  PermissionManager.swift
+//  TransFrame
+//
+//  Created for US-009 - Handle accessibility and input monitoring permissions
+//
+
+import Foundation
+import ApplicationServices
+import AppKit
+import Combine
+import SystemSettingsKit
+import PermissionFlow
+
+/// Manager for handling system permissions required by the app.
+/// Centralizes permission checking, requesting, and caching logic.
+@MainActor
+final class PermissionManager: ObservableObject {
+    // MARK: - Singleton
+
+    static let shared = PermissionManager()
+
+    // MARK: - Published Properties
+
+    /// Current accessibility permission status
+    @Published private(set) var hasAccessibilityPermission: Bool = false
+
+    /// Current input monitoring permission status
+    @Published private(set) var hasInputMonitoringPermission: Bool = false
+
+    /// Controllers for the PermissionFlow drag & drop authorization overlay
+    private var flowControllers: [PermissionFlowPane: PermissionFlowController] = [:]
+
+    /// Active tasks for polling permission status during drag authorization
+    private var flowPollingTasks: [PermissionFlowPane: Task<Void, Never>] = [:]
+
+    // MARK: - Private Properties
+
+    /// UserDefaults key for cached accessibility permission status
+    private let accessibilityCacheKey = "cachedAccessibilityPermission"
+
+    /// UserDefaults key for cached input monitoring permission status
+    private let inputMonitoringCacheKey = "cachedInputMonitoringPermission"
+
+    /// Last time permission status was checked (for throttling)
+    private var lastCheckTime: Date = .distantPast
+
+    /// Minimum interval between permission checks (in seconds)
+    private let checkInterval: TimeInterval = 5.0
+
+    // MARK: - Initialization
+
+    private init() {
+        // Load cached values
+        loadCachedPermissions()
+
+        // Check actual permissions
+        refreshPermissionStatus()
+
+        // Setup notification observers for app activation
+        setupNotificationObservers()
+    }
+
+    // MARK: - Public API
+
+    /// Checks and refreshes all permission statuses.
+    func refreshPermissionStatus() {
+        lastCheckTime = Date()
+
+        hasAccessibilityPermission = AXIsProcessTrusted()
+
+        // Check Input Monitoring permission (macOS 10.15+)
+        if #available(macOS 10.15, *) {
+            hasInputMonitoringPermission = checkInputMonitoringPermission()
+        } else {
+            hasInputMonitoringPermission = true
+        }
+
+        // Cache the results
+        cachePermissions()
+    }
+
+    /// Refreshes permission status with throttling to avoid excessive checks.
+    /// Only refreshes if at least `checkInterval` seconds have passed since the last check.
+    func refreshIfNeeded() {
+        let now = Date()
+        if now.timeIntervalSince(lastCheckTime) >= checkInterval {
+            refreshPermissionStatus()
+        }
+    }
+
+    /// Requests accessibility permission directly via system prompt.
+    /// - Returns: Whether permission was granted after the prompt.
+    @discardableResult
+    func requestAccessibilityPermission() -> Bool {
+        // First check if already granted
+        if hasAccessibilityPermission {
+            return true
+        }
+
+        // Directly trigger the system permission dialog
+        let options: CFDictionary = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+        let granted = AXIsProcessTrustedWithOptions(options)
+
+        // Update our status
+        hasAccessibilityPermission = granted
+        cachePermissions()
+
+        return granted
+    }
+
+    /// Requests input monitoring permission by opening System Settings directly.
+    /// - Returns: Whether permission was granted.
+    @discardableResult
+    func requestInputMonitoringPermission() -> Bool {
+        // First check if already granted
+        if hasInputMonitoringPermission {
+            return true
+        }
+
+        // Directly open System Settings to Privacy & Security > Input Monitoring
+        openInputMonitoringSettings()
+
+        return hasInputMonitoringPermission
+    }
+
+    /// Opens System Settings to the Accessibility pane.
+    func openAccessibilitySettings() {
+        SystemSettings.open(.privacy(anchor: .privacyAccessibility))
+    }
+
+    /// Opens System Settings to the Input Monitoring pane.
+    func openInputMonitoringSettings() {
+        SystemSettings.open(.privacy(anchor: .privacyListenEvent))
+    }
+
+    /// Checks if text selection capture is possible (requires accessibility).
+    var canCaptureTextSelection: Bool {
+        hasAccessibilityPermission
+    }
+
+    /// Checks if text insertion is possible (requires accessibility).
+    var canInsertText: Bool {
+        hasAccessibilityPermission
+    }
+
+    /// Ensures accessibility permission is available, requesting if needed.
+    /// - Returns: Whether permission is available.
+    func ensureAccessibilityPermission() async -> Bool {
+        // Check current status
+        refreshPermissionStatus()
+
+        if hasAccessibilityPermission {
+            return true
+        }
+
+        // Request permission
+        return requestAccessibilityPermission()
+    }
+
+    /// Ensures input monitoring permission is available, requesting if needed.
+    /// - Returns: Whether permission is available.
+    func ensureInputMonitoringPermission() async -> Bool {
+        // Check current status
+        refreshPermissionStatus()
+
+        if hasInputMonitoringPermission {
+            return true
+        }
+
+        // Request permission
+        return requestInputMonitoringPermission()
+    }
+
+    // MARK: - Permission Checks
+
+    /// Checks Input Monitoring permission status.
+    @available(macOS 10.15, *)
+    private func checkInputMonitoringPermission() -> Bool {
+        let options = ["AXTrustedCheckOptionPrompt": false] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
+    }
+
+    /// Shows a permission denied error in the translation popup.
+    func showPermissionDeniedError(for permissionType: PermissionType) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+
+        switch permissionType {
+        case .accessibility:
+            alert.messageText = NSLocalizedString(
+                "permission.accessibility.denied.title",
+                value: "Accessibility Permission Required",
+                comment: "Title for accessibility denied error"
+            )
+            alert.informativeText = NSLocalizedString(
+                "permission.accessibility.denied.message",
+                value: "Text capture and insertion requires accessibility permission.\n\nPlease grant permission in System Settings > Privacy & Security > Accessibility.",
+                comment: "Message for accessibility denied error"
+            )
+            alert.addButton(withTitle: NSLocalizedString(
+                "permission.open.settings",
+                value: "Open System Settings",
+                comment: "Button to open System Settings"
+            ))
+            alert.addButton(withTitle: NSLocalizedString(
+                "common.ok",
+                value: "OK",
+                comment: "OK button"
+            ))
+
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn {
+                openAccessibilitySettings()
+            }
+
+        case .inputMonitoring:
+            alert.messageText = NSLocalizedString(
+                "permission.input.monitoring.denied.title",
+                value: "Input Monitoring Permission Required",
+                comment: "Title for input monitoring denied error"
+            )
+            alert.informativeText = NSLocalizedString(
+                "permission.input.monitoring.denied.message",
+                value: "Text insertion requires input monitoring permission.\n\nPlease grant permission in System Settings > Privacy & Security > Input Monitoring.",
+                comment: "Message for input monitoring denied error"
+            )
+            alert.addButton(withTitle: NSLocalizedString(
+                "permission.open.settings",
+                value: "Open System Settings",
+                comment: "Button to open System Settings"
+            ))
+            alert.addButton(withTitle: NSLocalizedString(
+                "common.ok",
+                value: "OK",
+                comment: "OK button"
+            ))
+
+            let response = alert.runModal()
+            if response == .alertFirstButtonReturn {
+                openInputMonitoringSettings()
+            }
+        }
+    }
+
+    // MARK: - Permission Types
+
+    enum PermissionType {
+        case accessibility
+        case inputMonitoring
+    }
+
+    // MARK: - Caching
+
+    /// Caches current permission status to UserDefaults.
+    private func cachePermissions() {
+        UserDefaults.standard.set(hasAccessibilityPermission, forKey: accessibilityCacheKey)
+        UserDefaults.standard.set(hasInputMonitoringPermission, forKey: inputMonitoringCacheKey)
+    }
+
+    /// Loads cached permission status from UserDefaults.
+    private func loadCachedPermissions() {
+        // Note: These are just cached values for UI display
+        // Actual permission check happens in refreshPermissionStatus()
+        hasAccessibilityPermission = UserDefaults.standard.bool(forKey: accessibilityCacheKey)
+        hasInputMonitoringPermission = UserDefaults.standard.bool(forKey: inputMonitoringCacheKey)
+    }
+
+    // MARK: - Permission Monitoring
+
+    /// Sets up notification observers for app lifecycle events.
+    private func setupNotificationObservers() {
+        // Refresh permissions when app becomes active (user may have changed settings)
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.refreshIfNeeded()
+            }
+        }
+    }
+
+    /// Removes notification observers.
+    func stopPermissionMonitoring() {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    /// Checks Screen Recording permission and triggers the drag-to-authorize flow if denied.
+    /// - Returns: True if permission is granted, False if we had to request it (flow started).
+    @discardableResult
+    func ensureScreenRecordingPermission() -> Bool {
+        let isGranted = PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted
+        if isGranted {
+            return true
+        }
+
+        // Show the drag-to-authorize panel in the center of the main screen
+        let screenRect: CGRect
+        if let mainScreen = NSScreen.main {
+            let frame = mainScreen.frame
+            screenRect = CGRect(x: frame.midX - 50, y: frame.midY - 50, width: 100, height: 100)
+        } else {
+            screenRect = CGRect(x: 100, y: 100, width: 100, height: 100)
+        }
+
+        let controller = getOrCreateFlowController(for: .screenRecording)
+        controller.authorize(
+            pane: .screenRecording,
+            suggestedAppURLs: [Bundle.main.bundleURL],
+            sourceFrameInScreen: screenRect
+        )
+
+        // Start polling to auto-close when granted
+        startFlowPolling(for: .screenRecording)
+
+        return false
+    }
+
+    /// Checks Accessibility permission and triggers the drag-to-authorize flow if denied.
+    /// - Returns: True if permission is granted, False if we had to request it (flow started).
+    @discardableResult
+    func ensureAccessibilityPermissionFlow() -> Bool {
+        refreshPermissionStatus()
+        if hasAccessibilityPermission {
+            return true
+        }
+
+        // Show the drag-to-authorize panel in the center of the main screen
+        let screenRect: CGRect
+        if let mainScreen = NSScreen.main {
+            let frame = mainScreen.frame
+            screenRect = CGRect(x: frame.midX - 50, y: frame.midY - 50, width: 100, height: 100)
+        } else {
+            screenRect = CGRect(x: 100, y: 100, width: 100, height: 100)
+        }
+
+        let controller = getOrCreateFlowController(for: .accessibility)
+        controller.authorize(
+            pane: .accessibility,
+            suggestedAppURLs: [Bundle.main.bundleURL],
+            sourceFrameInScreen: screenRect
+        )
+
+        // Start polling to auto-close when granted
+        startFlowPolling(for: .accessibility)
+
+        return false
+    }
+
+    /// Gets or creates a PermissionFlowController for a specific pane
+    private func getOrCreateFlowController(for pane: PermissionFlowPane) -> PermissionFlowController {
+        if let controller = flowControllers[pane] {
+            return controller
+        }
+        let controller = PermissionFlowController()
+        flowControllers[pane] = controller
+        return controller
+    }
+
+    /// Polls permission status to automatically close the panel once granted
+    private func startFlowPolling(for pane: PermissionFlowPane) {
+        flowPollingTasks[pane]?.cancel()
+        flowPollingTasks[pane] = Task {
+            for _ in 0..<150 { // Poll for up to 30 seconds
+                do {
+                    try await Task.sleep(for: .milliseconds(200))
+                } catch {
+                    return
+                }
+
+                let isGranted: Bool
+                switch pane {
+                case .screenRecording:
+                    isGranted = PermissionStatusRegistry.provider(for: .screenRecording).authorizationState() == .granted
+                case .accessibility:
+                    isGranted = AXIsProcessTrusted()
+                default:
+                    isGranted = false
+                }
+
+                if isGranted {
+                    if let controller = flowControllers[pane] {
+                        controller.closePanel()
+                    }
+                    refreshPermissionStatus()
+                    flowPollingTasks[pane] = nil
+                    return
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Convenience Extensions
+
+extension PermissionManager {
+    /// Checks accessibility permission before performing a text operation.
+    /// Shows an error dialog if permission is not granted.
+    /// - Returns: Whether permission is available.
+    func checkAndPromptAccessibility() -> Bool {
+        refreshPermissionStatus()
+
+        if hasAccessibilityPermission {
+            return true
+        }
+
+        showPermissionDeniedError(for: .accessibility)
+        return false
+    }
+
+    /// Checks input monitoring permission before performing a text insertion.
+    /// Shows an error dialog if permission is not granted.
+    /// - Returns: Whether permission is available.
+    func checkAndPromptInputMonitoring() -> Bool {
+        refreshPermissionStatus()
+
+        if hasInputMonitoringPermission {
+            return true
+        }
+
+        showPermissionDeniedError(for: .inputMonitoring)
+        return false
+    }
+}

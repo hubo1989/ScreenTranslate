@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="ScreenTranslate/Resources/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" alt="ScreenTranslate" width="128" height="128">
+  <img src="TransFrame/Resources/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" alt="TransFrame" width="128" height="128">
 </p>
 
-<h1 align="center">ScreenTranslate</h1>
+<h1 align="center">TransFrame</h1>
 
 <p align="center">
   macOS menu bar app for screenshot translation with OCR, multi-engine translation, text selection translation, and translate-and-insert features
 </p>
 
 <p align="center">
-  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.4.1-blue.svg" alt="Version"></a>
+  <a href="https://github.com/hubo1989/TransFrame/releases"><img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B-brightgreen.svg" alt="macOS"></a>
   <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift"></a>
@@ -102,12 +102,12 @@ Download the latest version from the [Releases](../../releases) page.
 >
 > **Method 1 - Terminal Command (Recommended)**
 > ```bash
-> xattr -rd com.apple.quarantine /Applications/ScreenTranslate.app
+> xattr -rd com.apple.quarantine /Applications/TransFrame.app
 > ```
 >
 > **Method 2 - System Settings**
 > 1. Open "System Settings" → "Privacy & Security"
-> 2. Find the notification about ScreenTranslate under "Security"
+> 2. Find the notification about TransFrame under "Security"
 > 3. Click "Open Anyway"
 >
 > Either method only needs to be done once, after which the app can be used normally.
@@ -124,7 +124,7 @@ Download the latest version from the [Releases](../../releases) page.
 ## 📁 Project Structure
 
 ```text
-ScreenTranslate/
+TransFrame/
 ├── App/                    # App entry point and coordinators
 │   ├── AppDelegate.swift
 │   └── Coordinators/       # Feature coordinators
@@ -153,17 +153,23 @@ ScreenTranslate/
 
 ```bash
 # Clone the repository
-git clone https://github.com/hubo1989/ScreenTranslate.git
-cd ScreenTranslate
+git clone https://github.com/hubo1989/TransFrame.git
+cd TransFrame
 
 # Open in Xcode
-open ScreenTranslate.xcodeproj
+open TransFrame.xcodeproj
 
 # Or build from command line
-xcodebuild -project ScreenTranslate.xcodeproj -scheme ScreenTranslate
+xcodebuild -project TransFrame.xcodeproj -scheme TransFrame
 ```
 
 ## 📝 Changelog
+
+### v1.0.0 (TransFrame Initial Release)
+- 🎉 Rebranded the application from **ScreenTranslate** to **TransFrame**
+- ✨ Changed default Bundle Identifier to `com.transframe.app`
+- ⚙️ Completely restructured project directories and files to match the new brand
+- 🧪 Upgraded unit tests to be fully isolated from local environments
 
 ### v1.4.1
 - 🐛 Fixed duplicate text segments in VLM responses

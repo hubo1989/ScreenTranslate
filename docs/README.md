@@ -1,10 +1,10 @@
-# ScreenTranslate Documentation
+# TransFrame Documentation
 
-Welcome to the ScreenTranslate documentation. ScreenTranslate is a macOS menu bar application for capturing, annotating, and translating screenshots.
+Welcome to the TransFrame documentation. TransFrame is a macOS menu bar application for capturing, annotating, and translating screenshots.
 
 ## Overview
 
-ScreenTranslate provides:
+TransFrame provides:
 - **Full-screen capture** - Capture entire displays with a single hotkey
 - **Region selection** - Draw a selection rectangle to capture specific areas
 - **Translation mode** - OCR and translate captured text instantly
@@ -34,7 +34,7 @@ ScreenTranslate provides:
 
 ### Installation
 
-Download the latest DMG from the [Releases](https://github.com/hubo1989/ScreenTranslate/releases) page.
+Download the latest DMG from the [Releases](https://github.com/hubo1989/TransFrame/releases) page.
 
 ### Default Keyboard Shortcuts
 
@@ -72,7 +72,7 @@ Download the latest DMG from the [Releases](https://github.com/hubo1989/ScreenTr
 ## Project Structure
 
 ```
-ScreenTranslate/
+TransFrame/
 ├── App/                    # Application entry point
 ├── Features/               # Feature modules
 │   ├── Capture/           # Screenshot capture logic

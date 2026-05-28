@@ -1,0 +1,802 @@
+/* 
+  Localizable.strings (简体中文)
+  TransFrame
+*/
+
+/* ========================================
+   错误消息
+   ======================================== */
+
+/* 权限错误 */
+"error.permission.denied" = "需要屏幕录制权限才能截取屏幕。";
+"error.permission.denied.recovery" = "请打开系统设置授予权限。";
+
+/* 显示器错误 */
+"error.display.not.found" = "所选显示器已不可用。";
+"error.display.not.found.recovery" = "请选择其他显示器。";
+"error.display.disconnected" = "显示器 '%@' 在截图过程中断开连接。";
+"error.display.disconnected.recovery" = "请重新连接显示器后再试。";
+
+/* 截图错误 */
+"error.capture.failed" = "截图失败。";
+"error.capture.failed.recovery" = "请重试。";
+
+/* 保存错误 */
+"error.save.location.invalid" = "保存位置不可访问。";
+"error.save.location.invalid.recovery" = "请在设置中选择其他保存位置。";
+"error.save.location.invalid.detail" = "无法保存到 %@，该位置不可访问。";
+"error.save.unknown" = "保存时发生未知错误。";
+"error.disk.full" = "磁盘空间不足，无法保存截图。";
+"error.disk.full.recovery" = "请释放磁盘空间后重试。";
+
+/* 导出错误 */
+"error.export.encoding.failed" = "图像编码失败。";
+"error.export.encoding.failed.recovery" = "请在设置中尝试其他格式。";
+"error.export.encoding.failed.detail" = "无法将图像编码为 %@ 格式。";
+
+/* 剪贴板错误 */
+"error.clipboard.write.failed" = "复制截图到剪贴板失败。";
+"error.clipboard.write.failed.recovery" = "请重试。";
+
+/* 快捷键错误 */
+"error.hotkey.registration.failed" = "注册键盘快捷键失败。";
+"error.hotkey.registration.failed.recovery" = "该快捷键可能与其他应用冲突，请尝试其他快捷键。";
+"error.hotkey.conflict" = "此键盘快捷键与其他应用程序冲突。";
+"error.hotkey.conflict.recovery" = "请选择其他键盘快捷键。";
+
+/* OCR 错误 */
+"error.ocr.failed" = "文字识别失败。";
+"error.ocr.failed.recovery" = "请使用更清晰的图像重试。";
+"error.ocr.no.text" = "图像中未识别到文字。";
+"error.ocr.no.text.recovery" = "请尝试截取包含可见文字的区域。";
+"error.ocr.cancelled" = "文字识别已取消。";
+"error.ocr.server.unreachable" = "无法连接到 OCR 服务器。";
+"error.ocr.server.unreachable.recovery" = "请检查服务器地址和网络连接。";
+
+/* 翻译错误 */
+"error.translation.in.progress" = "翻译正在进行中";
+"error.translation.in.progress.recovery" = "请等待当前翻译完成";
+"error.translation.empty.input" = "没有可翻译的文本";
+"error.translation.empty.input.recovery" = "请先选择一些文本";
+"error.translation.timeout" = "翻译超时";
+"error.translation.timeout.recovery" = "请重试";
+"error.translation.unsupported.pair" = "不支持从 %@ 翻译到 %@";
+"error.translation.unsupported.pair.recovery" = "请选择其他语言";
+"error.translation.failed" = "翻译失败";
+"error.translation.failed.recovery" = "请重试";
+"error.translation.language.not.installed" = "翻译语言 '%@' 未安装";
+"error.translation.language.download.instructions" = "请前往系统设置 > 通用 > 语言与地区 > 翻译语言，下载所需语言。";
+
+/* 通用错误 UI */
+"error.title" = "错误";
+"error.ok" = "好的";
+"error.dismiss" = "关闭";
+"error.retry.capture" = "重试";
+"error.permission.open.settings" = "打开系统设置";
+
+
+/* ========================================
+   菜单项
+   ======================================== */
+
+"menu.capture.full.screen" = "全屏截图";
+"menu.capture.fullscreen" = "全屏截图";
+"menu.capture.selection" = "区域截图";
+"menu.translation.mode" = "截图翻译";
+"menu.translation.history" = "翻译历史";
+"menu.settings" = "设置...";
+"menu.about" = "关于 TransFrame";
+"menu.quit" = "退出 TransFrame";
+
+
+/* ========================================
+   显示器选择
+   ======================================== */
+
+"display.selector.title" = "选择显示器";
+"display.selector.header" = "选择要截取的显示器：";
+"display.selector.cancel" = "取消";
+
+
+/* ========================================
+   预览窗口
+   ======================================== */
+
+"preview.window.title" = "截图预览";
+"preview.title" = "截图预览";
+"preview.dimensions" = "%d × %d 像素";
+"preview.file.size" = "约 %@ %@";
+"preview.screenshot" = "截图";
+"preview.enter.text" = "输入文本";
+"preview.image.dimensions" = "图片尺寸";
+"preview.estimated.size" = "预估文件大小";
+"preview.edit.label" = "编辑：";
+"preview.active.tool" = "当前工具";
+"preview.crop.mode.active" = "裁剪模式已激活";
+
+/* 裁剪 */
+"preview.crop" = "裁剪";
+"preview.crop.cancel" = "取消";
+"preview.crop.apply" = "应用裁剪";
+
+/* 识别文本 */
+"preview.recognized.text" = "识别文本：";
+"preview.translation" = "翻译结果：";
+"preview.results.panel" = "文本结果";
+"preview.copy.text" = "复制文本";
+
+/* 工具栏提示 */
+"preview.tooltip.crop" = "裁剪 (C)";
+"preview.tooltip.pin" = "钉图 (P)";
+"preview.tooltip.undo" = "撤销 (⌘Z)";
+"preview.tooltip.redo" = "重做 (⌘⇧Z)";
+"preview.tooltip.copy" = "复制到剪贴板 (⌘C)";
+"preview.tooltip.save" = "保存 (⌘S)";
+"preview.tooltip.ocr" = "识别文字 (OCR)";
+"preview.tooltip.confirm" = "复制到剪贴板并关闭 (回车)";
+"preview.tooltip.dismiss" = "关闭 (Escape)";
+"preview.tooltip.delete" = "删除选中的标注";
+
+/* 无障碍标签 */
+"preview.accessibility.save" = "保存截图";
+"preview.accessibility.saving" = "正在保存截图";
+"preview.accessibility.confirm" = "确定并复制到剪贴板";
+"preview.accessibility.copying" = "正在复制到剪贴板";
+"preview.accessibility.hint.commandS" = "Command S";
+"preview.accessibility.hint.enter" = "回车键";
+
+/* 形状切换 */
+"preview.shape.filled" = "填充";
+"preview.shape.hollow" = "空心";
+"preview.shape.toggle.hint" = "点击切换填充/空心";
+
+
+/* ========================================
+   标注工具
+   ======================================== */
+
+"tool.rectangle" = "矩形";
+"tool.freehand" = "画笔";
+"tool.text" = "文本";
+"tool.arrow" = "箭头";
+"tool.ellipse" = "椭圆";
+"tool.line" = "直线";
+"tool.highlight" = "高亮";
+"tool.mosaic" = "马赛克";
+"tool.numberLabel" = "数字标签";
+
+
+/* ========================================
+   颜色
+   ======================================== */
+
+"color.red" = "红色";
+"color.orange" = "橙色";
+"color.yellow" = "黄色";
+"color.green" = "绿色";
+"color.blue" = "蓝色";
+"color.purple" = "紫色";
+"color.pink" = "粉色";
+"color.white" = "白色";
+"color.black" = "黑色";
+"color.custom" = "自定义";
+
+
+/* ========================================
+   操作
+   ======================================== */
+
+"action.save" = "保存";
+"action.copy" = "复制";
+"action.cancel" = "取消";
+"action.undo" = "撤销";
+"action.redo" = "重做";
+"action.delete" = "删除";
+"action.clear" = "清除";
+"action.reset" = "重置";
+"action.close" = "关闭";
+"action.done" = "完成";
+
+/* 按钮 */
+"button.ok" = "好的";
+"button.cancel" = "取消";
+"button.clear" = "清除";
+"button.reset" = "重置";
+"button.save" = "保存";
+"button.delete" = "删除";
+"button.confirm" = "确定";
+
+/* 保存成功 */
+"save.success.title" = "保存成功";
+"save.success.message" = "已保存到 %@";
+"save.with.translations.message" = "选择保存带译文图片的位置";
+
+/* 无翻译错误 */
+"error.no.translations" = "没有可用的翻译。请先翻译文本。";
+
+/* 复制成功 */
+"copy.success.message" = "已复制到剪贴板";
+
+
+/* ========================================
+   设置窗口
+   ======================================== */
+
+"settings.window.title" = "TransFrame 设置";
+"settings.title" = "TransFrame 设置";
+
+/* 设置标签/分区 */
+"settings.section.permissions" = "权限";
+"settings.section.general" = "通用";
+"settings.section.engines" = "引擎";
+"settings.section.prompts" = "提示词配置";
+"settings.section.languages" = "语言";
+"settings.section.export" = "导出";
+"settings.section.shortcuts" = "键盘快捷键";
+"settings.section.text.translation" = "文本翻译";
+"settings.section.annotations" = "标注";
+
+/* 语言设置 */
+"settings.language" = "语言";
+"settings.language.system" = "跟随系统";
+"settings.language.restart.hint" = "部分更改可能需要重启应用";
+
+/* 权限 */
+"settings.permission.screen.recording" = "屏幕录制";
+"settings.permission.screen.recording.hint" = "截图功能需要此权限";
+"settings.permission.accessibility" = "辅助功能";
+"settings.permission.accessibility.hint" = "全局快捷键需要此权限";
+"settings.permission.granted" = "已授权";
+"settings.permission.not.granted" = "未授权";
+"settings.permission.grant" = "授权";
+"settings.permission.authorization.title" = "需要授权";
+"settings.permission.authorization.cancel" = "取消";
+"settings.permission.authorization.go" = "去授权";
+"settings.permission.authorization.screen.message" = "需要屏幕录制权限。点击「去授权」打开系统设置，为本应用启用屏幕录制权限。";
+"settings.permission.authorization.accessibility.message" = "需要辅助功能权限。点击「去授权」打开系统设置，将本应用添加到辅助功能列表中。";
+
+/* 保存位置 */
+"settings.save.location" = "保存位置";
+"settings.save.location.choose" = "选择...";
+"settings.save.location.select" = "选择";
+"settings.save.location.message" = "选择截图的默认保存位置";
+"settings.save.location.reveal" = "在访达中显示";
+
+/* 导出格式 */
+"settings.format" = "默认格式";
+"settings.format.png" = "PNG";
+"settings.format.jpeg" = "JPEG";
+"settings.format.heic" = "HEIC";
+"settings.jpeg.quality" = "JPEG 质量";
+"settings.jpeg.quality.hint" = "质量越高，文件越大";
+"settings.heic.quality" = "HEIC 质量";
+"settings.heic.quality.hint" = "HEIC 提供更好的压缩率";
+
+/* 键盘快捷键 */
+"settings.shortcuts" = "键盘快捷键";
+"settings.shortcut.fullscreen" = "全屏截图";
+"settings.shortcut.selection" = "区域截图";
+"settings.shortcut.translation.mode" = "翻译模式";
+"settings.shortcut.text.selection.translation" = "文本选择翻译";
+"settings.shortcut.translate.and.insert" = "翻译并插入";
+"settings.shortcut.recording" = "按下快捷键...";
+"settings.shortcut.reset" = "恢复默认";
+"settings.shortcut.error.no.modifier" = "快捷键必须包含 Command、Control 或 Option";
+"settings.shortcut.error.conflict" = "此快捷键已被使用";
+
+/* 标注 */
+"settings.annotations" = "标注默认设置";
+"settings.stroke.color" = "描边颜色";
+"settings.stroke.width" = "描边宽度";
+"settings.text.size" = "文字大小";
+"settings.mosaic.blockSize" = "马赛克块大小";
+
+/* 引擎 */
+"settings.ocr.engine" = "OCR 引擎";
+"settings.translation.engine" = "翻译引擎";
+"settings.translation.mode" = "翻译模式";
+
+/* 重置 */
+"settings.reset.all" = "恢复所有默认设置";
+
+/* 错误 */
+"settings.error.title" = "错误";
+"settings.error.ok" = "好的";
+
+
+/* ========================================
+   OCR 引擎
+   ======================================== */
+
+"ocr.engine.vision" = "Apple Vision";
+"ocr.engine.vision.description" = "内置 macOS Vision 框架，快速且隐私安全";
+"ocr.engine.paddleocr" = "PaddleOCR";
+"ocr.engine.paddleocr.description" = "自托管 OCR 服务器，识别更准确";
+
+
+/* ========================================
+   翻译引擎
+   ======================================== */
+
+"translation.engine.apple" = "Apple 翻译";
+"translation.engine.apple.description" = "内置 macOS 翻译，无需配置";
+"translation.engine.mtran" = "MTranServer";
+"translation.engine.mtran.description" = "自托管翻译服务器";
+
+/* 新增翻译引擎 */
+"translation.engine.openai" = "OpenAI";
+"translation.engine.openai.description" = "通过 OpenAI API 使用 GPT-4 翻译";
+"translation.engine.claude" = "Claude";
+"translation.engine.claude.description" = "通过 Anthropic API 使用 Claude 翻译";
+"translation.engine.gemini" = "Gemini";
+"translation.engine.gemini.description" = "通过 Google AI API 使用 Gemini 翻译";
+"translation.engine.ollama" = "Ollama";
+"translation.engine.ollama.description" = "通过 Ollama 使用本地大模型翻译";
+"translation.engine.google" = "Google 翻译";
+"translation.engine.google.description" = "Google 云翻译 API";
+"translation.engine.deepl" = "DeepL";
+"translation.engine.deepl.description" = "通过 DeepL API 获取高质量翻译";
+"translation.engine.baidu" = "百度翻译";
+"translation.engine.baidu.description" = "百度翻译 API";
+"translation.engine.custom" = "OpenAI 兼容";
+"translation.engine.custom.description" = "自定义 OpenAI 兼容端点";
+
+/* 引擎分类 */
+"engine.category.builtin" = "内置";
+"engine.category.llm" = "大模型翻译";
+"engine.category.cloud" = "云服务";
+"engine.category.compatible" = "兼容接口";
+
+/* 引擎配置标题 */
+"engine.config.title" = "翻译引擎配置";
+
+/* 引擎选择模式 */
+"engine.selection.mode.title" = "引擎选择模式";
+"engine.selection.mode.primary_fallback" = "主备";
+"engine.selection.mode.primary_fallback.description" = "使用主引擎，失败时切换到备用引擎";
+"engine.selection.mode.parallel" = "并行";
+"engine.selection.mode.parallel.description" = "同时运行多个引擎并比较结果";
+"engine.selection.mode.quick_switch" = "快切";
+"engine.selection.mode.quick_switch.description" = "从主引擎开始，可快速切换到其他引擎";
+"engine.selection.mode.scene_binding" = "场景";
+"engine.selection.mode.scene_binding.description" = "为不同翻译场景使用不同引擎";
+
+/* 模式特定标签 */
+"engine.config.primary" = "主引擎";
+"engine.config.fallback" = "备用引擎";
+"engine.config.switch.order" = "切换顺序";
+"engine.config.parallel.select" = "选择并行运行的引擎";
+"engine.config.replace" = "替换引擎";
+"engine.config.remove" = "移除";
+"engine.config.add" = "添加引擎";
+
+/* 翻译场景 */
+"translation.scene.screenshot" = "截图翻译";
+"translation.scene.screenshot.description" = "OCR识别并翻译截图区域";
+"translation.scene.text_selection" = "文本选择翻译";
+"translation.scene.text_selection.description" = "翻译从任意应用选中的文本";
+"translation.scene.translate_and_insert" = "翻译并插入";
+"translation.scene.translate_and_insert.description" = "翻译剪贴板文本并插入到光标位置";
+
+/* 引擎配置 */
+"engine.config.enabled" = "启用此引擎";
+"engine.config.apiKey" = "API 密钥";
+"engine.config.apiKey.placeholder" = "输入您的 API 密钥";
+"engine.config.getApiKey" = "获取 API 密钥";
+"engine.config.baseURL" = "基础 URL";
+"engine.config.model" = "模型名称";
+"engine.config.test" = "测试连接";
+"engine.config.test.success" = "连接成功";
+"engine.config.test.failed" = "连接失败";
+"engine.config.baidu.credentials" = "百度翻译凭证";
+"engine.config.baidu.appID" = "应用 ID";
+"engine.config.baidu.secretKey" = "密钥";
+"engine.config.mtran.url" = "服务器地址";
+
+/* 引擎状态 */
+"engine.status.configured" = "已配置";
+"engine.status.unconfigured" = "未配置";
+"engine.available.title" = "可用引擎";
+"engine.parallel.title" = "并行引擎";
+"engine.parallel.description" = "选择在并行模式下同时运行的引擎";
+"engine.scene.binding.title" = "场景引擎绑定";
+"engine.scene.binding.description" = "配置每个翻译场景使用的引擎";
+"engine.scene.fallback.tooltip" = "启用备用引擎";
+
+/* Keychain 错误 */
+"keychain.error.item_not_found" = "钥匙串中未找到凭证";
+"keychain.error.item_not_found.recovery" = "请在设置中配置您的 API 凭证";
+"keychain.error.duplicate_item" = "钥匙串中已存在凭证";
+"keychain.error.duplicate_item.recovery" = "请先删除现有凭证";
+"keychain.error.invalid_data" = "无效的凭证数据格式";
+"keychain.error.invalid_data.recovery" = "请重新输入您的凭证";
+"keychain.error.unexpected_status" = "钥匙串操作失败";
+"keychain.error.unexpected_status.recovery" = "请检查您的钥匙串访问权限";
+
+/* 多引擎错误 */
+"multiengine.error.all_failed" = "所有翻译引擎均失败";
+"multiengine.error.no_engines" = "未配置翻译引擎";
+"multiengine.error.primary_unavailable" = "主引擎 %@ 不可用";
+"multiengine.error.no_results" = "无翻译结果";
+
+/* 注册表错误 */
+"registry.error.already_registered" = "提供者已注册";
+"registry.error.not_registered" = "%@ 未注册提供者";
+"registry.error.config_missing" = "%@ 配置缺失";
+"registry.error.credentials_not_found" = "%@ 凭证未找到";
+
+/* 提示词配置 */
+"prompt.engine.title" = "引擎提示词";
+"prompt.engine.description" = "为每个大模型引擎自定义翻译提示词";
+"prompt.scene.title" = "场景提示词";
+"prompt.scene.description" = "为每个翻译场景自定义翻译提示词";
+"prompt.default.title" = "默认提示词模板";
+"prompt.default.description" = "当未配置自定义提示词时使用此模板";
+"prompt.button.edit" = "编辑";
+"prompt.button.reset" = "重置";
+"prompt.editor.title" = "编辑提示词";
+"prompt.editor.variables" = "可用变量：";
+"prompt.variable.source_language" = "源语言名称";
+"prompt.variable.target_language" = "目标语言名称";
+"prompt.variable.text" = "要翻译的文本";
+
+
+/* ========================================
+   翻译模式
+   ======================================== */
+
+"translation.mode.inline" = "原地替换";
+"translation.mode.inline.description" = "用译文替换原文";
+"translation.mode.below" = "原文下方显示";
+"translation.mode.below.description" = "在原文下方显示译文";
+
+
+/* ========================================
+   翻译设置
+   ======================================== */
+
+"translation.auto" = "自动检测";
+"translation.auto.detected" = "自动检测";
+"translation.language.follow.system" = "跟随系统";
+"translation.language.source" = "源语言";
+"translation.language.target" = "目标语言";
+"translation.language.source.hint" = "要翻译的文本的语言";
+"translation.language.target.hint" = "翻译的目标语言";
+
+
+/* ========================================
+   历史记录视图
+   ======================================== */
+
+"history.title" = "翻译历史";
+"history.search.placeholder" = "搜索历史记录...";
+"history.clear.all" = "清除所有历史";
+"history.empty.title" = "没有翻译历史";
+"history.empty.message" = "您的翻译截图将显示在这里";
+"history.no.results.title" = "无结果";
+"history.no.results.message" = "没有匹配的记录";
+"history.clear.search" = "清除搜索";
+
+"history.source" = "原文";
+"history.translation" = "译文";
+"history.truncated" = "已截断";
+
+"history.copy.translation" = "复制译文";
+"history.copy.source" = "复制原文";
+"history.copy.both" = "复制全部";
+"history.delete" = "删除";
+
+"history.clear.alert.title" = "清除历史";
+"history.clear.alert.message" = "确定要删除所有翻译历史吗？此操作无法撤销。";
+
+
+/* ========================================
+   权限提示
+   ======================================== */
+
+"permission.prompt.title" = "需要屏幕录制权限";
+"permission.prompt.message" = "TransFrame 需要权限来截取您的屏幕。这是截图功能所必需的。\n\n点击继续后，macOS 将要求您授予屏幕录制权限。您可以在系统设置 > 隐私与安全性 > 屏幕录制中授权。";
+"permission.prompt.continue" = "继续";
+"permission.prompt.later" = "稍后";
+
+/* 辅助功能权限 */
+"permission.accessibility.title" = "需要辅助功能权限";
+"permission.accessibility.message" = "TransFrame 需要辅助功能权限来捕获选中的文本并插入翻译结果。\n\n此权限允许应用：\n• 从任何应用复制选中的文本\n• 将翻译后的文本插入输入框\n\n您的隐私受到保护 - TransFrame 仅将此用于文本翻译。";
+"permission.accessibility.grant" = "授予权限";
+"permission.accessibility.open.settings" = "打开系统设置";
+"permission.accessibility.denied.title" = "需要辅助功能权限";
+"permission.accessibility.denied.message" = "文本捕获和插入需要辅助功能权限。\n\n请在系统设置 > 隐私与安全性 > 辅助功能中授予权限。";
+
+/* 输入监控权限 */
+"permission.input.monitoring.title" = "需要输入监控权限";
+"permission.input.monitoring.message" = "TransFrame 需要输入监控权限来将翻译后的文本插入应用程序。\n\n您需要在以下位置启用：\n系统设置 > 隐私与安全性 > 输入监控";
+"permission.input.monitoring.open.settings" = "打开系统设置";
+"permission.input.monitoring.denied.title" = "需要输入监控权限";
+"permission.input.monitoring.denied.message" = "文本插入需要输入监控权限。\n\n请在系统设置 > 隐私与安全性 > 输入监控中授予权限。";
+
+/* 通用权限字符串 */
+"permission.open.settings" = "打开系统设置";
+
+
+/* ========================================
+   引导页面
+   ======================================== */
+
+"onboarding.window.title" = "欢迎使用 TransFrame";
+
+/* 引导 - 欢迎步骤 */
+"onboarding.welcome.title" = "欢迎使用 TransFrame";
+"onboarding.welcome.message" = "让我们为您设置屏幕截图和翻译功能。只需一分钟即可完成。";
+
+"onboarding.feature.local.ocr.title" = "本地 OCR";
+"onboarding.feature.local.ocr.description" = "使用 macOS Vision 框架，快速且隐私安全的文字识别";
+"onboarding.feature.local.translation.title" = "本地翻译";
+"onboarding.feature.local.translation.description" = "使用 Apple 翻译，即时离线翻译";
+"onboarding.feature.shortcuts.title" = "全局快捷键";
+"onboarding.feature.shortcuts.description" = "随时随地使用键盘快捷键截图和翻译";
+
+/* 引导 - 权限步骤 */
+"onboarding.permissions.title" = "权限";
+"onboarding.permissions.message" = "TransFrame 需要一些权限才能正常工作。请授予以下权限：";
+"onboarding.permissions.hint" = "授权后，状态将自动更新。如果应用曾在权限列表中，需要先移除再重新添加才能生效。";
+"onboarding.permissions.timeout.hint" = "授权遇到困难？可以暂时跳过，稍后在菜单栏 → 设置中配置";
+
+"onboarding.permission.screen.recording" = "屏幕录制";
+"onboarding.permission.screen.recording.subtitle" = "用于截取屏幕内容进行 OCR 文字识别";
+"onboarding.permission.accessibility" = "辅助功能";
+"onboarding.permission.accessibility.subtitle" = "用于注册全局快捷键，在任何应用中触发截图翻译";
+"onboarding.permission.granted" = "已授权";
+"onboarding.permission.not.granted" = "未授权";
+"onboarding.permission.grant" = "授权";
+
+/* 引导 - 完成步骤 */
+"onboarding.complete.title" = "设置完成！";
+"onboarding.complete.message" = "TransFrame 已准备就绪。以下是使用方法：";
+"onboarding.complete.menubar.hint" = "TransFrame 将在菜单栏运行，点击菜单栏图标即可使用";
+"onboarding.complete.shortcuts" = "使用 ⌘⇧F 全屏截图";
+"onboarding.complete.selection" = "使用 ⌘⇧A 区域截图并翻译";
+"onboarding.complete.settings" = "从菜单栏打开设置自定义选项";
+"onboarding.complete.start" = "开始使用 TransFrame";
+"onboarding.complete.permissions.warning" = "部分权限尚未授予，可在菜单栏 → 设置中随时配置";
+
+/* 引导 - 导航 */
+"onboarding.back" = "上一步";
+"onboarding.continue" = "继续";
+"onboarding.skip.permissions" = "暂时跳过";
+
+/* 设置 - PaddleOCR */
+"settings.paddleocr.installed" = "已安装";
+"settings.paddleocr.not.installed" = "未安装";
+"settings.paddleocr.install" = "安装";
+"settings.paddleocr.installing" = "安装中...";
+"settings.paddleocr.install.hint" = "需要在系统上安装 Python 3 和 pip。";
+"settings.paddleocr.copy.command" = "复制命令";
+"settings.paddleocr.refresh" = "刷新状态";
+"settings.paddleocr.ready" = "PaddleOCR 已就绪";
+"settings.paddleocr.not.installed.message" = "PaddleOCR 未安装";
+"settings.paddleocr.description" = "PaddleOCR 是本地 OCR 引擎。免费、离线可用，无需 API 密钥。";
+"settings.paddleocr.install.button" = "安装 PaddleOCR";
+"settings.paddleocr.copy.command.button" = "复制安装命令";
+"settings.paddleocr.mode" = "模式";
+"settings.paddleocr.mode.fast" = "快速";
+"settings.paddleocr.mode.precise" = "精确";
+"settings.paddleocr.mode.fast.description" = "~1秒，快速 OCR 并自动合并行";
+"settings.paddleocr.mode.precise.description" = "~12秒，VL-1.5 模型，更高精度";
+"settings.paddleocr.useCloud" = "使用云端 API";
+"settings.paddleocr.cloudBaseURL" = "云端 API 地址";
+"settings.paddleocr.cloudAPIKey" = "API 密钥";
+"settings.paddleocr.cloudModelId" = "模型 ID";
+"settings.paddleocr.localVLModelDir" = "本地模型目录 (vllm)";
+"settings.paddleocr.localVLModelDir.hint" = "本地 PaddleOCR-VL 模型路径（如 ~/.paddlex/official_models/PaddleOCR-VL-1.5）";
+"error.paddleocr.notInstalled" = "PaddleOCR 未安装。请使用以下命令安装：pip3 install paddleocr paddlepaddle";
+
+
+/* ========================================
+   VLM 配置
+   ======================================== */
+
+"settings.vlm.title" = "VLM 配置";
+"settings.vlm.provider" = "提供商";
+"settings.vlm.apiKey" = "API 密钥";
+"settings.vlm.apiKey.optional" = "本地提供商无需 API 密钥";
+"settings.vlm.baseURL" = "Base URL";
+"settings.vlm.model" = "模型名称";
+"settings.vlm.test.button" = "测试连接";
+"settings.vlm.test.success" = "连接成功！模型：%@";
+"settings.vlm.test.ollama.success" = "服务运行中。模型 '%@' 可用";
+"settings.vlm.test.ollama.available" = "服务运行中。可用模型：%@";
+
+"vlm.provider.openai" = "OpenAI";
+"vlm.provider.claude" = "Claude";
+"vlm.provider.glmocr" = "GLM OCR";
+"vlm.provider.ollama" = "Ollama";
+"vlm.provider.paddleocr" = "PaddleOCR";
+"vlm.provider.openai.description" = "OpenAI GPT-4 Vision API";
+"vlm.provider.claude.description" = "Anthropic Claude Vision API";
+"vlm.provider.glmocr.description" = "智谱 GLM-OCR 版面解析 API";
+"vlm.provider.ollama.description" = "本地 Ollama 服务器";
+"vlm.provider.paddleocr.description" = "本地 OCR 引擎（免费、离线可用）";
+
+
+/* ========================================
+   翻译工作流配置
+   ======================================== */
+
+"settings.translation.workflow.title" = "翻译引擎";
+"settings.translation.preferred" = "首选引擎";
+"settings.translation.mtran.url" = "MTransServer URL";
+"settings.translation.mtran.test.button" = "测试连接";
+"settings.translation.mtran.test.success" = "连接成功";
+"settings.translation.mtran.test.failed" = "连接失败: %@";
+"settings.translation.fallback" = "回退";
+"settings.translation.fallback.description" = "首选引擎失败时使用 Apple 翻译作为回退";
+
+"translation.preferred.apple.description" = "内置 macOS 翻译，支持离线使用";
+"translation.preferred.mtran.description" = "自托管翻译服务器，翻译质量更好";
+
+
+/* ========================================
+   无障碍标签
+   ======================================== */
+
+"accessibility.close.button" = "关闭";
+"accessibility.settings.button" = "设置";
+"accessibility.capture.button" = "截图";
+"accessibility.translate.button" = "翻译";
+
+
+/* ========================================
+   双语对照窗口
+   ======================================== */
+
+/* ========================================
+   翻译流程
+   ======================================== */
+
+"translationFlow.phase.idle" = "就绪";
+"translationFlow.phase.analyzing" = "正在分析图像...";
+"translationFlow.phase.translating" = "正在翻译...";
+"translationFlow.phase.rendering" = "正在渲染...";
+"translationFlow.phase.completed" = "已完成";
+"translationFlow.phase.failed" = "失败";
+
+"translationFlow.error.title" = "翻译错误";
+"translationFlow.error.title.analysis" = "图像识别失败";
+"translationFlow.error.title.translation" = "翻译失败";
+"translationFlow.error.title.rendering" = "渲染失败";
+"translationFlow.error.unknown" = "发生未知错误。";
+"translationFlow.error.analysis" = "分析失败：%@";
+"translationFlow.error.translation" = "翻译失败：%@";
+"translationFlow.error.rendering" = "渲染失败：%@";
+"translationFlow.error.cancelled" = "翻译已取消。";
+"translationFlow.error.noTextFound" = "选中区域未找到文字。";
+"translationFlow.error.translation.engine" = "翻译引擎";
+
+"translationFlow.recovery.analysis" = "请使用更清晰的图像重试，或检查 VLM 提供商设置。";
+"translationFlow.recovery.translation" = "请检查翻译引擎设置和网络连接后重试。";
+"translationFlow.recovery.rendering" = "请重试。";
+"translationFlow.recovery.noTextFound" = "请尝试选择包含可见文字的区域。";
+
+"common.ok" = "好的";
+
+
+/* ========================================
+   双语对照窗口
+   ======================================== */
+
+"bilingualResult.window.title" = "双语对照";
+"bilingualResult.loading" = "翻译中...";
+"bilingualResult.loading.analyzing" = "正在分析图像...";
+"bilingualResult.loading.translating" = "正在翻译文本...";
+"bilingualResult.loading.rendering" = "正在渲染结果...";
+"bilingualResult.copyImage" = "复制图片";
+"bilingualResult.copyText" = "复制文本";
+"bilingualResult.save" = "保存";
+"bilingualResult.zoomIn" = "放大";
+"bilingualResult.zoomOut" = "缩小";
+"bilingualResult.resetZoom" = "重置缩放";
+"bilingualResult.copySuccess" = "已复制到剪贴板";
+"bilingualResult.copyTextSuccess" = "翻译文本已复制";
+"bilingualResult.saveSuccess" = "保存成功";
+"bilingualResult.copyFailed" = "复制图片失败";
+"bilingualResult.saveFailed" = "保存图片失败";
+"bilingualResult.noTextToCopy" = "没有可复制的翻译文本";
+
+
+/* ========================================
+   文本翻译 (US-003 至 US-010)
+   ======================================== */
+
+/* 文本翻译流程 */
+"textTranslation.phase.idle" = "就绪";
+"textTranslation.phase.translating" = "翻译中...";
+"textTranslation.phase.completed" = "已完成";
+"textTranslation.phase.failed" = "失败";
+
+"textTranslation.error.emptyInput" = "没有可翻译的文本";
+"textTranslation.error.translationFailed" = "翻译失败：%@";
+"textTranslation.error.cancelled" = "翻译已取消";
+"textTranslation.error.serviceUnavailable" = "翻译服务不可用";
+"textTranslation.error.insertFailed" = "插入翻译文本失败";
+
+"textTranslation.recovery.emptyInput" = "请先选择一些文本";
+"textTranslation.recovery.translationFailed" = "请重试";
+"textTranslation.recovery.serviceUnavailable" = "请检查网络连接后重试";
+
+"textTranslation.loading" = "翻译中...";
+"textTranslation.noSelection.title" = "未选择文本";
+"textTranslation.noSelection.message" = "请在任意应用中选择一些文本，然后重试。";
+
+/* 翻译并插入 */
+"translateAndInsert.emptyClipboard.title" = "剪贴板为空";
+"translateAndInsert.emptyClipboard.message" = "请先将文本复制到剪贴板，然后使用此快捷键。";
+"translateAndInsert.success.title" = "翻译已插入";
+"translateAndInsert.success.message" = "翻译后的文本已插入到当前输入框中。";
+
+/* 语言显示 */
+"language.auto" = "自动检测";
+
+/* 通用文本翻译界面 */
+"common.copy" = "复制";
+"common.copied" = "已复制";
+"common.insert" = "插入";
+
+/* 文本翻译窗口 */
+"textTranslation.window.title" = "文本翻译";
+
+/* 翻译并插入语言设置 */
+"settings.translateAndInsert.language.section" = "翻译并插入语言";
+"settings.translateAndInsert.language.source" = "源语言";
+"settings.translateAndInsert.language.target" = "目标语言";
+
+
+/* ========================================
+   多 OpenAI 兼容引擎配置
+   ======================================== */
+
+/* 兼容引擎配置 */
+"engine.compatible.new" = "新建兼容引擎";
+"engine.compatible.description" = "OpenAI 兼容的 API 端点";
+"engine.compatible.displayName" = "显示名称";
+"engine.compatible.displayName.placeholder" = "例如：我的大模型服务";
+"engine.compatible.requireApiKey" = "需要 API 密钥";
+"engine.compatible.add" = "添加兼容引擎";
+"engine.compatible.delete" = "删除此引擎";
+"engine.compatible.useAsEngine" = "设为翻译引擎";
+"engine.compatible.max.reached" = "已达到最多 5 个兼容引擎上限";
+
+/* 提示词配置 */
+"prompt.compatible.title" = "兼容引擎";
+
+
+/* ========================================
+   关于窗口
+   ======================================== */
+
+"about.title" = "关于 TransFrame";
+"about.app.name" = "TransFrame";
+"about.version.format" = "版本 %@ (%@)";
+"about.copyright" = "版权";
+"about.copyright.value" = "© 2026 保留所有权利";
+"about.license" = "许可证";
+"about.license.value" = "MIT 许可证";
+"about.github.link" = "GitHub: hubo1989/TransFrame";
+"about.check.for.updates" = "检查更新";
+"about.update.checking" = "检查中...";
+"about.update.available" = "有新版本";
+"about.update.uptodate" = "已是最新版本";
+"about.update.failed" = "检查失败";
+"about.acknowledgements" = "致谢";
+"about.acknowledgements.title" = "致谢";
+"about.acknowledgements.intro" = "本软件使用了以下开源库：";
+"about.acknowledgements.upstream" = "基于";
+"about.acknowledgements.author.format" = "作者：%@";
+"about.close" = "关闭";
+"settings.glmocr.mode" = "模式";
+"settings.glmocr.mode.cloud" = "云端";
+"settings.glmocr.mode.local" = "本地";
+"settings.glmocr.local.apiKey.optional" = "本地 MLX-VLM 服务无需 API 密钥";
+"vlm.provider.glmocr.local.description" = "本地 MLX-VLM GLM-OCR 服务";
+
+"engine.config.fetchModels" = "获取";
+"engine.config.fetchModels.failed" = "获取模型失败";

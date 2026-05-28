@@ -8,7 +8,7 @@
       "title": "创建 WindowDetector 窗口检测服务",
       "description": "作为开发者，我需要封装 CGWindowListCopyWindowInfo API 来检测鼠标光标下方的窗口",
       "acceptanceCriteria": [
-        "创建 WindowDetector.swift 文件在 ScreenTranslate/Services/ 目录",
+        "创建 WindowDetector.swift 文件在 TransFrame/Services/ 目录",
         "实现 WindowInfo 结构体包含 windowID、frame、ownerName、windowName、windowLayer",
         "实现 windowUnderPoint(_:) 方法返回光标下方最顶层可见窗口",
         "实现 visibleWindows() 方法返回所有可见窗口列表",

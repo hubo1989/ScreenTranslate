@@ -2,7 +2,7 @@
 
 ## Overview
 
-将 ScreenTranslate 的翻译功能从现有截图-标注流程中独立出来，创建全新的「双语翻译模式」。用户通过独立快捷键触发，直接框选屏幕区域，使用 VLM (Vision Language Model) 提取文本及位置信息，调用多引擎翻译服务，最终在专用窗口中呈现双语对照结果。
+将 TransFrame 的翻译功能从现有截图-标注流程中独立出来，创建全新的「双语翻译模式」。用户通过独立快捷键触发，直接框选屏幕区域，使用 VLM (Vision Language Model) 提取文本及位置信息，调用多引擎翻译服务，最终在专用窗口中呈现双语对照结果。
 
 核心改进：
 - **ScreenCoder 引擎**：用 VLM 替代 OCR，提取文本同时保留精确位置
@@ -21,7 +21,7 @@
 ## Quality Gates
 
 These commands must pass for every user story:
-- `xcodebuild -scheme ScreenTranslate build` - 编译通过
+- `xcodebuild -scheme TransFrame build` - 编译通过
 - SwiftLint 检查通过（如项目已配置）
 
 UI 功能手动验证即可。

@@ -4,9 +4,9 @@ set -e
 # Configuration
 VERSION="1.5.1"
 PROJECT_PATH="$(pwd)"
-XCODE_PROJ="$PROJECT_PATH/ScreenTranslate.xcodeproj"
+XCODE_PROJ="$PROJECT_PATH/TransFrame.xcodeproj"
 DMG_TEMP_DIR="$PROJECT_PATH/build_artifacts/dmg_temp"
-DMG_NAME="ScreenTranslate-v$VERSION.dmg"
+DMG_NAME="TransFrame-v$VERSION.dmg"
 DMG_PATH="$PROJECT_PATH/$DMG_NAME"
 
 echo "🚀 开始制作 DMG 安装包..."
@@ -18,28 +18,28 @@ rm -f "$DMG_PATH"
 
 # 2. 编译 Release 版本 (使用默认/当前架构)
 echo "🏗️ 正在编译 Release 版本..."
-xcodebuild -project "$XCODE_PROJ" -scheme ScreenTranslate -configuration Release -derivedDataPath "$PROJECT_PATH/build_artifacts/dmg" -quiet
+xcodebuild -project "$XCODE_PROJ" -scheme TransFrame -configuration Release -derivedDataPath "$PROJECT_PATH/build_artifacts/dmg" -quiet
 
 # 3. 创建临时文件夹结构
 echo "📁 准备 DMG 目录结构..."
 mkdir -p "$DMG_TEMP_DIR"
 
 # 复制 .app 到临时目录
-APP_PATH="$PROJECT_PATH/build_artifacts/dmg/Build/Products/Release/ScreenTranslate.app"
+APP_PATH="$PROJECT_PATH/build_artifacts/dmg/Build/Products/Release/TransFrame.app"
 if [ ! -d "$APP_PATH" ]; then
-    APP_PATH="$PROJECT_PATH/build/Products/Release/ScreenTranslate.app"
+    APP_PATH="$PROJECT_PATH/build/Products/Release/TransFrame.app"
 fi
 if [ ! -d "$APP_PATH" ]; then
-    APP_PATH="$PROJECT_PATH/Build/Products/Release/ScreenTranslate.app"
+    APP_PATH="$PROJECT_PATH/Build/Products/Release/TransFrame.app"
 fi
 
 if [ ! -d "$APP_PATH" ]; then
     # 模糊查找
-    APP_PATH=$(find "$PROJECT_PATH/build" "$PROJECT_PATH/Build" "$PROJECT_PATH/build_artifacts" -name "ScreenTranslate.app" -type d | head -n 1)
+    APP_PATH=$(find "$PROJECT_PATH/build" "$PROJECT_PATH/Build" "$PROJECT_PATH/build_artifacts" -name "TransFrame.app" -type d | head -n 1)
 fi
 
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then
-    echo "❌ 错误: 未找到编译好的 ScreenTranslate.app"
+    echo "❌ 错误: 未找到编译好的 TransFrame.app"
     exit 1
 fi
 
@@ -55,7 +55,7 @@ echo "📦 正在生成 DMG 镜像..."
 TEMP_DMG="$PROJECT_PATH/build_artifacts/temp.dmg"
 rm -f "$TEMP_DMG"
 
-hdiutil create -srcfolder "$DMG_TEMP_DIR" -volname "ScreenTranslate" -fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW -size 300m "$TEMP_DMG"
+hdiutil create -srcfolder "$DMG_TEMP_DIR" -volname "TransFrame" -fs HFS+ -fsargs "-c c=64,a=16,e=16" -format UDRW -size 300m "$TEMP_DMG"
 
 # 挂载 DMG 调整布局 (可选，这里使用简单的默认挂载与静默转换即可，
 # 若需要高级背景图和位置，通常需要 AppleScript，但由于 CLI 环境，我们提供一个标准且高兼容性的 DMG)

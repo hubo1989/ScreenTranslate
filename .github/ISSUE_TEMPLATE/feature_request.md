@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a new feature for ScreenCapture
+about: Suggest a new feature for TransFrame
 title: '[Feature] '
 labels: enhancement
 assignees: ''

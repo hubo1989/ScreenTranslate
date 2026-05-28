@@ -1,10 +1,10 @@
 {
-  "name": "screentranslate",
+  "name": "transframe",
   "version": "1.0.2",
   "description": "macOS menu bar translation tool",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hubo1989/ScreenTranslate.git"
+    "url": "git+https://github.com/hubo1989/TransFrame.git"
   },
   "author": "hubo",
   "license": "MIT"

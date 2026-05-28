@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a bug to help us improve ScreenCapture
+about: Report a bug to help us improve TransFrame
 title: '[Bug] '
 labels: bug
 assignees: ''
@@ -31,7 +31,7 @@ If applicable, add screenshots to help explain the problem.
 ## Environment
 
 - **macOS Version:** [e.g., 14.2]
-- **ScreenCapture Version:** [e.g., 1.0.0]
+- **TransFrame Version:** [e.g., 1.0.0]
 - **Display Setup:** [e.g., Single monitor, Dual monitors, Retina/Non-Retina]
 
 ## Console Logs

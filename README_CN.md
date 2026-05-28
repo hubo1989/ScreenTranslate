@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="ScreenTranslate/Resources/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" alt="ScreenTranslate" width="128" height="128">
+  <img src="TransFrame/Resources/Assets.xcassets/AppIcon.appiconset/icon_128x128.png" alt="TransFrame" width="128" height="128">
 </p>
 
-<h1 align="center">ScreenTranslate</h1>
+<h1 align="center">TransFrame</h1>
 
 <p align="center">
   macOS 菜单栏截图翻译工具，支持 OCR 识别、多引擎翻译、文本选择翻译和翻译插入
 </p>
 
 <p align="center">
-  <a href="https://github.com/hubo1989/ScreenTranslate/releases"><img src="https://img.shields.io/badge/version-1.3.0-blue.svg" alt="Version"></a>
+  <a href="https://github.com/hubo1989/TransFrame/releases"><img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://www.apple.com/macos/"><img src="https://img.shields.io/badge/macOS-13.0%2B-brightgreen.svg" alt="macOS"></a>
   <a href="https://swift.org/"><img src="https://img.shields.io/badge/Swift-6.0-orange.svg" alt="Swift"></a>
@@ -98,12 +98,12 @@
 >
 > **方法 1 - 终端命令（推荐）**
 > ```bash
-> xattr -rd com.apple.quarantine /Applications/ScreenTranslate.app
+> xattr -rd com.apple.quarantine /Applications/TransFrame.app
 > ```
 >
 > **方法 2 - 系统设置**
 > 1. 打开「系统设置」→「隐私与安全性」
-> 2. 在「安全性」部分找到关于 ScreenTranslate 的提示
+> 2. 在「安全性」部分找到关于 TransFrame 的提示
 > 3. 点击「仍要打开」
 >
 > 两种方法都只需要执行一次，之后可以正常使用。
@@ -120,7 +120,7 @@
 ## 📁 项目结构
 
 ```text
-ScreenTranslate/
+TransFrame/
 ├── App/                    # 应用入口与协调器
 │   ├── AppDelegate.swift
 │   └── Coordinators/       # 功能协调器
@@ -149,17 +149,23 @@ ScreenTranslate/
 
 ```bash
 # 克隆仓库
-git clone https://github.com/hubo1989/ScreenTranslate.git
-cd ScreenTranslate
+git clone https://github.com/hubo1989/TransFrame.git
+cd TransFrame
 
 # 用 Xcode 打开
-open ScreenTranslate.xcodeproj
+open TransFrame.xcodeproj
 
 # 或命令行构建
-xcodebuild -project ScreenTranslate.xcodeproj -scheme ScreenTranslate
+xcodebuild -project TransFrame.xcodeproj -scheme TransFrame
 ```
 
 ## 📝 更新日志
+
+### v1.0.0 (TransFrame 首次发布)
+- 🎉 应用品牌从 **ScreenTranslate** 彻底更名为 **TransFrame**
+- ✨ 默认 Bundle Identifier 变更为 `com.transframe.app`
+- ⚙️ 全面重构并重命名了项目目录、文件和底层配置，以适配新品牌名称
+- 🧪 升级并重构单元测试，实现完全的环境独立性验证
 
 ### v1.3.0
 - ✨ 新增关于菜单（版本、许可证、致谢）

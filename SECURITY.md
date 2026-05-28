@@ -30,7 +30,7 @@ We take security seriously. If you discover a security vulnerability, please rep
 ### Scope
 
 The following are in scope:
-- The ScreenCapture application
+- The TransFrame application
 - Build and distribution processes
 - Documentation that could lead to security issues
 
@@ -41,7 +41,7 @@ The following are out of scope:
 
 ## Security Best Practices
 
-When using ScreenCapture:
+When using TransFrame:
 
 1. **Permissions:** Only grant Screen Recording permission if you trust the app
 2. **Downloads:** Only download from official releases on GitHub
@@ -49,7 +49,7 @@ When using ScreenCapture:
 
 ## Security Features
 
-ScreenCapture includes these security considerations:
+TransFrame includes these security considerations:
 
 - **Local Processing:** All screenshots are processed locally
 - **No Network:** The app does not transmit data externally
