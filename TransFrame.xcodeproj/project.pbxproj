@@ -27,7 +27,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		862C98FC2F32309800ABAC92 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		862C98FC2F32309800ABAC92 /* Exceptions for "ScreenTranslate" folder in "ScreenTranslate" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"Supporting Files/Info.plist",
@@ -40,7 +40,7 @@
 		SC000002 /* TransFrame */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				862C98FC2F32309800ABAC92 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				862C98FC2F32309800ABAC92 /* Exceptions for "ScreenTranslate" folder in "ScreenTranslate" target */,
 			);
 			path = TransFrame;
 			sourceTree = "<group>";
@@ -59,6 +59,13 @@
 			files = (
 				86DCC59B2F56BB9D000ECF4B /* Sparkle in Frameworks */,
 				5CBB85A94547D02088035C0B /* PermissionFlow in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		SC000025 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -235,16 +242,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXFrameworksBuildPhase section */
-		SC000025 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXTargetDependency section */
 		SC000033 /* PBXTargetDependency */ = {

@@ -840,9 +840,10 @@ final class SettingsViewModel {
                 let effectiveBaseURL = vlmBaseURL.isEmpty ? vlmProvider.defaultBaseURL(glmOCRMode: glmOCRMode) : vlmBaseURL
                 let effectiveModel = vlmModelName.isEmpty ? vlmProvider.defaultModelName(glmOCRMode: glmOCRMode) : vlmModelName
 
-                guard let baseURL = URL(string: effectiveBaseURL) else {
+                guard let parsedBaseURL = URL(string: effectiveBaseURL) else {
                     throw ScreenCoderEngineError.invalidConfiguration("Invalid base URL: \(effectiveBaseURL)")
                 }
+                let baseURL = parsedBaseURL.resolvingLocalhost
 
                 if currentVLMRequiresAPIKey && vlmAPIKey.isEmpty {
                     throw ScreenCoderEngineError.invalidConfiguration("API key is required for \(vlmProvider.localizedName)")
@@ -956,11 +957,34 @@ final class SettingsViewModel {
         }
     }
 
-    /// Tests OpenAI API connection by fetching available models
+    /// Tests OpenAI API connection by sending a tiny placeholder image request
     private func testOpenAIConnection(baseURL: URL, apiKey: String, modelName: String) async throws -> (success: Bool, message: String) {
-        var request = URLRequest(url: baseURL.appendingPathComponent("models"))
+        var request = URLRequest(url: baseURL.appendingPathComponent("chat/completions"))
+        request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 10
+
+        let body: [String: Any] = [
+            "model": modelName,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        ["type": "text", "text": "Test connection."],
+                        [
+                            "type": "image_url",
+                            "image_url": [
+                                "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAE0lEQVR4nGP8//8/AwwwwVl4OQCWbgMF7ZjH1AAAAABJRU5ErkJggg=="
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            "stream": false,
+            "max_tokens": 10
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (_, response) = try await URLSession.shared.data(for: request)
 
@@ -980,12 +1004,39 @@ final class SettingsViewModel {
         }
     }
 
-    /// Tests Claude API connection
+    /// Tests Claude API connection by sending a tiny placeholder image request
     private func testClaudeConnection(baseURL: URL, apiKey: String, modelName: String) async throws -> (success: Bool, message: String) {
-        var request = URLRequest(url: baseURL.appendingPathComponent("models"))
+        var request = URLRequest(url: baseURL.appendingPathComponent("v1/messages"))
+        request.httpMethod = "POST"
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.timeoutInterval = 10
+
+        let body: [String: Any] = [
+            "model": modelName,
+            "max_tokens": 10,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "image",
+                            "source": [
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAE0lEQVR4nGP8//8/AwwwwVl4OQCWbgMF7ZjH1AAAAABJRU5ErkJggg=="
+                            ]
+                        ],
+                        [
+                            "type": "text",
+                            "text": "Test connection."
+                        ]
+                    ]
+                ]
+            ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         let (_, response) = try await URLSession.shared.data(for: request)
 
@@ -1054,33 +1105,37 @@ final class SettingsViewModel {
         }
     }
 
-    /// Tests Ollama connection by checking if server is running
+    /// Tests Ollama connection by sending a tiny placeholder image request to test generation
     private func testOllamaConnection(baseURL: URL, modelName: String) async throws -> (success: Bool, message: String) {
-        var request = URLRequest(url: baseURL.appendingPathComponent("api/tags"))
-        request.timeoutInterval = 5
+        var request = URLRequest(url: baseURL.appendingPathComponent("api/generate"))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 10
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let body: [String: Any] = [
+            "model": modelName,
+            "prompt": "Test connection.",
+            "images": ["iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAE0lEQVR4nGP8//8/AwwwwVl4OQCWbgMF7ZjH1AAAAABJRU5ErkJggg=="],
+            "stream": false,
+            "options": [
+                "num_predict": 10
+            ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            throw VLMProviderError.networkError("Ollama server not responding")
+        let (_, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw VLMProviderError.invalidResponse("Invalid HTTP response")
         }
 
-        // Check if the configured model is available
-        struct OllamaTagsResponse: Codable {
-            struct Model: Codable {
-                let name: String
-            }
-            let models: [Model]
-        }
-
-        let tagsResponse = try JSONDecoder().decode(OllamaTagsResponse.self, from: data)
-        let availableModels = tagsResponse.models.map { $0.name }
-
-        if availableModels.contains(where: { $0.hasPrefix(modelName) }) {
+        switch httpResponse.statusCode {
+        case 200:
             return (true, String(format: NSLocalizedString("settings.vlm.test.ollama.success", comment: ""), modelName))
-        } else {
-            let modelsList = availableModels.isEmpty ? NSLocalizedString("none", comment: "") : availableModels.joined(separator: ", ")
-            return (true, String(format: NSLocalizedString("settings.vlm.test.ollama.available", comment: ""), modelsList))
+        case 404:
+            throw VLMProviderError.modelUnavailable("\(modelName). Run 'ollama pull \(modelName)' first.")
+        default:
+            throw VLMProviderError.invalidResponse("HTTP \(httpResponse.statusCode)")
         }
     }
 

@@ -821,3 +821,6 @@
 "settings.glmocr.mode.local" = "ローカル";
 "settings.glmocr.local.apiKey.optional" = "ローカル MLX-VLM サーバーでは API キーは不要です";
 "vlm.provider.glmocr.local.description" = "GLM-OCR 用ローカル MLX-VLM サーバー";
+
+"engine.config.fetchModels" = "Fetch";
+"engine.config.fetchModels.failed" = "Failed to fetch models";

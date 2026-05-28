@@ -836,3 +836,6 @@ Conceda permissão em Configurações do Sistema > Privacidade e Segurança > Mo
 "settings.glmocr.mode.local" = "Local";
 "settings.glmocr.local.apiKey.optional" = "A chave API é opcional para servidores MLX-VLM locais";
 "vlm.provider.glmocr.local.description" = "Servidor MLX-VLM local para GLM-OCR";
+
+"engine.config.fetchModels" = "Fetch";
+"engine.config.fetchModels.failed" = "Failed to fetch models";

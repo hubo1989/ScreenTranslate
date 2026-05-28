@@ -94,7 +94,7 @@ struct GLMOCRVLMProvider: VLMProvider, Sendable {
             throw VLMProviderError.invalidConfiguration("GLM OCR requires an API key.")
         }
 
-        let endpoint = baseURL.appendingPathComponent("layout_parsing")
+        let endpoint = baseURL.resolvingLocalhost.appendingPathComponent("layout_parsing")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = timeout
@@ -118,7 +118,7 @@ struct GLMOCRVLMProvider: VLMProvider, Sendable {
         fileDataURI: String,
         timeout: TimeInterval
     ) throws -> URLRequest {
-        let endpoint = baseURL.appendingPathComponent("chat/completions")
+        let endpoint = baseURL.resolvingLocalhost.appendingPathComponent("chat/completions")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = timeout

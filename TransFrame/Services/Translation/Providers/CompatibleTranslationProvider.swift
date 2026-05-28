@@ -197,13 +197,58 @@ actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfi
         return results
     }
 
-    func checkConnection() async -> Bool {
-        do {
-            _ = try await translate(text: "Hello", from: "en", to: "zh")
-            return true
-        } catch {
-            logger.error("Connection check failed: \(error.localizedDescription)")
-            return false
+    func verifyConnection() async throws {
+        let baseURL = compatibleConfig.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard let url = URL(string: baseURL) else {
+            throw TranslationProviderError.invalidConfiguration("Invalid base URL")
+        }
+        
+        let apiURL = url.resolvingLocalhost.appendingPathComponent("models")
+        
+        var request = URLRequest(url: apiURL)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10.0
+        
+        if compatibleConfig.hasAPIKey {
+            let keychainId = compatibleConfig.keychainId
+            if let credentials = try await keychain.getCredentials(forCompatibleId: keychainId) {
+                // Security check
+                if let host = url.resolvingLocalhost.host, !Self.isLocalhost(host) && url.resolvingLocalhost.scheme != "https" {
+                    throw TranslationProviderError.invalidConfiguration(
+                        "Refusing to send API key over insecure connection (HTTP). Use HTTPS or a localhost URL."
+                    )
+                }
+                request.setValue("Bearer \(credentials.apiKey)", forHTTPHeaderField: "Authorization")
+            }
+        }
+        
+        if let headers = request.allHTTPHeaderFields {
+            var safeHeaders: [String: String] = [:]
+            for (key, value) in headers {
+                let lowerKey = key.lowercased()
+                if lowerKey == "authorization" {
+                    if value.lowercased().hasPrefix("bearer ") {
+                        safeHeaders[key] = "Bearer " + String(value.dropFirst(7).prefix(4)) + "..."
+                    } else {
+                        safeHeaders[key] = String(value.prefix(4)) + "..."
+                    }
+                } else if lowerKey == "x-api-key" || lowerKey.contains("key") {
+                    safeHeaders[key] = String(value.prefix(4)) + "..."
+                } else {
+                    safeHeaders[key] = value
+                }
+            }
+            logger.info("Sending verifyConnection request to \(apiURL.absoluteString) with headers: \(safeHeaders)")
+        }
+        
+        let (_, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TranslationProviderError.connectionFailed("Invalid response")
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            logger.error("Connection verify failed: status \(httpResponse.statusCode)")
+            throw TranslationProviderError.connectionFailed("Connection verify failed: HTTP \(httpResponse.statusCode)")
         }
     }
 
@@ -248,7 +293,7 @@ actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfi
         }
 
         // Build OpenAI-compatible endpoint: baseURL/chat/completions
-        let apiURL = url.appendingPathComponent("chat/completions")
+        let apiURL = url.resolvingLocalhost.appendingPathComponent("chat/completions")
 
         var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
@@ -266,12 +311,31 @@ actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfi
             "messages": [
                 ["role": "user", "content": prompt]
             ],
+            "stream": false,
             "temperature": config.options?.temperature ?? 0.3,
             "max_tokens": config.options?.maxTokens ?? 2048
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        if let headers = request.allHTTPHeaderFields {
+            var safeHeaders: [String: String] = [:]
+            for (key, value) in headers {
+                let lowerKey = key.lowercased()
+                if lowerKey == "authorization" {
+                    if value.lowercased().hasPrefix("bearer ") {
+                        safeHeaders[key] = "Bearer " + String(value.dropFirst(7).prefix(4)) + "..."
+                    } else {
+                        safeHeaders[key] = String(value.prefix(4)) + "..."
+                    }
+                } else if lowerKey == "x-api-key" || lowerKey.contains("key") {
+                    safeHeaders[key] = String(value.prefix(4)) + "..."
+                } else {
+                    safeHeaders[key] = value
+                }
+            }
+            logger.info("Sending request to \(apiURL.absoluteString) with headers: \(safeHeaders)")
+        }
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -295,15 +359,88 @@ actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfi
     }
 
     private func parseResponse(_ data: Data) throws -> String {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let choices = json["choices"] as? [[String: Any]],
+        guard let rawString = String(data: data, encoding: .utf8) else {
+            throw TranslationProviderError.translationFailed("Unable to decode data to UTF-8 string")
+        }
+
+        let trimmedResponse = rawString.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Check if response is Server-Sent Events (SSE) stream format
+        if trimmedResponse.hasPrefix("data:") || trimmedResponse.contains("\ndata:") {
+            return try parseSSEStream(trimmedResponse)
+        }
+
+        let jsonObject: Any
+        do {
+            jsonObject = try JSONSerialization.jsonObject(with: data)
+        } catch {
+            logger.error("JSON serialization failed: \(error.localizedDescription). Response size: \(data.count) bytes")
+            throw error
+        }
+
+        guard let json = jsonObject as? [String: Any] else {
+            logger.error("Response JSON is not a dictionary object")
+            throw TranslationProviderError.translationFailed("Response JSON is not a dictionary")
+        }
+
+        // Handle error responses from OpenAI compatible APIs
+        if let errorObj = json["error"] as? [String: Any],
+           let errorMessage = errorObj["message"] as? String {
+            logger.error("API returned error: \(errorMessage)")
+            throw TranslationProviderError.translationFailed("API error: \(errorMessage)")
+        }
+
+        guard let choices = json["choices"] as? [[String: Any]],
               let firstChoice = choices.first,
               let message = firstChoice["message"] as? [String: Any],
               let content = message["content"] as? String else {
-            throw TranslationProviderError.translationFailed("Failed to parse response")
+            logger.error("Unexpected JSON response structure (missing choices or content)")
+            throw TranslationProviderError.translationFailed("Unexpected JSON response structure")
         }
 
         return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func parseSSEStream(_ streamText: String) throws -> String {
+        var resultText = ""
+        let lines = streamText.components(separatedBy: .newlines)
+
+        for line in lines {
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedLine.isEmpty else { continue }
+
+            // Skip stream end marker
+            if trimmedLine == "data: [DONE]" {
+                continue
+            }
+
+            if trimmedLine.hasPrefix("data:") {
+                let jsonText = trimmedLine.dropFirst(5).trimmingCharacters(in: .whitespaces)
+                guard !jsonText.isEmpty else { continue }
+
+                guard let jsonData = jsonText.data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+                    continue
+                }
+
+                if let choices = json["choices"] as? [[String: Any]],
+                   let firstChoice = choices.first {
+                    if let delta = firstChoice["delta"] as? [String: Any],
+                       let content = delta["content"] as? String {
+                        resultText += content
+                    } else if let text = firstChoice["text"] as? String {
+                        resultText += text
+                    }
+                }
+            }
+        }
+
+        guard !resultText.isEmpty else {
+            logger.error("Failed to extract any text from SSE stream (length: \(streamText.count))")
+            throw TranslationProviderError.translationFailed("Empty text from SSE stream")
+        }
+
+        return resultText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func translate(
@@ -346,5 +483,15 @@ actor CompatibleTranslationProvider: TranslationProvider, TranslationPromptConfi
             sourceLanguage: sourceLanguage ?? "Auto",
             targetLanguage: targetLanguage
         )
+    }
+
+    private nonisolated static func isLocalhost(_ host: String) -> Bool {
+        let lowered = host.lowercased()
+        return lowered == "localhost"
+            || lowered == "127.0.0.1"
+            || lowered == "::1"
+            || lowered == "0.0.0.0"
+            || lowered.hasSuffix(".local")
+            || lowered.contains(".local:")
     }
 }

@@ -25,14 +25,17 @@ echo "📁 准备 DMG 目录结构..."
 mkdir -p "$DMG_TEMP_DIR"
 
 # 复制 .app 到临时目录
-APP_PATH="$PROJECT_PATH/build/Products/Release/TransFrame.app"
+APP_PATH="$PROJECT_PATH/build_artifacts/dmg/Build/Products/Release/TransFrame.app"
+if [ ! -d "$APP_PATH" ]; then
+    APP_PATH="$PROJECT_PATH/build/Products/Release/TransFrame.app"
+fi
 if [ ! -d "$APP_PATH" ]; then
     APP_PATH="$PROJECT_PATH/Build/Products/Release/TransFrame.app"
 fi
 
 if [ ! -d "$APP_PATH" ]; then
     # 模糊查找
-    APP_PATH=$(find "$PROJECT_PATH/build" "$PROJECT_PATH/Build" -name "TransFrame.app" -type d | head -n 1)
+    APP_PATH=$(find "$PROJECT_PATH/build" "$PROJECT_PATH/Build" "$PROJECT_PATH/build_artifacts" -name "TransFrame.app" -type d | head -n 1)
 fi
 
 if [ -z "$APP_PATH" ] || [ ! -d "$APP_PATH" ]; then

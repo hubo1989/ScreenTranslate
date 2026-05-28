@@ -821,3 +821,6 @@
 "settings.glmocr.mode.local" = "Lokal";
 "settings.glmocr.local.apiKey.optional" = "API-Schlüssel ist für lokale MLX-VLM-Server optional";
 "vlm.provider.glmocr.local.description" = "Lokaler MLX-VLM-Server für GLM-OCR";
+
+"engine.config.fetchModels" = "Fetch";
+"engine.config.fetchModels.failed" = "Failed to fetch models";

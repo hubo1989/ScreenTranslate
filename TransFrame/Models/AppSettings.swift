@@ -741,47 +741,12 @@ final class AppSettings {
 
     /// Load PaddleOCR cloud API key from Keychain synchronously
     private static func loadPaddleOCRAPIKeyFromKeychain() -> String {
-        // Use shared constants from KeychainService
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: KeychainService.serviceIdentifier,
-            kSecAttrAccount as String: KeychainService.paddleOCRAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
-            return ""
-        }
-
-        return credentials.apiKey
+        KeychainService.loadPaddleOCRAPIKeySynchronously()
     }
 
     /// Load VLM API key from Keychain synchronously
     private static func loadVLMAPIKeyFromKeychain() -> String {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: KeychainService.serviceIdentifier,
-            kSecAttrAccount as String: "vlm_api_key",
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
-        ]
-
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
-            return ""
-        }
-
-        return credentials.apiKey
+        KeychainService.loadVLMAPIKeySynchronously()
     }
 
     // MARK: - Multi-Engine Persistence Helpers

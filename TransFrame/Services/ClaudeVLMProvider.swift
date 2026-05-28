@@ -247,7 +247,7 @@ struct ClaudeVLMProvider: VLMProvider, Sendable {
 
     /// Builds request with custom messages and continuation settings
     private func buildRequest(messages: [ClaudeMessage], isContinuation: Bool) throws -> URLRequest {
-        let endpoint = configuration.baseURL.appendingPathComponent("v1/messages")
+        let endpoint = configuration.baseURL.resolvingLocalhost.appendingPathComponent("v1/messages")
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"

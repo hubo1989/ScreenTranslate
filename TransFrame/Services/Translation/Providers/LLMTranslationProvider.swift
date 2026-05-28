@@ -166,17 +166,58 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
         )
     }
 
-    func checkConnection() async -> Bool {
-        do {
-            _ = try await translate(
-                text: "Hello",
-                from: "en",
-                to: "zh"
-            )
-            return true
-        } catch {
-            logger.error("Connection check failed: \(error.localizedDescription)")
-            return false
+    func verifyConnection() async throws {
+        let credentials = try await getCredentials()
+        let baseURL = try getBaseURL()
+        
+        // For OpenAI and Ollama, we can perform a models GET check (non-billing)
+        if engineType == .openai || engineType == .ollama {
+            let endpoint = engineType == .ollama ? baseURL.appendingPathComponent("api/tags") : baseURL.appendingPathComponent("models")
+            
+            var request = URLRequest(url: endpoint)
+            request.httpMethod = "GET"
+            request.timeoutInterval = 10.0
+            
+            if let apiKey = credentials?.apiKey {
+                // Security check
+                if let host = baseURL.host, !Self.isLocalhost(host) && baseURL.scheme != "https" {
+                    throw TranslationProviderError.invalidConfiguration(
+                        "Refusing to send API key over insecure connection (HTTP). Use HTTPS or a localhost URL."
+                    )
+                }
+                request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            }
+            
+            if let headers = request.allHTTPHeaderFields {
+                var safeHeaders: [String: String] = [:]
+                for (key, value) in headers {
+                    let lowerKey = key.lowercased()
+                    if lowerKey == "authorization" {
+                        if value.lowercased().hasPrefix("bearer ") {
+                            safeHeaders[key] = "Bearer " + String(value.dropFirst(7).prefix(4)) + "..."
+                        } else {
+                            safeHeaders[key] = String(value.prefix(4)) + "..."
+                        }
+                    } else if lowerKey == "x-api-key" || lowerKey.contains("key") {
+                        safeHeaders[key] = String(value.prefix(4)) + "..."
+                    } else {
+                        safeHeaders[key] = value
+                    }
+                }
+                logger.info("Sending verifyConnection request to \(endpoint.absoluteString) with headers: \(safeHeaders)")
+            }
+            
+            let (_, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw TranslationProviderError.connectionFailed("Invalid response")
+            }
+            guard httpResponse.statusCode == 200 else {
+                logger.error("Connection verify failed: status \(httpResponse.statusCode)")
+                throw TranslationProviderError.connectionFailed("Connection verify failed: HTTP \(httpResponse.statusCode)")
+            }
+        } else {
+            // Claude, Gemini, etc. fallback to translation of "1"
+            _ = try await translate(text: "1", from: "en", to: "zh")
         }
     }
 
@@ -283,6 +324,7 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
                 "messages": [
                     ["role": "user", "content": prompt]
                 ],
+                "stream": false,
                 "temperature": config.options?.temperature ?? 0.3,
                 "max_tokens": config.options?.maxTokens ?? 2048
             ]
@@ -291,6 +333,24 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
         // Execute request
+        if let headers = request.allHTTPHeaderFields {
+            var safeHeaders: [String: String] = [:]
+            for (key, value) in headers {
+                let lowerKey = key.lowercased()
+                if lowerKey == "authorization" {
+                    if value.lowercased().hasPrefix("bearer ") {
+                        safeHeaders[key] = "Bearer " + String(value.dropFirst(7).prefix(4)) + "..."
+                    } else {
+                        safeHeaders[key] = String(value.prefix(4)) + "..."
+                    }
+                } else if lowerKey == "x-api-key" || lowerKey.contains("key") {
+                    safeHeaders[key] = String(value.prefix(4)) + "..."
+                } else {
+                    safeHeaders[key] = value
+                }
+            }
+            logger.info("Sending request to \(endpoint.absoluteString) with headers: \(safeHeaders)")
+        }
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -315,8 +375,35 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
     }
 
     private func parseResponse(_ data: Data, for engineType: TranslationEngineType) throws -> String {
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw TranslationProviderError.translationFailed("Failed to parse response")
+        guard let rawString = String(data: data, encoding: .utf8) else {
+            throw TranslationProviderError.translationFailed("Unable to decode data to UTF-8 string")
+        }
+
+        let trimmedResponse = rawString.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Check if response is Server-Sent Events (SSE) stream format
+        if trimmedResponse.hasPrefix("data:") || trimmedResponse.contains("\ndata:") {
+            return try parseSSEStream(trimmedResponse, for: engineType)
+        }
+
+        let jsonObject: Any
+        do {
+            jsonObject = try JSONSerialization.jsonObject(with: data)
+        } catch {
+            logger.error("JSON serialization failed for \(engineType.rawValue): \(error.localizedDescription). Response size: \(data.count) bytes")
+            throw error
+        }
+
+        guard let json = jsonObject as? [String: Any] else {
+            logger.error("Response JSON for \(engineType.rawValue) is not a dictionary object")
+            throw TranslationProviderError.translationFailed("Response JSON is not a dictionary")
+        }
+
+        // Handle error responses from LLM APIs
+        if let errorObj = json["error"] as? [String: Any],
+           let errorMessage = errorObj["message"] as? String {
+            logger.error("API returned error for \(engineType.rawValue): \(errorMessage)")
+            throw TranslationProviderError.translationFailed("API error: \(errorMessage)")
         }
 
         let content: String?
@@ -331,10 +418,64 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
         }
 
         guard let text = content else {
-            throw TranslationProviderError.translationFailed("Failed to parse response")
+            logger.error("Unexpected JSON response structure for \(engineType.rawValue) (missing choices or content)")
+            throw TranslationProviderError.translationFailed("Unexpected JSON response structure")
         }
 
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func parseSSEStream(_ streamText: String, for engineType: TranslationEngineType) throws -> String {
+        var resultText = ""
+        let lines = streamText.components(separatedBy: .newlines)
+
+        for line in lines {
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedLine.isEmpty else { continue }
+
+            // Skip stream end marker
+            if trimmedLine == "data: [DONE]" {
+                continue
+            }
+
+            if trimmedLine.hasPrefix("data:") {
+                let jsonText = trimmedLine.dropFirst(5).trimmingCharacters(in: .whitespaces)
+                guard !jsonText.isEmpty else { continue }
+
+                guard let jsonData = jsonText.data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+                    continue
+                }
+
+                switch engineType {
+                case .claude:
+                    // Claude streaming format (usually text delta in content_block_delta or message_delta)
+                    if let type = json["type"] as? String, type == "content_block_delta",
+                       let delta = json["delta"] as? [String: Any],
+                       let text = delta["text"] as? String {
+                        resultText += text
+                    }
+                default:
+                    // OpenAI/Gemini/Ollama streaming format
+                    if let choices = json["choices"] as? [[String: Any]],
+                       let firstChoice = choices.first {
+                        if let delta = firstChoice["delta"] as? [String: Any],
+                           let content = delta["content"] as? String {
+                            resultText += content
+                        } else if let text = firstChoice["text"] as? String {
+                            resultText += text
+                        }
+                    }
+                }
+            }
+        }
+
+        guard !resultText.isEmpty else {
+            logger.error("Failed to extract any text from SSE stream for \(engineType.rawValue) (length: \(streamText.count))")
+            throw TranslationProviderError.translationFailed("Empty text from SSE stream")
+        }
+
+        return resultText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func getBaseURL() throws -> URL {
@@ -342,18 +483,18 @@ actor LLMTranslationProvider: TranslationProvider, TranslationPromptConfigurable
             guard let url = URL(string: customURL) else {
                 throw TranslationProviderError.invalidConfiguration("Invalid custom baseURL: \(customURL)")
             }
-            return url
+            return url.resolvingLocalhost
         }
 
         if let defaultURL = engineType.defaultBaseURL,
            let url = URL(string: defaultURL) {
-            return url
+            return url.resolvingLocalhost
         }
 
         guard let url = URL(string: "https://api.openai.com/v1") else {
             throw TranslationProviderError.invalidConfiguration("Failed to create API URL")
         }
-        return url
+        return url.resolvingLocalhost
     }
 
     private func getModelName() -> String {

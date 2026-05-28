@@ -117,3 +117,110 @@ final class GLMOCRVLMProviderTests: XCTestCase {
         XCTAssertEqual(actual.size.height, expected.size.height, accuracy: accuracy)
     }
 }
+
+final class OpenAIVLMProviderTests: XCTestCase {
+    var provider: OpenAIVLMProvider!
+
+    override func setUp() {
+        super.setUp()
+        let config = VLMProviderConfiguration(apiKey: "test-key", baseURL: URL(string: "https://api.openai.com/v1")!, modelName: "gpt-4o")
+        provider = OpenAIVLMProvider(configuration: config)
+    }
+
+    func testExtractContentAndStatusWithReasoningContentFallback() throws {
+        let json = """
+        {
+          "choices": [
+            {
+              "message": {
+                "role": "assistant",
+                "content": "",
+                "reasoning_content": "{\\"segments\\":[]}"
+              },
+              "finish_reason": "stop"
+            }
+          ]
+        }
+        """
+        let data = Data(json.utf8)
+        let (content, isTruncated, finishReason) = try provider.extractContentAndStatus(from: data)
+        XCTAssertEqual(content, "{\"segments\":[]}")
+        XCTAssertFalse(isTruncated)
+        XCTAssertEqual(finishReason, "stop")
+    }
+
+    func testExtractContentAndStatusWithReasoningFallback() throws {
+        let json = """
+        {
+          "choices": [
+            {
+              "message": {
+                "role": "assistant",
+                "content": "  ",
+                "reasoning": "{\\"segments\\":[]}"
+              },
+              "finish_reason": "stop"
+            }
+          ]
+        }
+        """
+        let data = Data(json.utf8)
+        let (content, isTruncated, finishReason) = try provider.extractContentAndStatus(from: data)
+        XCTAssertEqual(content, "{\"segments\":[]}")
+        XCTAssertFalse(isTruncated)
+        XCTAssertEqual(finishReason, "stop")
+    }
+
+    func testExtractContentManuallyWithReasoningFallback() throws {
+        // Broken JSON structure but has reasoning_content
+        let brokenJSON = """
+        {
+          "choices": [
+            {
+              "message": {
+                "role": "assistant",
+                "content": null,
+                "reasoning_content": "{\\"segments\\":[]}"
+              }
+        """
+        let extracted = provider.extractContentManually(from: brokenJSON)
+        XCTAssertEqual(extracted, "{\"segments\":[]}")
+        
+        // Broken JSON structure but has reasoning
+        let brokenJSON2 = """
+        {
+          "choices": [
+            {
+              "message": {
+                "role": "assistant",
+                "content": "",
+                "reasoning": "{\\"segments\\":[]}"
+              }
+        """
+        let extracted2 = provider.extractContentManually(from: brokenJSON2)
+        XCTAssertEqual(extracted2, "{\"segments\":[]}")
+    }
+
+    func testParseVLMContentWithEmptyResponseError() {
+        XCTAssertThrowsError(try provider.parseVLMContent("   ")) { error in
+            guard let providerError = error as? VLMProviderError else {
+                XCTFail("Expected VLMProviderError")
+                return
+            }
+            XCTAssertTrue(providerError.localizedDescription.contains("Received empty response from model"))
+        }
+    }
+
+    func testParseVLMContentWithCleanedEmptyError() {
+        // A response that has code blocks but nothing inside
+        let content = "```json\n```"
+        XCTAssertThrowsError(try provider.parseVLMContent(content)) { error in
+            guard let providerError = error as? VLMProviderError else {
+                XCTFail("Expected VLMProviderError")
+                return
+            }
+            XCTAssertTrue(providerError.localizedDescription.contains("Cleaned content is empty"))
+            XCTAssertTrue(providerError.localizedDescription.contains("```json"))
+        }
+    }
+}

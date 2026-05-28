@@ -821,3 +821,6 @@
 "settings.glmocr.mode.local" = "로컬";
 "settings.glmocr.local.apiKey.optional" = "로컬 MLX-VLM 서버에서는 API 키가 선택 사항입니다";
 "vlm.provider.glmocr.local.description" = "GLM-OCR용 로컬 MLX-VLM 서버";
+
+"engine.config.fetchModels" = "Fetch";
+"engine.config.fetchModels.failed" = "Failed to fetch models";

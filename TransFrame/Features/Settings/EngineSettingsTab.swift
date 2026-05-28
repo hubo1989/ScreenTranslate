@@ -21,6 +21,11 @@ struct VLMConfigurationSection: View {
     @Bindable var viewModel: SettingsViewModel
     @State private var showAPIKey = false
 
+    @State private var availableVLMModels: [String] = []
+    @State private var isFetchingVLMModels = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(localized("settings.vlm.title"))
@@ -108,9 +113,41 @@ struct VLMConfigurationSection: View {
                         Text(localized("settings.vlm.model"))
                             .foregroundStyle(.secondary)
                             .gridColumnAlignment(.trailing)
-                        TextField("", text: $viewModel.vlmModelName)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(maxWidth: 300)
+                        HStack {
+                            TextField("", text: $viewModel.vlmModelName)
+                                .textFieldStyle(.roundedBorder)
+
+                            if !availableVLMModels.isEmpty {
+                                Menu {
+                                    ForEach(availableVLMModels, id: \.self) { model in
+                                        Button(model) {
+                                            viewModel.vlmModelName = model
+                                        }
+                                    }
+                                } label: {
+                                    Text("")
+                                        .frame(width: 8, height: 12)
+                                }
+                                .menuStyle(.borderlessButton)
+                                .fixedSize()
+                            }
+
+                            Button {
+                                Task {
+                                    await fetchVLMModels()
+                                }
+                            } label: {
+                                if isFetchingVLMModels {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                } else {
+                                    Text(localized("engine.config.fetchModels"))
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(isFetchingVLMModels)
+                        }
+                        .frame(maxWidth: 300)
                     }
                 }
 
@@ -155,6 +192,40 @@ struct VLMConfigurationSection: View {
         .padding()
         .background(Color(.controlBackgroundColor))
         .cornerRadius(8)
+        .alert(isPresented: $showErrorAlert) {
+            Alert(
+                title: Text(localized("engine.config.fetchModels.failed")),
+                message: Text(errorMessage),
+                dismissButton: .default(Text(localized("button.ok")))
+            )
+        }
+        .onChange(of: viewModel.vlmProvider) { _, _ in
+            availableVLMModels = []
+        }
+    }
+
+    @MainActor
+    private func fetchVLMModels() async {
+        isFetchingVLMModels = true
+        errorMessage = ""
+
+        let provider = viewModel.vlmProvider
+        let baseURL = viewModel.vlmBaseURL.isEmpty ? provider.defaultBaseURL(glmOCRMode: viewModel.glmOCRMode) : viewModel.vlmBaseURL
+        let apiKey = viewModel.vlmAPIKey
+
+        do {
+            let models = try await ModelDiscoveryService.fetchModels(
+                baseURL: baseURL,
+                apiKey: provider.requiresAPIKey(glmOCRMode: viewModel.glmOCRMode) ? apiKey : nil,
+                engineType: provider.rawValue
+            )
+            self.availableVLMModels = models
+            self.isFetchingVLMModels = false
+        } catch {
+            self.errorMessage = error.localizedDescription
+            self.showErrorAlert = true
+            self.isFetchingVLMModels = false
+        }
     }
 }
 
@@ -162,6 +233,11 @@ struct VLMConfigurationSection: View {
 
 struct PaddleOCRStatusSection: View {
     @Bindable var viewModel: SettingsViewModel
+
+    @State private var availablePaddleModels: [String] = []
+    @State private var isFetchingPaddleModels = false
+    @State private var showErrorAlert = false
+    @State private var errorMessage = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -242,9 +318,41 @@ struct PaddleOCRStatusSection: View {
                         Text(localized("settings.paddleocr.cloudModelId"))
                             .foregroundStyle(.secondary)
                             .gridColumnAlignment(.trailing)
-                        TextField("", text: $viewModel.paddleOCRCloudModelId)
-                            .textFieldStyle(.roundedBorder)
-                            .frame(maxWidth: 300)
+                        HStack {
+                            TextField("", text: $viewModel.paddleOCRCloudModelId)
+                                .textFieldStyle(.roundedBorder)
+
+                            if !availablePaddleModels.isEmpty {
+                                Menu {
+                                    ForEach(availablePaddleModels, id: \.self) { model in
+                                        Button(model) {
+                                            viewModel.paddleOCRCloudModelId = model
+                                        }
+                                    }
+                                } label: {
+                                    Text("")
+                                        .frame(width: 8, height: 12)
+                                }
+                                .menuStyle(.borderlessButton)
+                                .fixedSize()
+                            }
+
+                            Button {
+                                Task {
+                                    await fetchPaddleModels()
+                                }
+                            } label: {
+                                if isFetchingPaddleModels {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                } else {
+                                    Text(localized("engine.config.fetchModels"))
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(isFetchingPaddleModels)
+                        }
+                        .frame(maxWidth: 300)
                     }
                 }
 
@@ -309,5 +417,38 @@ struct PaddleOCRStatusSection: View {
             }
         }
         .padding(.top, 8)
+        .alert(isPresented: $showErrorAlert) {
+            Alert(
+                title: Text(localized("engine.config.fetchModels.failed")),
+                message: Text(errorMessage),
+                dismissButton: .default(Text(localized("button.ok")))
+            )
+        }
+        .onChange(of: viewModel.paddleOCRUseCloud) { _, _ in
+            availablePaddleModels = []
+        }
+    }
+
+    @MainActor
+    private func fetchPaddleModels() async {
+        isFetchingPaddleModels = true
+        errorMessage = ""
+
+        let baseURL = viewModel.paddleOCRCloudBaseURL
+        let apiKey = viewModel.paddleOCRCloudAPIKey
+
+        do {
+            let models = try await ModelDiscoveryService.fetchModels(
+                baseURL: baseURL,
+                apiKey: apiKey.isEmpty ? nil : apiKey,
+                engineType: nil
+            )
+            self.availablePaddleModels = models
+            self.isFetchingPaddleModels = false
+        } catch {
+            self.errorMessage = error.localizedDescription
+            self.showErrorAlert = true
+            self.isFetchingPaddleModels = false
+        }
     }
 }

@@ -87,16 +87,8 @@ final class TextTranslationCoordinator {
         permissionManager.refreshPermissionStatus()
 
         if !permissionManager.hasAccessibilityPermission {
-            // Directly trigger system permission prompt
-            permissionManager.requestAccessibilityPermission()
-            permissionManager.refreshPermissionStatus()
-
-            if permissionManager.hasAccessibilityPermission {
-                return true
-            }
-
-            // Still not granted (user denied) — guide to System Settings
-            permissionManager.showPermissionDeniedError(for: .accessibility)
+            // Call the drag-to-authorize flow for accessibility
+            permissionManager.ensureAccessibilityPermissionFlow()
             return false
         }
         return true

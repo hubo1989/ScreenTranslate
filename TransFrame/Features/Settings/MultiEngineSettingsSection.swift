@@ -14,6 +14,8 @@ struct MultiEngineSettingsSection: View {
     @State private var showingConfigSheet = false
     @State private var editingConfig: TranslationEngineConfig?
     @State private var compatibleSheetState: CompatibleSheetState?
+    
+    @State private var configuredEngines: Set<TranslationEngineType> = []
 
     // Sheet state for compatible engine configuration
     struct CompatibleSheetState: Identifiable {
@@ -38,6 +40,9 @@ struct MultiEngineSettingsSection: View {
         .padding()
         .background(Color(.controlBackgroundColor))
         .cornerRadius(8)
+        .onAppear {
+            checkConfiguredEngines()
+        }
     }
 
     // MARK: - Selection Mode Section (Horizontal)
@@ -360,7 +365,7 @@ struct MultiEngineSettingsSection: View {
                 }
             }
         }
-        .sheet(item: $editingConfig) { config in
+        .sheet(item: $editingConfig, onDismiss: { checkConfiguredEngines() }) { config in
             let engine = config.id
             EngineConfigSheet(
                 engine: engine,
@@ -422,13 +427,14 @@ struct MultiEngineSettingsSection: View {
 
     @ViewBuilder
     private func compatibleEngineCard(config: CompatibleTranslationProvider.CompatibleConfig, index: Int) -> some View {
+        let isSelected = isCompatibleEngineSelected(config)
         Button {
             compatibleSheetState = CompatibleSheetState(config: config, index: index)
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: "gearshape.2")
                     .font(.body)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(config.displayName)
@@ -437,7 +443,7 @@ struct MultiEngineSettingsSection: View {
 
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(Color.green)
+                            .fill(isSelected ? Color.green : Color.gray)
                             .frame(width: 6, height: 6)
                         Text(localized("engine.status.configured"))
                             .font(.caption2)
@@ -451,8 +457,8 @@ struct MultiEngineSettingsSection: View {
                 Button {
                     setCompatibleAsEngine(config: config)
                 } label: {
-                    Image(systemName: "checkmark.circle")
-                        .foregroundStyle(Color.accentColor)
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(isSelected ? Color.green : Color.accentColor)
                 }
                 .buttonStyle(.plain)
                 .help(localized("engine.compatible.useAsEngine"))
@@ -468,11 +474,11 @@ struct MultiEngineSettingsSection: View {
                 .help(localized("engine.compatible.delete"))
             }
             .padding(8)
-            .background(Color.accentColor.opacity(0.1))
+            .background(isSelected ? Color.accentColor.opacity(0.1) : Color.clear)
             .cornerRadius(6)
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.accentColor, lineWidth: 1)
+                    .stroke(isSelected ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)
@@ -641,7 +647,7 @@ struct MultiEngineSettingsSection: View {
         let _ = Logger.settings.info("engineCard \(engine.rawValue): isEnabled=\(config.isEnabled), fromDefault=\(viewModel.settings.engineConfigs[engine] == nil)")
         // Built-in engines (apple, mtranServer) and Ollama don't need API keys
         // For others, we check if they require API key (simplified check - in real use would check keychain)
-        let isConfigured = !engine.requiresAPIKey || config.isEnabled
+        let isConfigured = configuredEngines.contains(engine)
 
         Button {
             editingConfig = config
@@ -659,7 +665,7 @@ struct MultiEngineSettingsSection: View {
                     // Show status for all engines
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(isConfigured ? Color.green : Color.orange)
+                            .fill(isConfigured ? (config.isEnabled ? Color.green : Color.gray) : Color.orange)
                             .frame(width: 6, height: 6)
                         Text(isConfigured ? localized("engine.status.configured") : localized("engine.status.unconfigured"))
                             .font(.caption2)
@@ -859,6 +865,26 @@ struct MultiEngineSettingsSection: View {
         case .deepl: return "character.bubble"
         case .baidu: return "network"
         case .custom: return "gearshape.2"
+        }
+    }
+
+    private func checkConfiguredEngines() {
+        Task {
+            var configured = Set<TranslationEngineType>()
+            for engine in TranslationEngineType.allCases {
+                if !engine.requiresAPIKey {
+                    configured.insert(engine)
+                } else {
+                    let hasCreds = await KeychainService.shared.hasCredentials(for: engine)
+                    if hasCreds {
+                        configured.insert(engine)
+                    }
+                }
+            }
+            let finalConfigured = configured
+            await MainActor.run {
+                self.configuredEngines = finalConfigured
+            }
         }
     }
 }

@@ -797,3 +797,6 @@
 "settings.glmocr.mode.local" = "本地";
 "settings.glmocr.local.apiKey.optional" = "本地 MLX-VLM 服务无需 API 密钥";
 "vlm.provider.glmocr.local.description" = "本地 MLX-VLM GLM-OCR 服务";
+
+"engine.config.fetchModels" = "获取";
+"engine.config.fetchModels.failed" = "获取模型失败";

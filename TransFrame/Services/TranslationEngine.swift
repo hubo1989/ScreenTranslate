@@ -1,5 +1,6 @@
 import Foundation
 import Translation
+import NaturalLanguage
 import os.signpost
 import os.log
 
@@ -167,9 +168,6 @@ actor TranslationEngine {
     // MARK: - Internal Error Types
 
     private struct TranslationTimeout: Error {}
-    private struct AppleTranslationError: Error {
-        let nsError: NSError
-    }
 
     // MARK: - Configuration
 
@@ -234,6 +232,21 @@ actor TranslationEngine {
         // Perform translation with signpost for profiling
         os_signpost(.begin, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
         let startTime = CFAbsoluteTimeGetCurrent()
+
+        let detectedSource = config.sourceLanguage ?? Self.detectLanguage(for: text)
+        if let detectedSource, detectedSource == effectiveTargetLanguage {
+            let duration = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
+            os_signpost(.end, log: Self.performanceLog, name: "Translation", signpostID: Self.signpostID)
+            #if DEBUG
+            os_log("Translation skipped (source == target) in %.1fms", log: OSLog.default, type: .info, duration)
+            #endif
+            return TranslationResult(
+                sourceText: text,
+                translatedText: text,
+                sourceLanguage: detectedSource.rawValue,
+                targetLanguage: effectiveTargetLanguage.rawValue
+            )
+        }
 
         do {
             let response = try await performTranslation(
@@ -345,19 +358,13 @@ actor TranslationEngine {
         ) { group in
             group.addTask { [text, source, target] in
                 do {
-                    // The current TranslationSession initializer exposed by this SDK
-                    // still requires an installed source language.
+                    let detectedSource = source ?? Self.detectLanguage(for: text) ?? .english
                     let session = TranslationSession(
-                        installedSource: (source ?? .english).localeLanguage,
+                        installedSource: detectedSource.localeLanguage,
                         target: target.localeLanguage
                     )
                     let result = try await session.translate(text)
                     return .success(result)
-                } catch let error as NSError {
-                    if error.domain == "TranslationErrorDomain" {
-                        return .failure(AppleTranslationError(nsError: error))
-                    }
-                    return .failure(error)
                 } catch {
                     return .failure(error)
                 }
@@ -382,8 +389,10 @@ actor TranslationEngine {
             return TranslationEngineError.timeout
         }
 
-        if let appleError = error as? AppleTranslationError {
-            if appleError.nsError.code == 16 {
+        let nsError = error as NSError
+        if nsError.domain == "TranslationErrorDomain" || nsError.domain.contains("Translation") {
+            let desc = nsError.localizedDescription.lowercased()
+            if nsError.code == 16 || nsError.code == 5 || desc.contains("offline models") || desc.contains("not installed") || desc.contains("not available") {
                 return TranslationEngineError.languageNotInstalled(
                     language: targetLanguage.localizedName,
                     downloadInstructions: NSLocalizedString(
@@ -392,10 +401,18 @@ actor TranslationEngine {
                     )
                 )
             }
-            return TranslationEngineError.translationFailed(underlying: appleError.nsError)
+            return TranslationEngineError.translationFailed(underlying: nsError)
         }
 
         return TranslationEngineError.translationFailed(underlying: error)
+    }
+
+    /// Detects the language of the given text using NaturalLanguage framework.
+    private static func detectLanguage(for text: String) -> TranslationLanguage? {
+        guard let dominantLanguage = NLLanguageRecognizer.dominantLanguage(for: text) else {
+            return nil
+        }
+        return TranslationLanguage.fromTranslationCode(dominantLanguage.rawValue)
     }
 
     /// Returns the system's target language based on user preferences
@@ -535,8 +552,9 @@ enum TranslationEngineError: LocalizedError, Sendable {
             return String(format: NSLocalizedString("error.translation.unsupported.pair", comment: ""), source, target)
         case .languageNotInstalled(let language, _):
             return String(format: NSLocalizedString("error.translation.language.not.installed", comment: ""), language)
-        case .translationFailed:
-            return NSLocalizedString("error.translation.failed", comment: "")
+        case .translationFailed(let underlying):
+            let underlyingDesc = underlying.localizedDescription
+            return "\(NSLocalizedString("error.translation.failed", comment: "")): \(underlyingDesc)"
         }
     }
 

@@ -121,15 +121,6 @@ actor BaiduTranslationProvider: TranslationProvider {
         return results
     }
 
-    func checkConnection() async -> Bool {
-        do {
-            _ = try await translate(text: "test", from: "en", to: "zh")
-            return true
-        } catch {
-            logger.error("Baidu connection check failed: \(error.localizedDescription)")
-            return false
-        }
-    }
 
     // MARK: - Private Methods
 
