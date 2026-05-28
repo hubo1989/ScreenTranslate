@@ -1,6 +1,6 @@
 # Developer Guide
 
-This guide covers setup, building, testing, and contributing to ScreenCapture.
+This guide covers setup, building, testing, and contributing to TransFrame.
 
 ## Prerequisites
 
@@ -21,12 +21,12 @@ cd edashot
 ### Open in Xcode
 
 ```bash
-open ScreenCapture.xcodeproj
+open TransFrame.xcodeproj
 ```
 
 ### First Build
 
-1. Select the `ScreenCapture` scheme
+1. Select the `TransFrame` scheme
 2. Choose your Mac as the run destination
 3. Press `Cmd+R` to build and run
 
@@ -41,7 +41,7 @@ System Settings → Privacy & Security → Screen Recording
 ## Project Structure
 
 ```
-ScreenCapture/
+TransFrame/
 ├── App/
 │   ├── ScreenCaptureApp.swift     # @main entry point
 │   └── AppDelegate.swift          # Lifecycle management
@@ -120,7 +120,7 @@ SWIFT_STRICT_CONCURRENCY = complete
 
 ### Entitlements
 
-Required capabilities in `ScreenCapture.entitlements`:
+Required capabilities in `TransFrame.entitlements`:
 
 ```xml
 <key>com.apple.security.app-sandbox</key>
@@ -320,7 +320,7 @@ Add `OSLog` statements with categories:
 ```swift
 import os.log
 
-private let logger = Logger(subsystem: "com.app.ScreenCapture", category: "Capture")
+private let logger = Logger(subsystem: "com.app.TransFrame", category: "Capture")
 
 func captureFullScreen(display: DisplayInfo) async throws -> Screenshot {
     logger.info("Starting capture for display: \(display.name)")
@@ -337,9 +337,9 @@ The capture system uses OSSignpost for Instruments:
 import os.signpost
 
 let signpostID = OSSignpostID(log: .default)
-os_signpost(.begin, log: .default, name: "ScreenCapture", signpostID: signpostID)
+os_signpost(.begin, log: .default, name: "TransFrame", signpostID: signpostID)
 // ... capture operation
-os_signpost(.end, log: .default, name: "ScreenCapture", signpostID: signpostID)
+os_signpost(.end, log: .default, name: "TransFrame", signpostID: signpostID)
 ```
 
 Open in Instruments → Points of Interest to view timing.
@@ -364,8 +364,8 @@ Open in Instruments → Points of Interest to view timing.
 
 ```bash
 xcodebuild test \
-  -project ScreenCapture.xcodeproj \
-  -scheme ScreenCapture \
+  -project TransFrame.xcodeproj \
+  -scheme TransFrame \
   -destination 'platform=macOS'
 ```
 
@@ -389,16 +389,16 @@ xcodebuild test \
 
 ```bash
 xcodebuild archive \
-  -project ScreenCapture.xcodeproj \
-  -scheme ScreenCapture \
-  -archivePath build/ScreenCapture.xcarchive
+  -project TransFrame.xcodeproj \
+  -scheme TransFrame \
+  -archivePath build/TransFrame.xcarchive
 ```
 
 ### Export
 
 ```bash
 xcodebuild -exportArchive \
-  -archivePath build/ScreenCapture.xcarchive \
+  -archivePath build/TransFrame.xcarchive \
   -exportPath build/export \
   -exportOptionsPlist ExportOptions.plist
 ```
@@ -406,7 +406,7 @@ xcodebuild -exportArchive \
 ### Notarization
 
 ```bash
-xcrun notarytool submit build/export/ScreenCapture.app.zip \
+xcrun notarytool submit build/export/TransFrame.app.zip \
   --apple-id "developer@example.com" \
   --team-id "TEAMID" \
   --password "@keychain:AC_PASSWORD" \

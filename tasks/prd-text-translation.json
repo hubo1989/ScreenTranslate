@@ -1,6 +1,6 @@
 {
   "name": "Text Selection and Input Translation",
-  "description": "Add text selection translation (select text → hotkey → translation popup showing original + translated text) and input translation (hotkey → translate clipboard → insert into current input field) features to ScreenTranslate",
+  "description": "Add text selection translation (select text → hotkey → translation popup showing original + translated text) and input translation (hotkey → translate clipboard → insert into current input field) features to TransFrame",
   "branchName": "ralph/text-input-translation",
   "userStories": [
     {

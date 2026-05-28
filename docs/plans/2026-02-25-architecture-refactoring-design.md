@@ -1,8 +1,8 @@
-# ScreenTranslate 架构重构设计
+# TransFrame 架构重构设计
 
 ## 概述
 
-本文档记录 ScreenTranslate 项目的架构重构计划，基于 2026-02-25 的架构审查结果。
+本文档记录 TransFrame 项目的架构重构计划，基于 2026-02-25 的架构审查结果。
 
 ## 设计决策
 
@@ -315,10 +315,10 @@ extension TextInsertService: TextInsertServicing {}
 ## 文件结构变化
 
 ```
-ScreenTranslate/
+TransFrame/
 ├── App/
 │   ├── AppDelegate.swift          # 精简后
-│   ├── ScreenTranslateApp.swift
+│   ├── TransFrameApp.swift
 │   └── Coordinators/              # 新增
 │       ├── CaptureCoordinator.swift
 │       ├── TextTranslationCoordinator.swift

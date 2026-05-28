@@ -1,4 +1,4 @@
-# ScreenTranslate 架构重构需求文档
+# TransFrame 架构重构需求文档
 ## 从 OCR 后翻译迁移至 ScreenCoder + KISS 风格翻译方案
 
 ---
@@ -261,7 +261,7 @@ NSImage (双语对照截图)
 ## 5. 文件结构
 
 ```
-ScreenTranslate/
+TransFrame/
 ├── Services/
 │   ├── ScreenCoderEngine.swift         # VLM 文本提取
 │   ├── TranslationService.swift        # 翻译编排层

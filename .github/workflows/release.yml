@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 env:
-  PROJECT_NAME: ScreenTranslate
+  PROJECT_NAME: TransFrame
 
 jobs:
   build:
@@ -61,8 +61,8 @@ jobs:
           echo "New build number: $NEW_BUILD"
           
           # Update project.pbxproj
-          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $NEW_BUILD;/g" ScreenTranslate.xcodeproj/project.pbxproj
-          sed -i '' "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $VERSION;/g" ScreenTranslate.xcodeproj/project.pbxproj
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $NEW_BUILD;/g" TransFrame.xcodeproj/project.pbxproj
+          sed -i '' "s/MARKETING_VERSION = [^;]*;/MARKETING_VERSION = $VERSION;/g" TransFrame.xcodeproj/project.pbxproj
           
           echo "Updated to version $VERSION (build $NEW_BUILD)"
           echo "new_build=$NEW_BUILD" >> $GITHUB_OUTPUT
@@ -138,7 +138,7 @@ jobs:
         id: build_number
         run: |
           # Extract build number from project
-          BUILD_NUM=$(grep -m1 'CURRENT_PROJECT_VERSION' ScreenTranslate.xcodeproj/project.pbxproj | sed 's/.*= *//;s/;//' | tr -d ' ')
+          BUILD_NUM=$(grep -m1 'CURRENT_PROJECT_VERSION' TransFrame.xcodeproj/project.pbxproj | sed 's/.*= *//;s/;//' | tr -d ' ')
           echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
 
       - name: Get Tag Message
@@ -150,7 +150,7 @@ jobs:
           TAG_MESSAGE=$(git tag -l --format='%(contents)' "$TAG_NAME" | sed '/^-----BEGIN PGP SIGNATURE-----/,$d' || echo "")
           # If tag message is empty, use a default message
           if [ -z "$TAG_MESSAGE" ]; then
-            TAG_MESSAGE="Latest release of ScreenTranslate"
+            TAG_MESSAGE="Latest release of TransFrame"
           fi
           # Escape CDATA boundaries for safe XML wrapping (not entity escaping, since we use CDATA)
           TAG_MESSAGE=$(echo "$TAG_MESSAGE" | sed 's/]]>/]]]]><![CDATA[>/g')

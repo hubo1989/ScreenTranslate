@@ -6,7 +6,7 @@
 
 ## 概述
 
-为 ScreenTranslate 增加多翻译引擎支持，允许用户：
+为 TransFrame 增加多翻译引擎支持，允许用户：
 - 选择多种翻译模式（主备、并行、即时切换、场景绑定）
 - 使用多个翻译引擎（云服务商、LLM、自定义接口）
 - 为 AI 翻译引擎自定义提示词（分引擎、分场景）
@@ -180,7 +180,7 @@ extension AppSettings {
 actor KeychainService {
     static let shared = KeychainService()
 
-    private let service = "com.screentranslate.credentials"
+    private let service = "com.transframe.credentials"
 
     func saveCredentials(
         apiKey: String,
@@ -429,7 +429,7 @@ extension TranslationService {
 ### 新增文件
 
 ```
-ScreenTranslate/
+TransFrame/
 ├── Models/
 │   ├── TranslationEngineType.swift      # 扩展引擎枚举
 │   ├── TranslationEngineConfig.swift    # 新增：引擎配置模型

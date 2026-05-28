@@ -1,10 +1,10 @@
 # Architecture
 
-This document describes the overall architecture, design patterns, and key decisions in the ScreenCapture application.
+This document describes the overall architecture, design patterns, and key decisions in the TransFrame application.
 
 ## High-Level Architecture
 
-ScreenCapture follows a **feature-based modular architecture** with clear separation of concerns. The application is structured around distinct features, each encapsulated in its own module.
+TransFrame follows a **feature-based modular architecture** with clear separation of concerns. The application is structured around distinct features, each encapsulated in its own module.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

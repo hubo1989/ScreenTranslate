@@ -31,7 +31,7 @@ excluded:
   - Pods
   - .build
   - DerivedData
-  - ScreenCapture.xcodeproj
+  - TransFrame.xcodeproj
   - ScreenCaptureTests
   - Carthage
   - .swiftpm

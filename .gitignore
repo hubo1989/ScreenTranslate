@@ -76,6 +76,7 @@ fastlane/test_output
 .claude/
 .specify/
 CLAUDE.md
+.omd
 
 # Generated images (not part of source)
 Gemini_Generated_Image_*.png
@@ -96,4 +97,5 @@ release/
 # Local custom paths
 build_artifacts/
 .omc/
+.omd/
 *.dmg

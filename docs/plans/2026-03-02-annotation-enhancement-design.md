@@ -2,7 +2,7 @@
 
 ## 概述
 
-为 ScreenTranslate 添加**钉图功能**和**预制形状**，提升截图标注的实用性。
+为 TransFrame 添加**钉图功能**和**预制形状**，提升截图标注的实用性。
 
 ## 功能需求
 
@@ -30,7 +30,7 @@
 ### 目录结构
 
 ```text
-ScreenTranslate/
+TransFrame/
 ├── Features/
 │   ├── Preview/
 │   │   ├── PreviewWindow.swift          # 添加钉图状态管理

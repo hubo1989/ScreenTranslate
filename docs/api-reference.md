@@ -1,6 +1,6 @@
 # API Reference
 
-This document provides a complete API reference for ScreenCapture's public interfaces, protocols, and data types.
+This document provides a complete API reference for TransFrame's public interfaces, protocols, and data types.
 
 ## Table of Contents
 

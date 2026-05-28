@@ -1,6 +1,6 @@
-# Contributing to ScreenCapture
+# Contributing to TransFrame
 
-Thank you for your interest in contributing to ScreenCapture! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to TransFrame! This document provides guidelines and instructions for contributing.
 
 ## Code of Conduct
 
@@ -14,7 +14,7 @@ Before creating a bug report, please check existing issues to avoid duplicates.
 
 **When reporting bugs, include:**
 - macOS version
-- ScreenCapture version
+- TransFrame version
 - Steps to reproduce
 - Expected vs actual behavior
 - Screenshots if applicable
@@ -59,11 +59,11 @@ Feature requests are welcome! Please:
 
 ```bash
 # Clone your fork
-git clone https://github.com/YOUR_USERNAME/ScreenCapture.git
-cd ScreenCapture
+git clone https://github.com/YOUR_USERNAME/TransFrame.git
+cd TransFrame
 
 # Open in Xcode
-open ScreenCapture.xcodeproj
+open TransFrame.xcodeproj
 
 # Build and run
 # Press Cmd+R in Xcode
@@ -73,7 +73,7 @@ open ScreenCapture.xcodeproj
 
 On first run, grant **Screen Recording** permission:
 1. System Settings → Privacy & Security → Screen Recording
-2. Enable ScreenCapture
+2. Enable TransFrame
 3. Restart the app
 
 ## Code Style
@@ -149,15 +149,15 @@ Before submitting a PR, verify:
 
 ```bash
 xcodebuild test \
-  -project ScreenCapture.xcodeproj \
-  -scheme ScreenCapture \
+  -project TransFrame.xcodeproj \
+  -scheme TransFrame \
   -destination 'platform=macOS'
 ```
 
 ## Project Structure
 
 ```
-ScreenCapture/
+TransFrame/
 ├── App/                # Entry point, AppDelegate
 ├── Features/           # Feature modules
 │   ├── Capture/       # Screenshot capture

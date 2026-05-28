@@ -1,12 +1,12 @@
 # Components
 
-This document provides detailed documentation for each major component and feature in ScreenCapture.
+This document provides detailed documentation for each major component and feature in TransFrame.
 
 ## Application Layer
 
 ### ScreenCaptureApp
 
-**Location:** `ScreenCapture/App/ScreenCaptureApp.swift`
+**Location:** `TransFrame/App/ScreenCaptureApp.swift`
 
 The main entry point using SwiftUI's `@main` attribute. Configures the application delegate and provides an empty Settings scene (settings are managed via a custom window).
 
@@ -23,7 +23,7 @@ struct ScreenCaptureApp: App {
 
 ### AppDelegate
 
-**Location:** `ScreenCapture/App/AppDelegate.swift`
+**Location:** `TransFrame/App/AppDelegate.swift`
 
 The central coordinator managing application lifecycle, hotkeys, and capture actions.
 
@@ -50,7 +50,7 @@ The central coordinator managing application lifecycle, hotkeys, and capture act
 
 ### CaptureManager
 
-**Location:** `ScreenCapture/Features/Capture/CaptureManager.swift`
+**Location:** `TransFrame/Features/Capture/CaptureManager.swift`
 
 Thread-safe singleton actor for all capture operations using ScreenCaptureKit.
 
@@ -86,7 +86,7 @@ if let primaryDisplay = displays.first(where: { $0.isPrimary }) {
 
 ### ScreenDetector
 
-**Location:** `ScreenCapture/Features/Capture/ScreenDetector.swift`
+**Location:** `TransFrame/Features/Capture/ScreenDetector.swift`
 
 Actor for display enumeration with caching.
 
@@ -97,7 +97,7 @@ Actor for display enumeration with caching.
 
 ### SelectionOverlayWindow
 
-**Location:** `ScreenCapture/Features/Capture/SelectionOverlayWindow.swift`
+**Location:** `TransFrame/Features/Capture/SelectionOverlayWindow.swift`
 
 NSPanel subclass providing the selection UI overlay.
 
@@ -119,7 +119,7 @@ protocol SelectionOverlayDelegate: AnyObject {
 
 ### DisplaySelector
 
-**Location:** `ScreenCapture/Features/Capture/DisplaySelector.swift`
+**Location:** `TransFrame/Features/Capture/DisplaySelector.swift`
 
 Helper for multi-monitor support. Presents a menu when multiple displays are connected.
 
@@ -129,7 +129,7 @@ Helper for multi-monitor support. Presents a menu when multiple displays are con
 
 ### PreviewWindow
 
-**Location:** `ScreenCapture/Features/Preview/PreviewWindow.swift`
+**Location:** `TransFrame/Features/Preview/PreviewWindow.swift`
 
 NSPanel subclass for post-capture preview and annotation.
 
@@ -157,7 +157,7 @@ NSPanel subclass for post-capture preview and annotation.
 
 ### PreviewViewModel
 
-**Location:** `ScreenCapture/Features/Preview/PreviewViewModel.swift`
+**Location:** `TransFrame/Features/Preview/PreviewViewModel.swift`
 
 Central state management for preview window (~976 lines).
 
@@ -202,13 +202,13 @@ func saveScreenshot()
 
 ### PreviewContentView
 
-**Location:** `ScreenCapture/Features/Preview/PreviewContentView.swift`
+**Location:** `TransFrame/Features/Preview/PreviewContentView.swift`
 
 SwiftUI view displaying the image, annotations, and controls.
 
 ### AnnotationCanvas
 
-**Location:** `ScreenCapture/Features/Preview/AnnotationCanvas.swift`
+**Location:** `TransFrame/Features/Preview/AnnotationCanvas.swift`
 
 Custom SwiftUI canvas for rendering annotations with hit-testing.
 
@@ -218,7 +218,7 @@ Custom SwiftUI canvas for rendering annotations with hit-testing.
 
 ### Annotation (Enum)
 
-**Location:** `ScreenCapture/Features/Annotations/Annotation.swift`
+**Location:** `TransFrame/Features/Annotations/Annotation.swift`
 
 Tagged enum representing all annotation types.
 
@@ -241,7 +241,7 @@ func contains(point: CGPoint) -> Bool
 
 ### AnnotationTool (Protocol)
 
-**Location:** `ScreenCapture/Features/Annotations/AnnotationTool.swift`
+**Location:** `TransFrame/Features/Annotations/AnnotationTool.swift`
 
 Protocol defining tool interface.
 
@@ -268,7 +268,7 @@ struct DrawingState {
 
 ### RectangleTool
 
-**Location:** `ScreenCapture/Features/Annotations/RectangleTool.swift`
+**Location:** `TransFrame/Features/Annotations/RectangleTool.swift`
 
 Draws rectangles by dragging opposite corners.
 
@@ -279,7 +279,7 @@ Draws rectangles by dragging opposite corners.
 
 ### FreehandTool
 
-**Location:** `ScreenCapture/Features/Annotations/FreehandTool.swift`
+**Location:** `TransFrame/Features/Annotations/FreehandTool.swift`
 
 Freehand drawing with point decimation.
 
@@ -290,7 +290,7 @@ Freehand drawing with point decimation.
 
 ### ArrowTool
 
-**Location:** `ScreenCapture/Features/Annotations/ArrowTool.swift`
+**Location:** `TransFrame/Features/Annotations/ArrowTool.swift`
 
 Arrow from start to end point.
 
@@ -301,7 +301,7 @@ Arrow from start to end point.
 
 ### TextTool
 
-**Location:** `ScreenCapture/Features/Annotations/TextTool.swift`
+**Location:** `TransFrame/Features/Annotations/TextTool.swift`
 
 Click to place, then type text.
 
@@ -316,7 +316,7 @@ Click to place, then type text.
 
 ### MenuBarController
 
-**Location:** `ScreenCapture/Features/MenuBar/MenuBarController.swift`
+**Location:** `TransFrame/Features/MenuBar/MenuBarController.swift`
 
 Manages the status bar icon and menu.
 
@@ -348,7 +348,7 @@ Manages the status bar icon and menu.
 
 ### SettingsView
 
-**Location:** `ScreenCapture/Features/Settings/SettingsView.swift`
+**Location:** `TransFrame/Features/Settings/SettingsView.swift`
 
 SwiftUI preferences interface.
 
@@ -361,13 +361,13 @@ SwiftUI preferences interface.
 
 ### SettingsViewModel
 
-**Location:** `ScreenCapture/Features/Settings/SettingsViewModel.swift`
+**Location:** `TransFrame/Features/Settings/SettingsViewModel.swift`
 
 View model binding to AppSettings.
 
 ### SettingsWindowController
 
-**Location:** `ScreenCapture/Features/Settings/SettingsWindowController.swift`
+**Location:** `TransFrame/Features/Settings/SettingsWindowController.swift`
 
 NSWindowController managing the settings window.
 
@@ -377,7 +377,7 @@ NSWindowController managing the settings window.
 
 ### ImageExporter
 
-**Location:** `ScreenCapture/Services/ImageExporter.swift`
+**Location:** `TransFrame/Services/ImageExporter.swift`
 
 Exports screenshots with annotations to disk.
 
@@ -403,7 +403,7 @@ func generateFileURL(in directory: URL, format: ExportFormat) -> URL
 
 ### ClipboardService
 
-**Location:** `ScreenCapture/Services/ClipboardService.swift`
+**Location:** `TransFrame/Services/ClipboardService.swift`
 
 Copies images to system pasteboard.
 
@@ -421,7 +421,7 @@ var hasImage: Bool { get }
 
 ### HotkeyManager
 
-**Location:** `ScreenCapture/Services/HotkeyManager.swift`
+**Location:** `TransFrame/Services/HotkeyManager.swift`
 
 Global keyboard shortcut management using Carbon APIs.
 
@@ -439,7 +439,7 @@ func unregister(_ id: UInt32)
 
 ### RecentCapturesStore
 
-**Location:** `ScreenCapture/Services/RecentCapturesStore.swift`
+**Location:** `TransFrame/Services/RecentCapturesStore.swift`
 
 Manages recent captures list (max 5).
 
@@ -462,7 +462,7 @@ func clear()
 
 ### Screenshot
 
-**Location:** `ScreenCapture/Models/Screenshot.swift`
+**Location:** `TransFrame/Models/Screenshot.swift`
 
 Immutable struct representing captured image.
 
@@ -500,7 +500,7 @@ func generateThumbnail(maxSize: CGFloat) -> CGImage?
 
 ### DisplayInfo
 
-**Location:** `ScreenCapture/Models/DisplayInfo.swift`
+**Location:** `TransFrame/Models/DisplayInfo.swift`
 
 Immutable value type for connected displays.
 
@@ -525,7 +525,7 @@ var matchingScreen: NSScreen?
 
 ### AppSettings
 
-**Location:** `ScreenCapture/Models/AppSettings.swift`
+**Location:** `TransFrame/Models/AppSettings.swift`
 
 Persistent user preferences (~278 lines).
 
@@ -556,7 +556,7 @@ func clearRecentCaptures()
 
 ### ExportFormat
 
-**Location:** `ScreenCapture/Models/ExportFormat.swift`
+**Location:** `TransFrame/Models/ExportFormat.swift`
 
 Export format enumeration.
 
@@ -576,7 +576,7 @@ var displayName: String
 
 ### KeyboardShortcut
 
-**Location:** `ScreenCapture/Models/KeyboardShortcut.swift`
+**Location:** `TransFrame/Models/KeyboardShortcut.swift`
 
 Keyboard shortcut representation.
 
@@ -598,7 +598,7 @@ static let selectionDefault: KeyboardShortcut   // Cmd+Shift+4
 
 ### Styles
 
-**Location:** `ScreenCapture/Models/Styles.swift`
+**Location:** `TransFrame/Models/Styles.swift`
 
 Styling types for annotations.
 
@@ -630,7 +630,7 @@ struct TextStyle {
 
 ### ScreenCaptureError
 
-**Location:** `ScreenCapture/Errors/ScreenCaptureError.swift`
+**Location:** `TransFrame/Errors/ScreenCaptureError.swift`
 
 Comprehensive error enum with localization.
 
@@ -658,7 +658,7 @@ All cases provide:
 
 ### CGImage+Extensions
 
-**Location:** `ScreenCapture/Extensions/CGImage+Extensions.swift`
+**Location:** `TransFrame/Extensions/CGImage+Extensions.swift`
 
 Image manipulation utilities.
 
@@ -676,12 +676,12 @@ var aspectRatio: CGFloat
 
 ### NSImage+Extensions
 
-**Location:** `ScreenCapture/Extensions/NSImage+Extensions.swift`
+**Location:** `TransFrame/Extensions/NSImage+Extensions.swift`
 
 NSImage helper methods.
 
 ### View+Cursor
 
-**Location:** `ScreenCapture/Extensions/View+Cursor.swift`
+**Location:** `TransFrame/Extensions/View+Cursor.swift`
 
 SwiftUI cursor customization.

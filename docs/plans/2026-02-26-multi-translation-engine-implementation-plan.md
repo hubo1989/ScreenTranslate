@@ -205,7 +205,7 @@ import Foundation
 actor KeychainService {
     static let shared = KeychainService()
 
-    private let service = "com.screentranslate.credentials"
+    private let service = "com.transframe.credentials"
 
     // 保存凭据
     func saveCredentials(
@@ -914,13 +914,13 @@ func performTranslation(
 ### Anti-Pattern 检查
 ```bash
 # 检查是否使用了不存在的 API
-grep -r "SecItemUpdate" ScreenTranslate/  # 应该不存在（使用 SecItemAdd + delete 策略）
+grep -r "SecItemUpdate" TransFrame/  # 应该不存在（使用 SecItemAdd + delete 策略）
 
 # 检查是否硬编码 API Key
-grep -r "sk-" ScreenTranslate/  # 应该只在测试文件中
+grep -r "sk-" TransFrame/  # 应该只在测试文件中
 
 # 检查是否在 UserDefaults 存储 API Key（旧代码迁移）
-grep -r "apiKey.*UserDefaults" ScreenTranslate/  # 应该不存在
+grep -r "apiKey.*UserDefaults" TransFrame/  # 应该不存在
 ```
 
 ---
@@ -929,7 +929,7 @@ grep -r "apiKey.*UserDefaults" ScreenTranslate/  # 应该不存在
 
 ### 新建文件
 ```
-ScreenTranslate/
+TransFrame/
 ├── Models/
 │   ├── EngineSelectionMode.swift
 │   ├── TranslationScene.swift
@@ -958,7 +958,7 @@ ScreenTranslate/
 
 ### 修改文件
 ```
-ScreenTranslate/
+TransFrame/
 ├── Models/
 │   ├── TranslationEngineType.swift  # 扩展枚举
 │   └── AppSettings.swift  # 添加新配置

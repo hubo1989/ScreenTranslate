@@ -1,6 +1,6 @@
 # User Guide
 
-Welcome to ScreenCapture! This guide will help you get the most out of your screen capture experience.
+Welcome to TransFrame! This guide will help you get the most out of your screen capture experience.
 
 ## Getting Started
 
@@ -11,7 +11,7 @@ Welcome to ScreenCapture! This guide will help you get the most out of your scre
 
 ### Installation
 
-1. Download ScreenCapture
+1. Download TransFrame
 2. Drag to Applications folder
 3. Launch the app
 
@@ -21,7 +21,7 @@ On first launch, you'll be prompted to grant **Screen Recording** permission:
 
 1. Click "Open System Settings" in the permission dialog
 2. Navigate to **Privacy & Security → Screen Recording**
-3. Toggle on ScreenCapture
+3. Toggle on TransFrame
 4. Restart the app if prompted
 
 The app runs in your menu bar with a camera icon.
@@ -365,7 +365,7 @@ Never touch the mouse:
 **Solution:**
 1. Open System Settings
 2. Go to Privacy & Security → Screen Recording
-3. Ensure ScreenCapture is enabled
+3. Ensure TransFrame is enabled
 4. Restart the app
 
 ### Hotkeys Not Working
@@ -414,7 +414,7 @@ Never touch the mouse:
 
 ### Screen Recording Permission
 
-ScreenCapture requires Screen Recording permission to function. This permission:
+TransFrame requires Screen Recording permission to function. This permission:
 - Allows the app to capture screen contents
 - Is managed by macOS system settings
 - Can be revoked at any time
@@ -430,7 +430,7 @@ ScreenCapture requires Screen Recording permission to function. This permission:
 To revoke Screen Recording permission:
 1. Open System Settings
 2. Go to Privacy & Security → Screen Recording
-3. Toggle off ScreenCapture
+3. Toggle off TransFrame
 
 ---
 

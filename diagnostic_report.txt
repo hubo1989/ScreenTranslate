@@ -1,0 +1,17 @@
+
+--- REAL TRANSLATION LINK DIAGNOSTIC ---
+OCR Engine: vision
+Translation Engine: apple
+Translation Target Language: nil
+Translation Source Language: auto
+Fallback Enabled: true
+Engine Selection Mode: primary_fallback
+VLM Provider: openai
+VLM Model Name: codex/gpt-5.4-mini
+Target Language String: zh-Hans
+Source Language String: nil
+Selected Engine: apple
+Translation Success! Returned 2 segments:
+  [0] Source: "Hello world" -> Translated: "你好，世界" (sourceLanguage: Optional("en"), targetLanguage: zh)
+  [1] Source: "Screen Translate is a great tool." -> Translated: "屏幕翻译是一个很棒的工具。" (sourceLanguage: Optional("en"), targetLanguage: zh)
+----------------------------------------

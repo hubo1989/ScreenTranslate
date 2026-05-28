@@ -30,7 +30,7 @@
 - 返回结果包含 `kCGWindowBounds`（窗口 frame）、`kCGWindowLayer`（窗口层级）、`kCGWindowOwnerName`（应用名）等完整信息
 - 无需额外权限（Screen Recording 权限已涵盖）
 
-**新建文件**: `ScreenTranslate/Services/WindowDetector.swift`
+**新建文件**: `TransFrame/Services/WindowDetector.swift`
 
 ```swift
 /// 检测鼠标光标下方的窗口，提供窗口 frame 信息。
@@ -66,7 +66,7 @@ final class WindowDetector {
 
 ### 2. SelectionOverlayView 改造
 
-**修改文件**: `ScreenTranslate/Features/Capture/SelectionOverlayWindow.swift`
+**修改文件**: `TransFrame/Features/Capture/SelectionOverlayWindow.swift`
 
 在 `SelectionOverlayView` 中增加窗口高亮绘制逻辑：
 
@@ -271,8 +271,8 @@ view 坐标中的 highlightedWindowRect
 
 | 文件 | 操作 | 说明 |
 |------|------|------|
-| `ScreenTranslate/Services/WindowDetector.swift` | **新建** | 窗口检测服务，封装 `CGWindowListCopyWindowInfo` 调用和结果解析 |
-| `ScreenTranslate/Features/Capture/SelectionOverlayWindow.swift` | **修改** | SelectionOverlayView 增加窗口高亮绘制、点击/拖拽区分逻辑 |
+| `TransFrame/Services/WindowDetector.swift` | **新建** | 窗口检测服务，封装 `CGWindowListCopyWindowInfo` 调用和结果解析 |
+| `TransFrame/Features/Capture/SelectionOverlayWindow.swift` | **修改** | SelectionOverlayView 增加窗口高亮绘制、点击/拖拽区分逻辑 |
 
 ## 不需要改动的文件
 
