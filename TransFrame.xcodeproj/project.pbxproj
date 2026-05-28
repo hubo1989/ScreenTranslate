@@ -27,7 +27,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		862C98FC2F32309800ABAC92 /* Exceptions for "ScreenTranslate" folder in "ScreenTranslate" target */ = {
+		862C98FC2F32309800ABAC92 /* Exceptions for "TransFrame" folder in "TransFrame" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				"Supporting Files/Info.plist",
@@ -40,7 +40,7 @@
 		SC000002 /* TransFrame */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				862C98FC2F32309800ABAC92 /* Exceptions for "ScreenTranslate" folder in "ScreenTranslate" target */,
+				862C98FC2F32309800ABAC92 /* Exceptions for "TransFrame" folder in "TransFrame" target */,
 			);
 			path = TransFrame;
 			sourceTree = "<group>";

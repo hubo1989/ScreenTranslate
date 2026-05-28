@@ -294,7 +294,7 @@ actor KeychainService {
     private func deleteAllRaw() throws {
         #if DEBUG
         let defaults = UserDefaults.standard
-        let prefix = "com.screentranslate.credentials.debug."
+        let prefix = "com.transframe.credentials.debug."
         let keysToRemove = defaults.dictionaryRepresentation().keys.filter { $0.hasPrefix(prefix) }
         for key in keysToRemove {
             defaults.removeObject(forKey: key)
@@ -315,14 +315,14 @@ actor KeychainService {
     }
 
     private func debugKey(for account: String) -> String {
-        return "com.screentranslate.credentials.debug.\(account)"
+        return "com.transframe.credentials.debug.\(account)"
     }
 
     // MARK: - Synchronous Keychain Access for AppSettings (Non-isolated static helpers)
 
     static func loadVLMAPIKeySynchronously() -> String {
         #if DEBUG
-        let key = "com.screentranslate.credentials.debug.vlm_api_key"
+        let key = "com.transframe.credentials.debug.vlm_api_key"
         guard let data = UserDefaults.standard.data(forKey: key),
               let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
             return ""
@@ -352,7 +352,7 @@ actor KeychainService {
 
     static func loadPaddleOCRAPIKeySynchronously() -> String {
         #if DEBUG
-        let key = "com.screentranslate.credentials.debug.\(KeychainService.paddleOCRAccount)"
+        let key = "com.transframe.credentials.debug.\(KeychainService.paddleOCRAccount)"
         guard let data = UserDefaults.standard.data(forKey: key),
               let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
             return ""
