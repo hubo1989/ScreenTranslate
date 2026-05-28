@@ -159,9 +159,11 @@ actor MTranServerEngine: TranslationProvider {
         return results
     }
 
-    func checkConnection() async -> Bool {
+    func verifyConnection() async throws {
         MTranServerChecker.resetCache()
-        return MTranServerChecker.isAvailable
+        guard MTranServerChecker.isAvailable else {
+            throw TranslationProviderError.connectionFailed("MTranServer is not reachable")
+        }
     }
 
     // MARK: - Private Methods

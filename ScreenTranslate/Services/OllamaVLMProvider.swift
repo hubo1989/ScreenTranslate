@@ -83,7 +83,7 @@ struct OllamaVLMProvider: VLMProvider, Sendable {
 
     /// Checks if Ollama server is running and accessible
     private func checkServerAvailability() async -> Bool {
-        let endpoint = configuration.baseURL.appendingPathComponent("api/tags")
+        let endpoint = configuration.baseURL.resolvingLocalhost.appendingPathComponent("api/tags")
         var request = URLRequest(url: endpoint)
         request.httpMethod = "GET"
         request.timeoutInterval = 5 // Short timeout for health check
@@ -101,7 +101,7 @@ struct OllamaVLMProvider: VLMProvider, Sendable {
 
     /// Builds the URLRequest for Ollama Generate API
     private func buildRequest(base64Image: String) throws -> URLRequest {
-        let endpoint = configuration.baseURL.appendingPathComponent("api/generate")
+        let endpoint = configuration.baseURL.resolvingLocalhost.appendingPathComponent("api/generate")
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"

@@ -43,8 +43,8 @@ actor AppleTranslationProvider: TranslationProvider {
         }
     }
     
-    func checkConnection() async -> Bool {
-        true
+    func verifyConnection() async throws {
+        // Built-in Apple Translation is always available on system level
     }
     
     private func mapEngineError(_ error: TranslationEngineError) -> TranslationProviderError {
