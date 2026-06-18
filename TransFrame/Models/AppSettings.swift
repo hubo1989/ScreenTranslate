@@ -304,10 +304,14 @@ final class AppSettings {
             let capturedKey = vlmAPIKey
             Task.detached {
                 do {
-                    try await KeychainService.shared.saveCredentials(
-                        apiKey: capturedKey,
-                        forCompatibleId: "vlm_api_key"
-                    )
+                    if capturedKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        try await KeychainService.shared.deleteCredentials(forCompatibleId: "vlm_api_key")
+                    } else {
+                        try await KeychainService.shared.saveCredentials(
+                            apiKey: capturedKey,
+                            forCompatibleId: "vlm_api_key"
+                        )
+                    }
                 } catch {
                     Logger.settings.error("Failed to save VLM API key to Keychain: \(error)")
                 }
@@ -431,7 +435,11 @@ final class AppSettings {
             // Save to Keychain asynchronously
             Task.detached {
                 do {
-                    try await KeychainService.shared.savePaddleOCRCredentials(apiKey: capturedKey)
+                    if capturedKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        try await KeychainService.shared.deletePaddleOCRCredentials()
+                    } else {
+                        try await KeychainService.shared.savePaddleOCRCredentials(apiKey: capturedKey)
+                    }
                 } catch {
                     Logger.settings.error("Failed to save PaddleOCR cloud API key to Keychain: \(error)")
                 }
@@ -747,6 +755,19 @@ final class AppSettings {
     /// Load VLM API key from Keychain synchronously
     private static func loadVLMAPIKeyFromKeychain() -> String {
         KeychainService.loadVLMAPIKeySynchronously()
+    }
+
+    /// Refreshes keychain-backed settings after this app session is authenticated.
+    func reloadSecureCredentials() {
+        let paddleKey = Self.loadPaddleOCRAPIKeyFromKeychain()
+        if paddleOCRCloudAPIKey != paddleKey {
+            paddleOCRCloudAPIKey = paddleKey
+        }
+
+        let vlmKey = Self.loadVLMAPIKeyFromKeychain()
+        if vlmAPIKey != vlmKey {
+            vlmAPIKey = vlmKey
+        }
     }
 
     // MARK: - Multi-Engine Persistence Helpers

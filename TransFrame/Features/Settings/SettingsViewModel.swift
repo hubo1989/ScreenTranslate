@@ -29,6 +29,9 @@ final class SettingsViewModel {
     /// Reference to app delegate for hotkey re-registration
     private weak var appDelegate: AppDelegate?
 
+    /// Manages per-launch credential authorization.
+    let credentialAuth = CredentialAuthManager.shared
+
     /// The type of shortcut currently being recorded (nil if not recording)
     var recordingType: ShortcutRecordingType?
 
@@ -450,6 +453,22 @@ final class SettingsViewModel {
         self.settings = settings
         self.appDelegate = appDelegate
         refreshPaddleOCRStatus()
+        Task {
+            await credentialAuth.refreshCredentialPresence()
+        }
+    }
+
+    // MARK: - Credential Authorization
+
+    func unlockCredentialAccess() {
+        Task {
+            await credentialAuth.refreshCredentialPresence()
+            let unlocked = await credentialAuth.authenticate()
+            if !unlocked, case .failed(let message) = credentialAuth.state {
+                errorMessage = message
+                showErrorAlert = true
+            }
+        }
     }
 
     // MARK: - Permission Checking

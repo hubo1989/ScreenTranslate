@@ -58,8 +58,8 @@ actor KeychainService {
     /// Retrieve stored credentials for an engine
     /// - Parameter engine: The engine type to get credentials for
     /// - Returns: The stored credentials, or nil if not found
-    func getCredentials(for engine: TranslationEngineType) throws -> StoredCredentials? {
-        guard let data = try loadRaw(account: engine.rawValue) else {
+    func getCredentials(for engine: TranslationEngineType) async throws -> StoredCredentials? {
+        guard let data = try await loadRaw(account: engine.rawValue) else {
             return nil
         }
         return try JSONDecoder().decode(StoredCredentials.self, from: data)
@@ -81,9 +81,9 @@ actor KeychainService {
     /// Get only the API key for an engine (convenience method)
     /// - Parameter engine: The engine type
     /// - Returns: The API key, or nil if not found
-    func getAPIKey(for engine: TranslationEngineType) -> String? {
+    func getAPIKey(for engine: TranslationEngineType) async -> String? {
         do {
-            return try getCredentials(for: engine)?.apiKey
+            return try await getCredentials(for: engine)?.apiKey
         } catch {
             logger.error("Error getting API key for \(engine.rawValue): \(error.localizedDescription)")
             return nil
@@ -107,8 +107,8 @@ actor KeychainService {
     /// Retrieve stored credentials for a compatible engine instance
     /// - Parameter compatibleId: The compatible engine identifier
     /// - Returns: The stored credentials, or nil if not found
-    func getCredentials(forCompatibleId compatibleId: String) throws -> StoredCredentials? {
-        guard let data = try loadRaw(account: compatibleId) else {
+    func getCredentials(forCompatibleId compatibleId: String) async throws -> StoredCredentials? {
+        guard let data = try await loadRaw(account: compatibleId) else {
             return nil
         }
         return try JSONDecoder().decode(StoredCredentials.self, from: data)
@@ -146,9 +146,9 @@ actor KeychainService {
 
     /// Retrieve stored PaddleOCR cloud API key
     /// - Returns: The stored API key, or nil if not found
-    func getPaddleOCRCredentials() -> String? {
+    func getPaddleOCRCredentials() async -> String? {
         do {
-            guard let data = try loadRaw(account: Self.paddleOCRAccount) else {
+            guard let data = try await loadRaw(account: Self.paddleOCRAccount) else {
                 return nil
             }
             let credentials = try JSONDecoder().decode(StoredCredentials.self, from: data)
@@ -162,6 +162,47 @@ actor KeychainService {
     /// Delete stored PaddleOCR cloud credentials
     func deletePaddleOCRCredentials() throws {
         try deleteRaw(account: Self.paddleOCRAccount)
+    }
+
+    /// Checks whether any non-empty API credentials exist.
+    func hasAnyCredentials() -> Bool {
+        #if DEBUG
+        let prefix = "com.transframe.credentials.debug."
+        return UserDefaults.standard.dictionaryRepresentation().contains { key, value in
+            guard key.hasPrefix(prefix),
+                  let data = value as? Data,
+                  let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
+                return false
+            }
+            return !credentials.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+        #else
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitAll
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecSuccess {
+            guard let items = result as? [Data] else {
+                return false
+            }
+            return items.contains { data in
+                guard let credentials = try? JSONDecoder().decode(StoredCredentials.self, from: data) else {
+                    return false
+                }
+                return !credentials.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
+        } else if status == errSecItemNotFound {
+            return false
+        } else {
+            logger.error("Failed to check credential presence: status \(status)")
+            return false
+        }
+        #endif
     }
 
     // MARK: - Core Storage Operations
@@ -211,7 +252,15 @@ actor KeychainService {
         #endif
     }
 
-    private func loadRaw(account: String) throws -> Data? {
+    private func loadRaw(account: String) async throws -> Data? {
+        let accessAllowed = await MainActor.run {
+            CredentialAuthManager.shared.isUnlocked
+        }
+        guard accessAllowed else {
+            logger.error("Credential access denied before app-session authentication for \(account)")
+            throw KeychainError.authenticationRequired
+        }
+
         #if DEBUG
         let key = debugKey(for: account)
         let data = UserDefaults.standard.data(forKey: key)
@@ -320,7 +369,10 @@ actor KeychainService {
 
     // MARK: - Synchronous Keychain Access for AppSettings (Non-isolated static helpers)
 
+    @MainActor
     static func loadVLMAPIKeySynchronously() -> String {
+        guard CredentialAuthManager.shared.isUnlocked else { return "" }
+
         #if DEBUG
         let key = "com.transframe.credentials.debug.vlm_api_key"
         guard let data = UserDefaults.standard.data(forKey: key),
@@ -350,7 +402,10 @@ actor KeychainService {
         #endif
     }
 
+    @MainActor
     static func loadPaddleOCRAPIKeySynchronously() -> String {
+        guard CredentialAuthManager.shared.isUnlocked else { return "" }
+
         #if DEBUG
         let key = "com.transframe.credentials.debug.\(KeychainService.paddleOCRAccount)"
         guard let data = UserDefaults.standard.data(forKey: key),
@@ -417,6 +472,9 @@ enum KeychainError: LocalizedError, Sendable {
     /// An unexpected OS status was returned
     case unexpectedStatus(OSStatus)
 
+    /// Credentials exist but this app session has not been authenticated.
+    case authenticationRequired
+
     var errorDescription: String? {
         switch self {
         case .itemNotFound:
@@ -439,6 +497,11 @@ enum KeychainError: LocalizedError, Sendable {
                 "keychain.error.unexpected_status",
                 comment: "Keychain operation failed with status: \(status)"
             ) + " (\(status))"
+        case .authenticationRequired:
+            return NSLocalizedString(
+                "keychain.error.authentication_required",
+                comment: "Credential access is locked"
+            )
         }
     }
 
@@ -463,6 +526,11 @@ enum KeychainError: LocalizedError, Sendable {
             return NSLocalizedString(
                 "keychain.error.unexpected_status.recovery",
                 comment: "Please check your Keychain access permissions"
+            )
+        case .authenticationRequired:
+            return NSLocalizedString(
+                "keychain.error.authentication_required.recovery",
+                comment: "Open Settings and unlock credential access"
             )
         }
     }

@@ -412,6 +412,25 @@
 "keychain.error.invalid_data.recovery" = "请重新输入您的凭证";
 "keychain.error.unexpected_status" = "钥匙串操作失败";
 "keychain.error.unexpected_status.recovery" = "请检查您的钥匙串访问权限";
+"keychain.error.authentication_required" = "凭证访问已锁定";
+"keychain.error.authentication_required.recovery" = "打开设置并解锁凭证访问";
+"credential.auth.reason.startup" = "解锁本次 TransFrame 会话中保存的 API 密钥。";
+"credential.auth.reason.settings" = "解锁本次 TransFrame 会话中保存的 API 密钥。";
+"credential.auth.error.cancelled" = "凭证访问未解锁。";
+"credential.auth.error.failed" = "认证失败，请重试。";
+"credential.auth.error.biometry_unavailable" = "Touch ID 不可用，请使用 macOS 密码。";
+"credential.auth.error.passcode_not_set" = "请先设置 macOS 登录密码以解锁凭证。";
+"settings.credentials.title" = "凭证访问";
+"settings.credentials.not_needed" = "没有保存的 API 密钥";
+"settings.credentials.not_needed.hint" = "保存 API 密钥后，TransFrame 会在启动时请求解锁。";
+"settings.credentials.locked" = "凭证访问已锁定";
+"settings.credentials.locked.hint" = "每次启动应用后，使用 Touch ID 或 macOS 密码解锁一次。";
+"settings.credentials.authenticating" = "正在认证...";
+"settings.credentials.authenticating.hint" = "请完成系统认证提示。";
+"settings.credentials.unlocked" = "凭证访问已解锁";
+"settings.credentials.unlocked.hint" = "在退出 TransFrame 前，保存的 API 密钥都可用。";
+"settings.credentials.failed" = "凭证访问失败";
+"settings.credentials.unlock" = "解锁";
 
 /* 多引擎错误 */
 "multiengine.error.all_failed" = "所有翻译引擎均失败";
