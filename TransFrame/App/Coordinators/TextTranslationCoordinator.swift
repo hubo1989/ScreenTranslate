@@ -169,6 +169,11 @@ final class TextTranslationCoordinator {
         // Check accessibility permission before attempting text capture and insertion
         guard await ensureAccessibilityPermission() else { return }
 
+        showInsertionProgress(message: String(localized: "translateAndInsert.progress.capturing"))
+        defer {
+            TextInsertionProgressController.shared.dismiss()
+        }
+
         // Step 1: Capture selected text
         let textSelectionService = TextSelectionService.shared
         let selectedText: String
@@ -181,19 +186,25 @@ final class TextTranslationCoordinator {
             switch error {
             case .noSelection:
                 logger.info("No text selected for translate-and-insert")
+                hideInsertionProgress()
+                await showNoSelectionNotification()
                 return
             default:
                 logger.error("Failed to capture selected text: \(error.localizedDescription)")
+                hideInsertionProgress()
                 appDelegate?.showCaptureError(.captureFailure(underlying: error))
                 return
             }
         } catch {
             logger.error("Unexpected error capturing text: \(error.localizedDescription)")
+            hideInsertionProgress()
             appDelegate?.showCaptureError(.captureFailure(underlying: error))
             return
         }
 
         // Step 2: Translate the text
+        showInsertionProgress(message: String(localized: "translateAndInsert.progress.translating"))
+
         let translatedText: String
 
         do {
@@ -204,6 +215,7 @@ final class TextTranslationCoordinator {
 
                 logger.info("Translation completed in \(translationResult.processingTime * 1000)ms")
             } else {
+                hideInsertionProgress()
                 appDelegate?.showCaptureError(.captureFailure(underlying: NSError(
                     domain: "TransFrame",
                     code: -1,
@@ -213,20 +225,25 @@ final class TextTranslationCoordinator {
             }
         } catch let error as TextTranslationError {
             logger.error("Translation failed: \(error.localizedDescription)")
+            hideInsertionProgress()
             showTranslationError(error)
             return
         } catch {
             logger.error("Unexpected error during translation: \(error.localizedDescription)")
+            hideInsertionProgress()
             appDelegate?.showCaptureError(.captureFailure(underlying: error))
             return
         }
 
         // Step 3: Delete selection and insert translated text
+        showInsertionProgress(message: String(localized: "translateAndInsert.progress.inserting"))
+
         do {
             try await TextInsertService.shared.deleteSelectionAndInsert(translatedText)
             logger.info("Successfully inserted translated text")
         } catch let error as TextInsertService.InsertError {
             logger.error("Text insertion failed: \(error.localizedDescription)")
+            hideInsertionProgress()
             let alert = NSAlert()
             alert.alertStyle = .warning
             alert.messageText = String(localized: "textTranslation.error.insertFailed")
@@ -235,6 +252,7 @@ final class TextTranslationCoordinator {
             alert.runModal()
         } catch {
             logger.error("Unexpected error during translate and insert: \(error.localizedDescription)")
+            hideInsertionProgress()
             appDelegate?.showCaptureError(.captureFailure(underlying: error))
         }
     }
@@ -274,6 +292,16 @@ final class TextTranslationCoordinator {
     private func hideLoadingIndicator() async {
         // Already @MainActor, no need for MainActor.run
         BilingualResultWindowController.shared.close()
+    }
+
+    /// Shows progress feedback next to the active insertion point.
+    private func showInsertionProgress(message: String) {
+        TextInsertionProgressController.shared.show(message: message)
+    }
+
+    /// Hides translate-and-insert progress feedback before presenting blocking UI.
+    private func hideInsertionProgress() {
+        TextInsertionProgressController.shared.dismiss()
     }
 
     /// Shows a notification when no text is selected

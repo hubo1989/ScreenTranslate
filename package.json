@@ -7,5 +7,18 @@
     "url": "git+https://github.com/hubo1989/TransFrame.git"
   },
   "author": "hubo",
-  "license": "MIT"
+  "license": "MIT",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "node -e \"console.log('No JS tests configured')\""
+  },
+  "keywords": [],
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hubo1989/TransFrame/issues"
+  },
+  "homepage": "https://github.com/hubo1989/TransFrame#readme"
 }

@@ -730,6 +730,9 @@
 /* Translate and Insert */
 "translateAndInsert.emptyClipboard.title" = "Clipboard is Empty";
 "translateAndInsert.emptyClipboard.message" = "Copy some text to clipboard first, then use this shortcut.";
+"translateAndInsert.progress.capturing" = "Capturing text...";
+"translateAndInsert.progress.translating" = "Translating...";
+"translateAndInsert.progress.inserting" = "Inserting...";
 "translateAndInsert.success.title" = "Translation Inserted";
 "translateAndInsert.success.message" = "Translated text has been inserted into the focused input field.";
 
