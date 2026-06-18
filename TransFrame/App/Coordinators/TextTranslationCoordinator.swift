@@ -169,6 +169,11 @@ final class TextTranslationCoordinator {
         // Check accessibility permission before attempting text capture and insertion
         guard await ensureAccessibilityPermission() else { return }
 
+        showInsertionProgress(message: String(localized: "translateAndInsert.progress.capturing"))
+        defer {
+            TextInsertionProgressController.shared.dismiss()
+        }
+
         // Step 1: Capture selected text
         let textSelectionService = TextSelectionService.shared
         let selectedText: String
@@ -181,6 +186,7 @@ final class TextTranslationCoordinator {
             switch error {
             case .noSelection:
                 logger.info("No text selected for translate-and-insert")
+                await showNoSelectionNotification()
                 return
             default:
                 logger.error("Failed to capture selected text: \(error.localizedDescription)")
@@ -194,6 +200,8 @@ final class TextTranslationCoordinator {
         }
 
         // Step 2: Translate the text
+        showInsertionProgress(message: String(localized: "translateAndInsert.progress.translating"))
+
         let translatedText: String
 
         do {
@@ -222,6 +230,8 @@ final class TextTranslationCoordinator {
         }
 
         // Step 3: Delete selection and insert translated text
+        showInsertionProgress(message: String(localized: "translateAndInsert.progress.inserting"))
+
         do {
             try await TextInsertService.shared.deleteSelectionAndInsert(translatedText)
             logger.info("Successfully inserted translated text")
@@ -274,6 +284,11 @@ final class TextTranslationCoordinator {
     private func hideLoadingIndicator() async {
         // Already @MainActor, no need for MainActor.run
         BilingualResultWindowController.shared.close()
+    }
+
+    /// Shows progress feedback next to the active insertion point.
+    private func showInsertionProgress(message: String) {
+        TextInsertionProgressController.shared.show(message: message)
     }
 
     /// Shows a notification when no text is selected

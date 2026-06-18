@@ -730,6 +730,9 @@
 /* 翻译并插入 */
 "translateAndInsert.emptyClipboard.title" = "剪贴板为空";
 "translateAndInsert.emptyClipboard.message" = "请先将文本复制到剪贴板，然后使用此快捷键。";
+"translateAndInsert.progress.capturing" = "正在读取文本...";
+"translateAndInsert.progress.translating" = "正在翻译...";
+"translateAndInsert.progress.inserting" = "正在插入...";
 "translateAndInsert.success.title" = "翻译已插入";
 "translateAndInsert.success.message" = "翻译后的文本已插入到当前输入框中。";
 
