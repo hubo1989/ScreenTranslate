@@ -186,15 +186,18 @@ final class TextTranslationCoordinator {
             switch error {
             case .noSelection:
                 logger.info("No text selected for translate-and-insert")
+                hideInsertionProgress()
                 await showNoSelectionNotification()
                 return
             default:
                 logger.error("Failed to capture selected text: \(error.localizedDescription)")
+                hideInsertionProgress()
                 appDelegate?.showCaptureError(.captureFailure(underlying: error))
                 return
             }
         } catch {
             logger.error("Unexpected error capturing text: \(error.localizedDescription)")
+            hideInsertionProgress()
             appDelegate?.showCaptureError(.captureFailure(underlying: error))
             return
         }
@@ -212,6 +215,7 @@ final class TextTranslationCoordinator {
 
                 logger.info("Translation completed in \(translationResult.processingTime * 1000)ms")
             } else {
+                hideInsertionProgress()
                 appDelegate?.showCaptureError(.captureFailure(underlying: NSError(
                     domain: "TransFrame",
                     code: -1,
@@ -221,10 +225,12 @@ final class TextTranslationCoordinator {
             }
         } catch let error as TextTranslationError {
             logger.error("Translation failed: \(error.localizedDescription)")
+            hideInsertionProgress()
             showTranslationError(error)
             return
         } catch {
             logger.error("Unexpected error during translation: \(error.localizedDescription)")
+            hideInsertionProgress()
             appDelegate?.showCaptureError(.captureFailure(underlying: error))
             return
         }
@@ -237,6 +243,7 @@ final class TextTranslationCoordinator {
             logger.info("Successfully inserted translated text")
         } catch let error as TextInsertService.InsertError {
             logger.error("Text insertion failed: \(error.localizedDescription)")
+            hideInsertionProgress()
             let alert = NSAlert()
             alert.alertStyle = .warning
             alert.messageText = String(localized: "textTranslation.error.insertFailed")
@@ -245,6 +252,7 @@ final class TextTranslationCoordinator {
             alert.runModal()
         } catch {
             logger.error("Unexpected error during translate and insert: \(error.localizedDescription)")
+            hideInsertionProgress()
             appDelegate?.showCaptureError(.captureFailure(underlying: error))
         }
     }
@@ -289,6 +297,11 @@ final class TextTranslationCoordinator {
     /// Shows progress feedback next to the active insertion point.
     private func showInsertionProgress(message: String) {
         TextInsertionProgressController.shared.show(message: message)
+    }
+
+    /// Hides translate-and-insert progress feedback before presenting blocking UI.
+    private func hideInsertionProgress() {
+        TextInsertionProgressController.shared.dismiss()
     }
 
     /// Shows a notification when no text is selected

@@ -13,7 +13,7 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node -e \"console.log('No JS tests configured')\""
   },
   "keywords": [],
   "type": "commonjs",

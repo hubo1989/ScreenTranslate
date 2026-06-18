@@ -153,18 +153,27 @@ private enum TextCursorLocator {
             return nil
         }
 
-        let element = focusedElement as! AXUIElement
+        guard CFGetTypeID(focusedElement) == AXUIElementGetTypeID() else {
+            return nil
+        }
+
+        let element = unsafeDowncast(focusedElement, to: AXUIElement.self)
+
         var selectedRangeObject: AnyObject?
         guard AXUIElementCopyAttributeValue(
             element,
             kAXSelectedTextRangeAttribute as CFString,
             &selectedRangeObject
         ) == .success,
-        let selectedRangeObject else {
+        let selectedRangeObject,
+        CFGetTypeID(selectedRangeObject) == AXValueGetTypeID() else {
             return nil
         }
 
-        let selectedRangeValue = selectedRangeObject as! AXValue
+        let selectedRangeValue = unsafeDowncast(selectedRangeObject, to: AXValue.self)
+        guard AXValueGetType(selectedRangeValue) == .cfRange else {
+            return nil
+        }
 
         var boundsObject: AnyObject?
         guard AXUIElementCopyParameterizedAttributeValue(
@@ -173,11 +182,15 @@ private enum TextCursorLocator {
             selectedRangeValue,
             &boundsObject
         ) == .success,
-        let boundsObject else {
+        let boundsObject,
+        CFGetTypeID(boundsObject) == AXValueGetTypeID() else {
             return nil
         }
 
-        let boundsValue = boundsObject as! AXValue
+        let boundsValue = unsafeDowncast(boundsObject, to: AXValue.self)
+        guard AXValueGetType(boundsValue) == .cgRect else {
+            return nil
+        }
 
         var rect = CGRect.zero
         guard AXValueGetValue(boundsValue, .cgRect, &rect), !rect.isNull, !rect.isEmpty else {
