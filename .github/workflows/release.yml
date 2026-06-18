@@ -6,10 +6,15 @@ on:
       - 'v*'
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Tag to release (e.g., v1.5.1)'
+      version_bump:
+        description: 'Version bump from the latest release'
         required: true
-        default: 'v1.5.1'
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: write
@@ -24,19 +29,86 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Set version and tag env vars
+      - name: Resolve release version
         id: vars
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_BUMP: ${{ github.event.inputs.version_bump || 'patch' }}
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            TAG_NAME="${{ github.ref_name }}"
-            VERSION=${GITHUB_REF#refs/tags/v}
-          else
-            TAG_NAME="${{ github.event.inputs.tag }}"
-            VERSION=${TAG_NAME#v}
+          set -euo pipefail
+
+          bump_version() {
+            local version="$1"
+            local bump="$2"
+            IFS=. read -r major minor patch <<< "$version"
+
+            case "$bump" in
+              patch)
+                patch=$((patch + 1))
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              *)
+                echo "Unsupported version bump: $bump" >&2
+                exit 1
+                ;;
+            esac
+
+            echo "${major}.${minor}.${patch}"
+          }
+
+          latest_tag=$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty')
+          if [[ -z "$latest_tag" || ! "$latest_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Cannot determine latest semantic release tag. Latest tag: ${latest_tag:-<empty>}" >&2
+            exit 1
           fi
+
+          latest_version="${latest_tag#v}"
+          expected_version=$(bump_version "$latest_version" "$VERSION_BUMP")
+          expected_tag="v${expected_version}"
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+            VERSION=${GITHUB_REF#refs/tags/v}
+            if [[ "$TAG_NAME" != "$expected_tag" ]]; then
+              echo "Refusing to release $TAG_NAME. Expected next $VERSION_BUMP release after $latest_tag is $expected_tag." >&2
+              exit 1
+            fi
+          else
+            TAG_NAME="$expected_tag"
+            VERSION="$expected_version"
+            if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+              echo "Release $TAG_NAME already exists." >&2
+              exit 1
+            fi
+            if git ls-remote --exit-code --tags origin "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
+              echo "Tag $TAG_NAME already exists." >&2
+              exit 1
+            fi
+          fi
+
+          source_version=$(grep -m1 'MARKETING_VERSION' TransFrame.xcodeproj/project.pbxproj | sed 's/.*= *//;s/;//' | tr -d ' ')
+          package_version=$(node -p "require('./package.json').version")
+
           echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "latest_tag=${latest_tag}" >> $GITHUB_OUTPUT
+          echo "version_bump=${VERSION_BUMP}" >> $GITHUB_OUTPUT
+
+          echo "Latest release: $latest_tag"
+          echo "Resolved release: $TAG_NAME"
+          echo "Source MARKETING_VERSION: $source_version"
+          echo "package.json version: $package_version"
 
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -207,6 +279,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.vars.outputs.tag_name }}
+          target_commitish: ${{ github.sha }}
           files: |
             ${{ env.PROJECT_NAME }}-*.dmg
             appcast.xml
