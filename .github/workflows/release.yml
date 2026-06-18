@@ -116,17 +116,37 @@ jobs:
           xcode-version: '26.2'
 
       - name: Auto-increment build number
+        env:
+          REPOSITORY: ${{ github.repository }}
+          RELEASE_VERSION: ${{ steps.vars.outputs.version }}
         run: |
-          VERSION=${{ steps.vars.outputs.version }}
+          VERSION=${RELEASE_VERSION}
           
           # Get current build number from latest release's appcast
-          CURRENT_BUILD=0
-          LATEST_APPCAST=$(curl -sL "https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml" 2>/dev/null || echo "")
+          APPCAST_BUILD=0
+          LATEST_APPCAST=$(curl -sL "https://github.com/${REPOSITORY}/releases/latest/download/appcast.xml" 2>/dev/null || echo "")
           
           if [ -n "$LATEST_APPCAST" ]; then
-            CURRENT_BUILD=$(echo "$LATEST_APPCAST" | grep -o '<sparkle:version>[^<]*</sparkle:version>' | sed 's/<[^>]*>//g' | head -1)
-            echo "Current build number from appcast: $CURRENT_BUILD"
+            APPCAST_BUILD=$(echo "$LATEST_APPCAST" | grep -o '<sparkle:version>[^<]*</sparkle:version>' | sed 's/<[^>]*>//g' | head -1)
+            echo "Current build number from appcast: $APPCAST_BUILD"
           fi
+
+          if ! [[ "$APPCAST_BUILD" =~ ^[0-9]+$ ]]; then
+            echo "Ignoring invalid appcast build number: $APPCAST_BUILD"
+            APPCAST_BUILD=0
+          fi
+
+          SOURCE_BUILD=$(grep -m1 'CURRENT_PROJECT_VERSION' TransFrame.xcodeproj/project.pbxproj | sed 's/.*= *//;s/;//' | tr -d ' ')
+          if ! [[ "$SOURCE_BUILD" =~ ^[0-9]+$ ]]; then
+            echo "Invalid source build number: $SOURCE_BUILD" >&2
+            exit 1
+          fi
+
+          CURRENT_BUILD=$APPCAST_BUILD
+          if [ "$SOURCE_BUILD" -gt "$CURRENT_BUILD" ]; then
+            CURRENT_BUILD=$SOURCE_BUILD
+          fi
+          echo "Current build baseline: $CURRENT_BUILD"
           
           # Increment build number
           NEW_BUILD=$((CURRENT_BUILD + 1))
