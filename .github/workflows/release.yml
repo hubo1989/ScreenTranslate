@@ -36,6 +36,7 @@ jobs:
         id: vars
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Tag pushes intentionally follow patch-only validation; use workflow_dispatch for minor/major releases.
           VERSION_BUMP: ${{ github.event.inputs.version_bump || 'patch' }}
         run: |
           set -euo pipefail
@@ -67,7 +68,8 @@ jobs:
             echo "${major}.${minor}.${patch}"
           }
 
-          latest_tag=$(gh release list --limit 1 --json tagName --jq '.[0].tagName // empty')
+          latest_tag=$(gh release list --limit 100 --exclude-drafts --exclude-pre-releases --json tagName \
+            --jq '[.[].tagName | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))] | sort_by(split(".") | map(ltrimstr("v") | tonumber)) | last // empty')
           if [[ -z "$latest_tag" || ! "$latest_tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Cannot determine latest semantic release tag. Latest tag: ${latest_tag:-<empty>}" >&2
             exit 1
@@ -80,6 +82,7 @@ jobs:
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             TAG_NAME=${GITHUB_REF#refs/tags/}
             VERSION=${GITHUB_REF#refs/tags/v}
+            # Minor and major releases must be created with workflow_dispatch so the requested bump is explicit.
             if [[ "$TAG_NAME" != "$expected_tag" ]]; then
               echo "Refusing to release $TAG_NAME. Expected next $VERSION_BUMP release after $latest_tag is $expected_tag." >&2
               exit 1
