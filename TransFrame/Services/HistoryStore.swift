@@ -1,6 +1,14 @@
 import Foundation
 import AppKit
 import CoreGraphics
+import ImageIO
+import UniformTypeIdentifiers
+
+private enum HistoryThumbnailOptions {
+    static let maxSize: CGFloat = 128
+    static let maxDataSize = 10 * 1024
+    static let quality: CGFloat = 0.7
+}
 
 /// Manages the translation history with thumbnail generation and persistence.
 /// Runs on the main actor for UI integration.
@@ -10,15 +18,6 @@ final class HistoryStore: ObservableObject {
 
     /// Maximum number of history entries to store
     private static let maxHistoryEntries = 50
-
-    /// Maximum thumbnail dimension in pixels
-    private static let maxThumbnailSize: CGFloat = 128
-
-    /// Maximum thumbnail data size in bytes (10KB)
-    private static let maxThumbnailDataSize = 10 * 1024
-
-    /// JPEG quality for thumbnail compression
-    private static let thumbnailQuality: CGFloat = 0.7
 
     /// UserDefaults key for history data
     private static let historyKey = "TransFrame.translationHistory"
@@ -54,8 +53,20 @@ final class HistoryStore: ObservableObject {
     ///   - result: The translation result to save
     ///   - image: Optional screenshot image for thumbnail generation
     func add(result: TranslationResult, image: CGImage? = nil) {
-        let thumbnailData = image.flatMap { generateThumbnail(from: $0) }
+        guard let image else {
+            add(result: result, thumbnailData: nil)
+            return
+        }
 
+        Task.detached(priority: .utility) {
+            let thumbnailData = Self.generateThumbnailData(from: image)
+            await MainActor.run {
+                self.add(result: result, thumbnailData: thumbnailData)
+            }
+        }
+    }
+
+    private func add(result: TranslationResult, thumbnailData: Data?) {
         let entry = TranslationHistory.from(result: result, thumbnailData: thumbnailData)
 
         // Remove existing entry with same content to avoid duplicates
@@ -178,16 +189,16 @@ final class HistoryStore: ObservableObject {
     /// Generates a JPEG thumbnail from a CGImage.
     /// - Parameter image: The source image
     /// - Returns: JPEG data for the thumbnail, or nil if generation fails
-    private func generateThumbnail(from image: CGImage) -> Data? {
+    nonisolated static func generateThumbnailData(from image: CGImage) -> Data? {
         let width = CGFloat(image.width)
         let height = CGFloat(image.height)
 
         // Calculate scaled size maintaining aspect ratio
         let scale: CGFloat
         if width > height {
-            scale = Self.maxThumbnailSize / width
+            scale = HistoryThumbnailOptions.maxSize / width
         } else {
-            scale = Self.maxThumbnailSize / height
+            scale = HistoryThumbnailOptions.maxSize / height
         }
 
         // Only scale down, not up
@@ -217,26 +228,14 @@ final class HistoryStore: ObservableObject {
             return nil
         }
 
-        // Convert to JPEG data
-        let nsImage = NSImage(
-            cgImage: thumbnailImage,
-            size: NSSize(width: newWidth, height: newHeight)
-        )
-        guard let tiffData = nsImage.tiffRepresentation,
-              let bitmap = NSBitmapImageRep(data: tiffData),
-              let jpegData = bitmap.representation(
-                using: .jpeg,
-                properties: [.compressionFactor: Self.thumbnailQuality]
-              ) else {
-            return nil
-        }
+        guard let jpegData = encodeJPEG(thumbnailImage, quality: HistoryThumbnailOptions.quality) else { return nil }
 
         // Check size and reduce quality if needed
-        if jpegData.count > Self.maxThumbnailDataSize {
+        if jpegData.count > HistoryThumbnailOptions.maxDataSize {
             // Try with lower quality
             let lowerQuality: CGFloat = 0.5
-            if let reducedData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: lowerQuality]),
-               reducedData.count <= Self.maxThumbnailDataSize {
+            if let reducedData = encodeJPEG(thumbnailImage, quality: lowerQuality),
+               reducedData.count <= HistoryThumbnailOptions.maxDataSize {
                 return reducedData
             }
             // If still too large, return nil
@@ -244,5 +243,22 @@ final class HistoryStore: ObservableObject {
         }
 
         return jpegData
+    }
+
+    private nonisolated static func encodeJPEG(_ image: CGImage, quality: CGFloat) -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(
+            data,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ) else {
+            return nil
+        }
+
+        let options = [kCGImageDestinationLossyCompressionQuality: quality] as CFDictionary
+        CGImageDestinationAddImage(destination, image, options)
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
     }
 }
