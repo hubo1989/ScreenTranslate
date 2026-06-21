@@ -4,6 +4,93 @@ import ImageIO
 import UniformTypeIdentifiers
 import os.log
 
+private struct ProcessOutput: Sendable {
+    let terminationStatus: Int32
+    let stdoutData: Data
+    let stderrData: Data
+}
+
+private final class CancellableProcessRunner: @unchecked Sendable {
+    private let process: Process
+    private let stdoutPipe: Pipe
+    private let stderrPipe: Pipe
+    private let lock = NSLock()
+    private var isCancelled = false
+    private var didResume = false
+
+    init(process: Process, stdoutPipe: Pipe, stderrPipe: Pipe) {
+        self.process = process
+        self.stdoutPipe = stdoutPipe
+        self.stderrPipe = stderrPipe
+    }
+
+    func run() async throws -> ProcessOutput {
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                process.terminationHandler = { [weak self] process in
+                    self?.complete(process: process, continuation: continuation)
+                }
+
+                do {
+                    try process.run()
+                } catch {
+                    resumeOnce(continuation, result: .failure(error))
+                }
+            }
+        } onCancel: {
+            cancel()
+        }
+    }
+
+    private func cancel() {
+        lock.withLock {
+            isCancelled = true
+        }
+
+        if process.isRunning {
+            process.terminate()
+        }
+    }
+
+    private func complete(
+        process: Process,
+        continuation: CheckedContinuation<ProcessOutput, Error>
+    ) {
+        let output = ProcessOutput(
+            terminationStatus: process.terminationStatus,
+            stdoutData: stdoutPipe.fileHandleForReading.readDataToEndOfFile(),
+            stderrData: stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        )
+
+        let wasCancelled = lock.withLock { isCancelled }
+        if wasCancelled {
+            resumeOnce(continuation, result: .failure(CancellationError()))
+        } else {
+            resumeOnce(continuation, result: .success(output))
+        }
+    }
+
+    private func resumeOnce(
+        _ continuation: CheckedContinuation<ProcessOutput, Error>,
+        result: Result<ProcessOutput, Error>
+    ) {
+        let shouldResume = lock.withLock {
+            guard !didResume else { return false }
+            didResume = true
+            return true
+        }
+
+        guard shouldResume else { return }
+
+        switch result {
+        case .success(let output):
+            continuation.resume(returning: output)
+        case .failure(let error):
+            continuation.resume(throwing: error)
+        }
+    }
+}
+
 /// PaddleOCR engine implementation.
 /// Communicates with PaddleOCR CLI for text recognition.
 actor PaddleOCREngine {
@@ -478,15 +565,13 @@ actor PaddleOCREngine {
         task.standardError = stderrPipe
 
         do {
-            try task.run()
+            let runner = CancellableProcessRunner(process: task, stdoutPipe: stdoutPipe, stderrPipe: stderrPipe)
             Logger.ocr.debug("Process started, waiting...")
-            task.waitUntilExit()
-            Logger.ocr.debug("Process finished with exit code: \(task.terminationStatus)")
+            let output = try await runner.run()
+            Logger.ocr.debug("Process finished with exit code: \(output.terminationStatus)")
 
-            let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-            var stdout = String(data: stdoutData, encoding: .utf8) ?? ""
-            let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+            var stdout = String(data: output.stdoutData, encoding: .utf8) ?? ""
+            let stderr = String(data: output.stderrData, encoding: .utf8) ?? ""
             
             // PaddleOCR outputs result to stderr, extract JSON from it
             if stdout.isEmpty, let resultRange = stderr.range(of: "{'res':") {
@@ -504,7 +589,7 @@ actor PaddleOCREngine {
             Logger.ocr.debug("output length: \(stdout.count)")
             Logger.ocr.debug("output: \(stdout.prefix(1000))")
 
-            let exitCode = task.terminationStatus
+            let exitCode = output.terminationStatus
             if exitCode != 0 {
                 let errorMsg = stderr.isEmpty ? "Exit code \(exitCode)" : stderr
                 throw PaddleOCREngineError.recognitionFailed(underlying: errorMsg)
@@ -518,6 +603,11 @@ actor PaddleOCREngine {
             return stdout
         } catch let error as PaddleOCREngineError {
             throw error
+        } catch is CancellationError {
+            if task.isRunning {
+                task.terminate()
+            }
+            throw CancellationError()
         } catch {
             Logger.ocr.error("Error: \(error.localizedDescription)")
             throw PaddleOCREngineError.recognitionFailed(underlying: error.localizedDescription)
