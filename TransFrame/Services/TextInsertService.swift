@@ -228,9 +228,6 @@ actor TextInsertService {
     ///   - source: The CGEventSource to use
     /// - Throws: InsertError if typing fails
     private func typeCharacter(_ character: Character, source: CGEventSource) async throws {
-        // Convert character to string
-        let charString = String(character)
-
         // Get the UTF-16 code unit for the character
         guard let scalar = character.unicodeScalars.first else {
             // Skip characters we can't type

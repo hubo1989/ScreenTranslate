@@ -219,10 +219,11 @@
 			inputPaths = (
 			);
 			outputPaths = (
+				"$(DERIVED_FILE_DIR)/TransFrameFrameworkResign.stamp",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Sign embedded frameworks with ad-hoc signature to match main app\nFRAMEWORKS_DIR=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks\"\nif [ -d \"$FRAMEWORKS_DIR\" ]; then\n    for FRAMEWORK in \"$FRAMEWORKS_DIR\"/*.framework; do\n        if [ -d \"$FRAMEWORK\" ]; then\n            echo \"Re-signing framework with ad-hoc: $(basename \"$FRAMEWORK\")\"\n            codesign --force --sign - --deep \"$FRAMEWORK\"\n        fi\n    done\nfi\n";
+			shellScript = "# Sign embedded frameworks with ad-hoc signature to match main app\nFRAMEWORKS_DIR=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Frameworks\"\nif [ -d \"$FRAMEWORKS_DIR\" ]; then\n    for FRAMEWORK in \"$FRAMEWORKS_DIR\"/*.framework; do\n        if [ -d \"$FRAMEWORK\" ]; then\n            echo \"Re-signing framework with ad-hoc: $(basename \"$FRAMEWORK\")\"\n            codesign --force --sign - --deep \"$FRAMEWORK\"\n        fi\n    done\nfi\nmkdir -p \"${DERIVED_FILE_DIR}\"\ntouch \"${DERIVED_FILE_DIR}/TransFrameFrameworkResign.stamp\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

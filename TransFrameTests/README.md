@@ -10,16 +10,14 @@ This directory contains unit tests for the TransFrame application.
 | `TransFrameErrorTests.swift` | Tests for error types |
 | `TextTranslationErrorTests.swift` | Tests for translation errors and phases |
 | `ShortcutRecordingTypeTests.swift` | Tests for shortcut recording enum |
+| `TranslationServicePipelineTests.swift` | Tests for translation service orchestration |
+| `TranslationPipelineRegressionTests.swift` | Regression tests for translation filtering and recovery |
+| `GLMOCRVLMProviderTests.swift` | Tests for GLM/OpenAI-compatible VLM parsing |
+| `ModelDiscoveryServiceTests.swift` | Tests for model list parsing |
 
-## Adding Tests to Xcode Project
+## Test Target
 
-The project does not currently have a test target. To add one:
-
-1. Open `TransFrame.xcodeproj` in Xcode
-2. File → New → Target
-3. Select **macOS** → **Unit Testing Bundle**
-4. Name it `TransFrameTests`
-5. Add the test files from this directory to the new target
+The Xcode project has a `TransFrameTests` unit test target. New Swift test files placed in this directory are included by the filesystem-synchronized Xcode group.
 
 ## Running Tests
 
@@ -29,11 +27,11 @@ The project does not currently have a test target. To add one:
 
 ### Via Command Line
 ```bash
-xcodebuild test \
-  -project TransFrame.xcodeproj \
-  -scheme TransFrame \
-  -destination 'platform=macOS'
+./run_tests.sh
+./run_tests.sh --performance
 ```
+
+The `--performance` mode runs the lightweight performance smoke suite and avoids real network/API calls.
 
 ## Test Coverage Goals
 
@@ -41,9 +39,10 @@ xcodebuild test \
 - [x] Error types (TransFrameError, TextTranslationError)
 - [x] TranslationFlowPhase
 - [x] ShortcutRecordingType enum
-- [ ] SettingsViewModel (requires @MainActor setup)
+- [x] SettingsViewModel shortcut conflict checks
+- [x] TranslationService pipeline behavior with mocks
 - [ ] Coordinator classes (requires dependency injection)
-- [ ] TranslationService (requires mocking)
+- [ ] Performance pipeline smoke tests
 
 ## Adding New Tests
 
