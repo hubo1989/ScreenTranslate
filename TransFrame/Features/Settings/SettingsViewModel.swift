@@ -814,23 +814,17 @@ final class SettingsViewModel {
         }
     }
 
-    private func runPipInstall() async -> String? {
+    nonisolated private func runPipInstall() async -> String? {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         task.arguments = ["pip3", "install", "paddleocr", "paddlepaddle"]
 
-        let stderrPipe = Pipe()
-        task.standardError = stderrPipe
-        task.standardOutput = Pipe()
-
         do {
-            try task.run()
-            task.waitUntilExit()
+            let output = try await AsyncProcessRunner(process: task).run()
 
-            if task.terminationStatus != 0 {
-                let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-                let stderr = String(data: stderrData, encoding: .utf8) ?? "Unknown error"
-                return stderr.isEmpty ? "Installation failed with exit code \(task.terminationStatus)" : stderr
+            if output.terminationStatus != 0 {
+                let stderr = String(data: output.stderrData, encoding: .utf8) ?? "Unknown error"
+                return stderr.isEmpty ? "Installation failed with exit code \(output.terminationStatus)" : stderr
             }
             return nil
         } catch {

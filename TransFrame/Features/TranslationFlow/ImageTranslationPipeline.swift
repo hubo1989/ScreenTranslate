@@ -53,11 +53,8 @@ final class ImageTranslationPipeline: Sendable {
     typealias OCRFallback = @Sendable (CGImage) async throws -> OCRResult
     typealias Renderer = @Sendable (CGImage, [BilingualSegment], OverlayTheme) -> CGImage?
 
-    private let analyzer: Analyzer
-    private let ocrFallback: OCRFallback
-    private let translationService: any TranslationServicing
-    private let renderer: Renderer
-    private let recorder: PerformanceRecorder
+    private let analysisPipeline: AnalysisPipeline
+    private let translationRenderPipeline: TranslationRenderPipeline
 
     init(
         analyzer: @escaping Analyzer = { image in
@@ -72,11 +69,16 @@ final class ImageTranslationPipeline: Sendable {
         },
         recorder: PerformanceRecorder = .shared
     ) {
-        self.analyzer = analyzer
-        self.ocrFallback = ocrFallback
-        self.translationService = translationService
-        self.renderer = renderer
-        self.recorder = recorder
+        self.analysisPipeline = AnalysisPipeline(
+            analyzer: analyzer,
+            ocrFallback: ocrFallback,
+            recorder: recorder
+        )
+        self.translationRenderPipeline = TranslationRenderPipeline(
+            translationService: translationService,
+            renderer: renderer,
+            recorder: recorder
+        )
     }
 
     func run(
@@ -115,17 +117,7 @@ final class ImageTranslationPipeline: Sendable {
     }
 
     func analyze(image: CGImage, context: PipelineContext) async throws -> ScreenAnalysisResult {
-        do {
-            return try await recorder.measure(stage: .analysis, operationID: context.operationID) {
-                try Task.checkCancellation()
-                let initialAnalysis = try await analyzer(image)
-                return try await Self.recoverAnalysisResultIfNeeded(initialAnalysis) {
-                    try await ocrFallback(image)
-                }
-            }
-        } catch {
-            throw PipelineError(stage: .analysis, error: error)
-        }
+        try await analysisPipeline.analyze(image: image, context: context)
     }
 
     func translate(
@@ -133,34 +125,11 @@ final class ImageTranslationPipeline: Sendable {
         config: ImageTranslationPipelineConfig,
         context: PipelineContext
     ) async throws -> [BilingualSegment] {
-        do {
-            return try await recorder.measure(stage: .translation, operationID: context.operationID) {
-                try Task.checkCancellation()
-                let texts = analysisResult.segments.map(\.text)
-                let translatedSegments = try await translationService.translate(
-                    segments: texts,
-                    to: config.targetLanguage,
-                    preferredEngine: config.preferredEngine,
-                    from: config.sourceLanguage,
-                    scene: config.scene,
-                    mode: config.mode,
-                    fallbackEnabled: config.fallbackEnabled,
-                    parallelEngines: config.parallelEngines,
-                    sceneBindings: config.sceneBindings
-                )
-
-                return zip(analysisResult.segments, translatedSegments).map { original, translated in
-                    BilingualSegment(
-                        segment: original,
-                        translatedText: translated.translated,
-                        sourceLanguage: translated.sourceLanguage,
-                        targetLanguage: translated.targetLanguage
-                    )
-                }
-            }
-        } catch {
-            throw PipelineError(stage: .translation, error: error)
-        }
+        try await translationRenderPipeline.translate(
+            analysisResult: analysisResult,
+            config: config,
+            context: context
+        )
     }
 
     func render(
@@ -169,29 +138,21 @@ final class ImageTranslationPipeline: Sendable {
         theme: OverlayTheme,
         context: PipelineContext
     ) async throws -> CGImage {
-        do {
-            return try await recorder.measure(stage: .render, operationID: context.operationID) {
-                try Task.checkCancellation()
-                guard let renderedImage = renderer(image, segments, theme) else {
-                    throw PipelineError.renderFailed("Failed to render overlay")
-                }
-                return renderedImage
-            }
-        } catch {
-            throw PipelineError(stage: .render, error: error)
-        }
+        try await translationRenderPipeline.render(
+            image: image,
+            segments: segments,
+            theme: theme,
+            context: context
+        )
     }
 
     static func recoverAnalysisResultIfNeeded(
         _ analysisResult: ScreenAnalysisResult,
         ocrFallback: @Sendable () async throws -> OCRResult
     ) async throws -> ScreenAnalysisResult {
-        guard analysisResult.containsOnlyPromptLeakage else {
-            return analysisResult
-        }
-
-        let fallbackResult = try await ocrFallback()
-        let recoveredResult = ScreenAnalysisResult(ocrResult: fallbackResult)
-        return recoveredResult.segments.isEmpty ? analysisResult : recoveredResult
+        try await AnalysisPipeline.recoverAnalysisResultIfNeeded(
+            analysisResult,
+            ocrFallback: ocrFallback
+        )
     }
 }

@@ -4,93 +4,6 @@ import ImageIO
 import UniformTypeIdentifiers
 import os.log
 
-private struct ProcessOutput: Sendable {
-    let terminationStatus: Int32
-    let stdoutData: Data
-    let stderrData: Data
-}
-
-private final class CancellableProcessRunner: @unchecked Sendable {
-    private let process: Process
-    private let stdoutPipe: Pipe
-    private let stderrPipe: Pipe
-    private let lock = NSLock()
-    private var isCancelled = false
-    private var didResume = false
-
-    init(process: Process, stdoutPipe: Pipe, stderrPipe: Pipe) {
-        self.process = process
-        self.stdoutPipe = stdoutPipe
-        self.stderrPipe = stderrPipe
-    }
-
-    func run() async throws -> ProcessOutput {
-        try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
-                process.terminationHandler = { [weak self] process in
-                    self?.complete(process: process, continuation: continuation)
-                }
-
-                do {
-                    try process.run()
-                } catch {
-                    resumeOnce(continuation, result: .failure(error))
-                }
-            }
-        } onCancel: {
-            cancel()
-        }
-    }
-
-    private func cancel() {
-        lock.withLock {
-            isCancelled = true
-        }
-
-        if process.isRunning {
-            process.terminate()
-        }
-    }
-
-    private func complete(
-        process: Process,
-        continuation: CheckedContinuation<ProcessOutput, Error>
-    ) {
-        let output = ProcessOutput(
-            terminationStatus: process.terminationStatus,
-            stdoutData: stdoutPipe.fileHandleForReading.readDataToEndOfFile(),
-            stderrData: stderrPipe.fileHandleForReading.readDataToEndOfFile()
-        )
-
-        let wasCancelled = lock.withLock { isCancelled }
-        if wasCancelled {
-            resumeOnce(continuation, result: .failure(CancellationError()))
-        } else {
-            resumeOnce(continuation, result: .success(output))
-        }
-    }
-
-    private func resumeOnce(
-        _ continuation: CheckedContinuation<ProcessOutput, Error>,
-        result: Result<ProcessOutput, Error>
-    ) {
-        let shouldResume = lock.withLock {
-            guard !didResume else { return false }
-            didResume = true
-            return true
-        }
-
-        guard shouldResume else { return }
-
-        switch result {
-        case .success(let output):
-            continuation.resume(returning: output)
-        case .failure(let error):
-            continuation.resume(throwing: error)
-        }
-    }
-}
-
 /// PaddleOCR engine implementation.
 /// Communicates with PaddleOCR CLI for text recognition.
 actor PaddleOCREngine {
@@ -559,13 +472,8 @@ actor PaddleOCREngine {
             "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK": "True"
         ]
 
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
-        task.standardOutput = stdoutPipe
-        task.standardError = stderrPipe
-
         do {
-            let runner = CancellableProcessRunner(process: task, stdoutPipe: stdoutPipe, stderrPipe: stderrPipe)
+            let runner = AsyncProcessRunner(process: task)
             Logger.ocr.debug("Process started, waiting...")
             let output = try await runner.run()
             Logger.ocr.debug("Process finished with exit code: \(output.terminationStatus)")

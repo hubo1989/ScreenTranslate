@@ -139,9 +139,7 @@ struct PreviewActionButtons: View {
     /// Users who don't want to copy can close the window directly
     private var confirmButton: some View {
         Button {
-            if viewModel.copyToClipboard() {
-                viewModel.dismiss()
-            }
+            viewModel.copyToClipboard(dismissOnSuccess: true)
         } label: {
             if viewModel.isCopying {
                 loadingIndicator

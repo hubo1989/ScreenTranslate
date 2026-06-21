@@ -237,8 +237,7 @@ final class PreviewWindow: NSPanel {
                 viewModel.applyCrop()
             } else {
                 // Match the Confirm button behavior: copy to clipboard and dismiss
-                viewModel.copyToClipboard()
-                viewModel.dismiss()
+                viewModel.copyToClipboard(dismissOnSuccess: true)
             }
         }
         return true
@@ -254,8 +253,7 @@ final class PreviewWindow: NSPanel {
             return true
         case "c":
             Task { @MainActor in
-                viewModel.copyToClipboard()
-                viewModel.dismiss()
+                viewModel.copyToClipboard(dismissOnSuccess: true)
             }
             return true
         case "z":

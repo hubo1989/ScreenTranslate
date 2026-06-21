@@ -170,9 +170,8 @@ actor TextTranslationFlow {
     /// Current translation task (for cancellation)
     private var currentTask: Task<TextTranslationResult, Error>?
 
-    /// Translation service used to execute the underlying work.
-    private let translationService: any TranslationServicing
-    private let performanceRecorder: PerformanceRecorder
+    /// Translation-only pipeline used to execute and measure the underlying work.
+    private let translationRenderPipeline: TranslationRenderPipeline
 
     // MARK: - Initialization
 
@@ -180,8 +179,10 @@ actor TextTranslationFlow {
         service: any TranslationServicing = TranslationService.shared,
         performanceRecorder: PerformanceRecorder = .shared
     ) {
-        self.translationService = service
-        self.performanceRecorder = performanceRecorder
+        self.translationRenderPipeline = TranslationRenderPipeline(
+            translationService: service,
+            recorder: performanceRecorder
+        )
     }
 
     // MARK: - Public API
@@ -219,23 +220,21 @@ actor TextTranslationFlow {
 
             logger.info("Starting text translation: \(trimmedText.count) chars to \(effectiveTargetLanguage)")
 
-            // Use bundle API to get per-engine results
-            let bundle = try await performanceRecorder.measure(
-                stage: .translation,
-                operationID: context.operationID
-            ) {
-                try await translationService.translateBundle(
-                    segments: [trimmedText],
-                    to: effectiveTargetLanguage,
-                    preferredEngine: effectiveEngine,
-                    from: effectiveSourceLanguage,
-                    scene: config.scene,
-                    mode: config.mode,
-                    fallbackEnabled: config.fallbackEnabled,
-                    parallelEngines: config.parallelEngines,
-                    sceneBindings: config.sceneBindings
-                )
-            }
+            let pipelineConfig = TextTranslationConfig(
+                targetLanguage: effectiveTargetLanguage,
+                sourceLanguage: effectiveSourceLanguage,
+                preferredEngine: effectiveEngine,
+                scene: config.scene,
+                mode: config.mode,
+                fallbackEnabled: config.fallbackEnabled,
+                parallelEngines: config.parallelEngines,
+                sceneBindings: config.sceneBindings
+            )
+            let bundle = try await translationRenderPipeline.translateBundle(
+                text: trimmedText,
+                config: pipelineConfig,
+                context: context
+            )
 
             // Collect per-engine results for display
             let engineInfos = bundle.results.map { EngineTranslationInfo.fromEngineResult($0) }

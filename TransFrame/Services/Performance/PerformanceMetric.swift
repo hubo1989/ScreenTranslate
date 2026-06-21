@@ -21,6 +21,7 @@ enum PipelineErrorCategory: String, Codable, Sendable, Hashable {
     case translation
     case render
     case history
+    case export
     case cancelled
     case unknown
 }

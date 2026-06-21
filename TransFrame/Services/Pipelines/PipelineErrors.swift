@@ -1,4 +1,3 @@
-import CoreGraphics
 import Foundation
 
 struct PipelineContext: Sendable, Equatable {
@@ -15,21 +14,29 @@ struct PipelineContext: Sendable, Equatable {
     }
 }
 
+typealias PipelineOperationContext = PipelineContext
+
 enum PipelineError: LocalizedError, Sendable, Equatable {
     case noTextFound
+    case captureFailed(String)
     case analysisFailed(String)
     case translationFailed(String)
     case renderFailed(String)
+    case exportFailed(String)
     case cancelled
 
     var category: PipelineErrorCategory {
         switch self {
+        case .captureFailed:
+            return .capture
         case .noTextFound, .analysisFailed:
             return .analysis
         case .translationFailed:
             return .translation
         case .renderFailed:
             return .render
+        case .exportFailed:
+            return .export
         case .cancelled:
             return .cancelled
         }
@@ -39,7 +46,11 @@ enum PipelineError: LocalizedError, Sendable, Equatable {
         switch self {
         case .noTextFound:
             return "No text found"
-        case .analysisFailed(let message), .translationFailed(let message), .renderFailed(let message):
+        case .captureFailed(let message),
+             .analysisFailed(let message),
+             .translationFailed(let message),
+             .renderFailed(let message),
+             .exportFailed(let message):
             return message
         case .cancelled:
             return "Cancelled"
@@ -59,15 +70,18 @@ enum PipelineError: LocalizedError, Sendable, Equatable {
 
         let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         switch stage {
+        case .permission, .displayLookup, .capture:
+            self = .captureFailed(message)
         case .analysis:
             self = .analysisFailed(message)
         case .translation:
             self = .translationFailed(message)
         case .render:
             self = .renderFailed(message)
+        case .export:
+            self = .exportFailed(message)
         default:
             self = .analysisFailed(message)
         }
     }
 }
-

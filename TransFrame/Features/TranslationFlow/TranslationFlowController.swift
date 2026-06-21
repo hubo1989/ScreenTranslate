@@ -296,11 +296,15 @@ final class TranslationFlowController {
         switch error {
         case .noTextFound:
             return .noTextFound
+        case .captureFailed(let message):
+            return .analysisFailure(message)
         case .analysisFailed(let message):
             return .analysisFailure(message)
         case .translationFailed(let message):
             return .translationFailure(message)
         case .renderFailed(let message):
+            return .renderingFailure(message)
+        case .exportFailed(let message):
             return .renderingFailure(message)
         case .cancelled:
             return .cancelled
