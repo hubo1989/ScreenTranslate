@@ -172,11 +172,16 @@ actor TextTranslationFlow {
 
     /// Translation service used to execute the underlying work.
     private let translationService: any TranslationServicing
+    private let performanceRecorder: PerformanceRecorder
 
     // MARK: - Initialization
 
-    init(service: any TranslationServicing = TranslationService.shared) {
+    init(
+        service: any TranslationServicing = TranslationService.shared,
+        performanceRecorder: PerformanceRecorder = .shared
+    ) {
         self.translationService = service
+        self.performanceRecorder = performanceRecorder
     }
 
     // MARK: - Public API
@@ -205,6 +210,7 @@ actor TextTranslationFlow {
         lastError = nil
 
         let startTime = Date()
+        let context = PipelineContext(startedAt: startTime)
 
         let task = Task<TextTranslationResult, Error> {
             let effectiveTargetLanguage = config.targetLanguage
@@ -214,17 +220,22 @@ actor TextTranslationFlow {
             logger.info("Starting text translation: \(trimmedText.count) chars to \(effectiveTargetLanguage)")
 
             // Use bundle API to get per-engine results
-            let bundle = try await translationService.translateBundle(
-                segments: [trimmedText],
-                to: effectiveTargetLanguage,
-                preferredEngine: effectiveEngine,
-                from: effectiveSourceLanguage,
-                scene: config.scene,
-                mode: config.mode,
-                fallbackEnabled: config.fallbackEnabled,
-                parallelEngines: config.parallelEngines,
-                sceneBindings: config.sceneBindings
-            )
+            let bundle = try await performanceRecorder.measure(
+                stage: .translation,
+                operationID: context.operationID
+            ) {
+                try await translationService.translateBundle(
+                    segments: [trimmedText],
+                    to: effectiveTargetLanguage,
+                    preferredEngine: effectiveEngine,
+                    from: effectiveSourceLanguage,
+                    scene: config.scene,
+                    mode: config.mode,
+                    fallbackEnabled: config.fallbackEnabled,
+                    parallelEngines: config.parallelEngines,
+                    sceneBindings: config.sceneBindings
+                )
+            }
 
             // Collect per-engine results for display
             let engineInfos = bundle.results.map { EngineTranslationInfo.fromEngineResult($0) }

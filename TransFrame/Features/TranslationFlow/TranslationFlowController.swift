@@ -111,9 +111,8 @@ final class TranslationFlowController {
     // MARK: - Private
 
     private var currentTask: Task<Void, Never>?
-    private let screenCoderEngine = ScreenCoderEngine.shared
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "TransFrame", category: "TranslationFlow")
-    private let overlayRenderer = OverlayRenderer()
+    private let pipeline = ImageTranslationPipeline()
 
     private init() {}
 
@@ -147,7 +146,7 @@ final class TranslationFlowController {
     // MARK: - Private Implementation
 
     private func performTranslation(image: CGImage, scaleFactor: CGFloat) async {
-        let startTime = Date()
+        let context = PipelineContext()
         lastError = nil
         lastResult = nil
 
@@ -166,12 +165,8 @@ final class TranslationFlowController {
         let analysisResult: ScreenAnalysisResult
         do {
             try Task.checkCancellation()
-            let initialAnalysis = try await screenCoderEngine.analyze(image: image)
-            analysisResult = try await Self.recoverAnalysisResultIfNeeded(initialAnalysis) {
-                try await OCRService.shared.recognize(image)
-            }
-
-            if analysisResult.segments.isEmpty {
+            analysisResult = try await pipeline.analyze(image: image, context: context)
+            if analysisResult.filteredForTranslation().segments.isEmpty {
                 throw TranslationFlowError.noTextFound
             }
         } catch is CancellationError {
@@ -179,6 +174,9 @@ final class TranslationFlowController {
             return
         } catch let error as TranslationFlowError {
             handleError(error)
+            return
+        } catch let error as PipelineError {
+            handleError(Self.mapPipelineError(error))
             return
         } catch {
             logger.error("Analysis phase failed: \(String(describing: error))")
@@ -194,43 +192,21 @@ final class TranslationFlowController {
         do {
             try Task.checkCancellation()
 
-            let settings = AppSettings.shared
-            let targetLanguage = settings.translationTargetLanguage?.rawValue ?? "zh-Hans"
-            let sourceLanguage: String? = settings.translationSourceLanguage == .auto
-                ? nil
-                : settings.translationSourceLanguage.rawValue
-            let engine = settings.translationEngine
             let filteredAnalysisResult = analysisResult.filteredForTranslation()
-            if filteredAnalysisResult.segments.isEmpty {
-                throw TranslationFlowError.noTextFound
-            }
-            let texts = filteredAnalysisResult.segments.map(\.text)
-
-            if #available(macOS 13.0, *) {
-                let translatedSegments = try await TranslationService.shared.translate(
-                    segments: texts,
-                    to: targetLanguage,
-                    preferredEngine: engine,
-                    from: sourceLanguage
-                )
-                
-                // Merge bounding box info from VLM analysis back into translated segments
-                bilingualSegments = zip(filteredAnalysisResult.segments, translatedSegments).map { original, translated in
-                    BilingualSegment(
-                        segment: original,
-                        translatedText: translated.translated,
-                        sourceLanguage: translated.sourceLanguage,
-                        targetLanguage: translated.targetLanguage
-                    )
-                }
-            } else {
-                throw TranslationFlowError.translationFailure("macOS 13.0+ required")
-            }
+            let config = ImageTranslationPipelineConfig.fromAppSettings(scene: nil)
+            bilingualSegments = try await pipeline.translate(
+                analysisResult: filteredAnalysisResult,
+                config: config,
+                context: context
+            )
         } catch is CancellationError {
             handleCancellation()
             return
         } catch let error as TranslationFlowError {
             handleError(error)
+            return
+        } catch let error as PipelineError {
+            handleError(Self.mapPipelineError(error))
             return
         } catch {
             logger.error("Translation phase failed: \(String(describing: error))")
@@ -247,17 +223,18 @@ final class TranslationFlowController {
 
             // Get theme on main thread (OverlayTheme.current requires @MainActor)
             let theme = OverlayTheme.current
-            guard let renderedImage = overlayRenderer.render(image: image, segments: bilingualSegments, theme: theme) else {
-                throw TranslationFlowError.renderingFailure("Failed to render overlay")
-            }
-
-            let processingTime = Date().timeIntervalSince(startTime)
+            let renderedImage = try await pipeline.render(
+                image: image,
+                segments: bilingualSegments,
+                theme: theme,
+                context: context
+            )
 
             lastResult = TranslationFlowResult(
                 originalImage: image,
                 renderedImage: renderedImage,
                 segments: bilingualSegments,
-                processingTime: processingTime
+                processingTime: context.elapsed
             )
 
             currentPhase = .completed
@@ -276,6 +253,9 @@ final class TranslationFlowController {
             return
         } catch let error as TranslationFlowError {
             handleError(error)
+            return
+        } catch let error as PipelineError {
+            handleError(Self.mapPipelineError(error))
             return
         } catch {
             logger.error("Rendering phase failed: \(String(describing: error))")
@@ -306,13 +286,25 @@ final class TranslationFlowController {
         _ analysisResult: ScreenAnalysisResult,
         ocrFallback: @Sendable () async throws -> OCRResult
     ) async throws -> ScreenAnalysisResult {
-        guard analysisResult.containsOnlyPromptLeakage else {
-            return analysisResult
-        }
+        try await ImageTranslationPipeline.recoverAnalysisResultIfNeeded(
+            analysisResult,
+            ocrFallback: ocrFallback
+        )
+    }
 
-        let fallbackResult = try await ocrFallback()
-        let recoveredResult = ScreenAnalysisResult(ocrResult: fallbackResult)
-        return recoveredResult.segments.isEmpty ? analysisResult : recoveredResult
+    private static func mapPipelineError(_ error: PipelineError) -> TranslationFlowError {
+        switch error {
+        case .noTextFound:
+            return .noTextFound
+        case .analysisFailed(let message):
+            return .analysisFailure(message)
+        case .translationFailed(let message):
+            return .translationFailure(message)
+        case .renderFailed(let message):
+            return .renderingFailure(message)
+        case .cancelled:
+            return .cancelled
+        }
     }
 
     private func saveToHistory(
