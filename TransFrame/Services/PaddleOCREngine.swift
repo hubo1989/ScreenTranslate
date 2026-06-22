@@ -472,21 +472,14 @@ actor PaddleOCREngine {
             "PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK": "True"
         ]
 
-        let stdoutPipe = Pipe()
-        let stderrPipe = Pipe()
-        task.standardOutput = stdoutPipe
-        task.standardError = stderrPipe
-
         do {
-            try task.run()
+            let runner = AsyncProcessRunner(process: task)
             Logger.ocr.debug("Process started, waiting...")
-            task.waitUntilExit()
-            Logger.ocr.debug("Process finished with exit code: \(task.terminationStatus)")
+            let output = try await runner.run()
+            Logger.ocr.debug("Process finished with exit code: \(output.terminationStatus)")
 
-            let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
-            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-            var stdout = String(data: stdoutData, encoding: .utf8) ?? ""
-            let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+            var stdout = String(data: output.stdoutData, encoding: .utf8) ?? ""
+            let stderr = String(data: output.stderrData, encoding: .utf8) ?? ""
             
             // PaddleOCR outputs result to stderr, extract JSON from it
             if stdout.isEmpty, let resultRange = stderr.range(of: "{'res':") {
@@ -504,7 +497,7 @@ actor PaddleOCREngine {
             Logger.ocr.debug("output length: \(stdout.count)")
             Logger.ocr.debug("output: \(stdout.prefix(1000))")
 
-            let exitCode = task.terminationStatus
+            let exitCode = output.terminationStatus
             if exitCode != 0 {
                 let errorMsg = stderr.isEmpty ? "Exit code \(exitCode)" : stderr
                 throw PaddleOCREngineError.recognitionFailed(underlying: errorMsg)
@@ -518,6 +511,8 @@ actor PaddleOCREngine {
             return stdout
         } catch let error as PaddleOCREngineError {
             throw error
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             Logger.ocr.error("Error: \(error.localizedDescription)")
             throw PaddleOCREngineError.recognitionFailed(underlying: error.localizedDescription)

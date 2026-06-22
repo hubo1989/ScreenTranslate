@@ -4,20 +4,36 @@ import AppKit
 
 extension PreviewViewModel {
     @discardableResult
-    func copyToClipboard() -> Bool {
+    func copyToClipboard(dismissOnSuccess: Bool = false) -> Bool {
         guard !isCopying else { return false }
         isCopying = true
 
-        do {
-            try clipboardService.copy(image, annotations: annotations)
-            isCopying = false
-            return true
-        } catch {
-            errorMessage = NSLocalizedString("error.clipboard.write.failed", comment: "Failed to copy to clipboard")
-            clearError()
-            isCopying = false
-            return false
+        let image = image
+        let annotations = annotations
+        let operationID = UUID()
+
+        Task { @MainActor in
+            do {
+                let finalImage = try await Self.prepareImageForExport(
+                    image: image,
+                    annotations: annotations,
+                    operationID: operationID
+                )
+                try clipboardService.copy(finalImage)
+                isCopying = false
+                if dismissOnSuccess {
+                    dismiss()
+                }
+            } catch is CancellationError {
+                isCopying = false
+            } catch {
+                errorMessage = NSLocalizedString("error.clipboard.write.failed", comment: "Failed to copy to clipboard")
+                clearError()
+                isCopying = false
+            }
         }
+
+        return true
     }
 
     func saveScreenshot() {
@@ -47,13 +63,21 @@ extension PreviewViewModel {
         let fileURL = imageExporter.generateFileURL(in: directory, format: format)
 
         do {
-            try imageExporter.save(
-                image,
-                annotations: annotations,
-                to: fileURL,
-                format: format,
-                quality: quality
-            )
+            let image = image
+            let annotations = annotations
+            let operationID = UUID()
+            try await PerformanceRecorder.shared.measure(stage: .export, operationID: operationID) {
+                try await Task.detached(priority: .userInitiated) {
+                    try Task.checkCancellation()
+                    try ImageExporter.shared.save(
+                        image,
+                        annotations: annotations,
+                        to: fileURL,
+                        format: format,
+                        quality: quality
+                    )
+                }.value
+            }
 
             screenshot = screenshot.saved(to: fileURL)
             onSave?(fileURL)
@@ -92,5 +116,21 @@ extension PreviewViewModel {
 
     func dismissCopySuccessMessage() {
         copySuccessMessage = nil
+    }
+
+    private static func prepareImageForExport(
+        image: CGImage,
+        annotations: [Annotation],
+        operationID: UUID
+    ) async throws -> CGImage {
+        try await PerformanceRecorder.shared.measure(stage: .export, operationID: operationID) {
+            try await Task.detached(priority: .userInitiated) {
+                try Task.checkCancellation()
+                guard !annotations.isEmpty else {
+                    return image
+                }
+                return try ImageExporter.shared.compositeAnnotations(annotations, onto: image)
+            }.value
+        }
     }
 }

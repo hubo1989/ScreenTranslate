@@ -170,13 +170,19 @@ actor TextTranslationFlow {
     /// Current translation task (for cancellation)
     private var currentTask: Task<TextTranslationResult, Error>?
 
-    /// Translation service used to execute the underlying work.
-    private let translationService: any TranslationServicing
+    /// Translation-only pipeline used to execute and measure the underlying work.
+    private let translationRenderPipeline: TranslationRenderPipeline
 
     // MARK: - Initialization
 
-    init(service: any TranslationServicing = TranslationService.shared) {
-        self.translationService = service
+    init(
+        service: any TranslationServicing = TranslationService.shared,
+        performanceRecorder: PerformanceRecorder = .shared
+    ) {
+        self.translationRenderPipeline = TranslationRenderPipeline(
+            translationService: service,
+            recorder: performanceRecorder
+        )
     }
 
     // MARK: - Public API
@@ -205,25 +211,15 @@ actor TextTranslationFlow {
         lastError = nil
 
         let startTime = Date()
+        let context = PipelineContext(startedAt: startTime)
 
         let task = Task<TextTranslationResult, Error> {
-            let effectiveTargetLanguage = config.targetLanguage
-            let effectiveSourceLanguage = config.sourceLanguage
-            let effectiveEngine = config.preferredEngine
+            logger.info("Starting text translation: \(trimmedText.count) chars to \(config.targetLanguage)")
 
-            logger.info("Starting text translation: \(trimmedText.count) chars to \(effectiveTargetLanguage)")
-
-            // Use bundle API to get per-engine results
-            let bundle = try await translationService.translateBundle(
-                segments: [trimmedText],
-                to: effectiveTargetLanguage,
-                preferredEngine: effectiveEngine,
-                from: effectiveSourceLanguage,
-                scene: config.scene,
-                mode: config.mode,
-                fallbackEnabled: config.fallbackEnabled,
-                parallelEngines: config.parallelEngines,
-                sceneBindings: config.sceneBindings
+            let bundle = try await translationRenderPipeline.translateBundle(
+                text: trimmedText,
+                config: config,
+                context: context
             )
 
             // Collect per-engine results for display
@@ -277,6 +273,19 @@ actor TextTranslationFlow {
             lastError = error
             currentTask = nil
             throw error
+        } catch let error as PipelineError {
+            let textError: TextTranslationError
+            switch error {
+            case .cancelled:
+                textError = .cancelled
+            default:
+                let errorMessage = error.errorDescription ?? error.localizedDescription
+                textError = .translationFailed(errorMessage)
+            }
+            currentPhase = .failed(textError)
+            lastError = textError
+            currentTask = nil
+            throw textError
         } catch {
             let errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             logger.error("Text translation failed: \(errorMessage)")

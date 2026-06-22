@@ -67,6 +67,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Check PaddleOCR availability in background (non-blocking)
         PaddleOCRChecker.checkAvailabilityAsync()
 
+        // If credentials exist, unlock access once per app session with Touch ID or the macOS password.
+        Task {
+            await CredentialAuthManager.shared.authenticateAtLaunchIfNeeded()
+        }
+
         // Initialize updater controller to register notification observer
         // Skip during first launch to avoid overlapping with onboarding
         if settings.onboardingCompleted {

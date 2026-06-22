@@ -412,6 +412,25 @@
 "keychain.error.invalid_data.recovery" = "Try re-entering your credentials";
 "keychain.error.unexpected_status" = "Keychain operation failed";
 "keychain.error.unexpected_status.recovery" = "Please check your Keychain access permissions";
+"keychain.error.authentication_required" = "Credential access is locked";
+"keychain.error.authentication_required.recovery" = "Open Settings and unlock credential access";
+"credential.auth.reason.startup" = "Unlock your saved API keys for this TransFrame session.";
+"credential.auth.reason.settings" = "Unlock your saved API keys for this TransFrame session.";
+"credential.auth.error.cancelled" = "Credential access was not unlocked.";
+"credential.auth.error.failed" = "Authentication failed. Try again.";
+"credential.auth.error.biometry_unavailable" = "Touch ID is unavailable. Use your macOS password.";
+"credential.auth.error.passcode_not_set" = "Set a macOS login password to unlock credentials.";
+"settings.credentials.title" = "Credential Access";
+"settings.credentials.not_needed" = "No saved API keys";
+"settings.credentials.not_needed.hint" = "TransFrame will ask to unlock credentials after API keys are saved.";
+"settings.credentials.locked" = "Credential access is locked";
+"settings.credentials.locked.hint" = "Unlock once per app launch with Touch ID or your macOS password.";
+"settings.credentials.authenticating" = "Authenticating...";
+"settings.credentials.authenticating.hint" = "Complete the system authentication prompt.";
+"settings.credentials.unlocked" = "Credential access is unlocked";
+"settings.credentials.unlocked.hint" = "Saved API keys are available until TransFrame quits.";
+"settings.credentials.failed" = "Credential access failed";
+"settings.credentials.unlock" = "Unlock";
 
 /* Multi-Engine Errors */
 "multiengine.error.all_failed" = "All translation engines failed";

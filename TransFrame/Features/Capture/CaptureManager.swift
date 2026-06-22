@@ -33,6 +33,9 @@ actor CaptureManager {
     /// Screen detector for display enumeration
     private let screenDetector = ScreenDetector.shared
 
+    /// Measured capture pipeline for permission, display lookup, and screenshot capture.
+    private let pipeline = CapturePipeline.shared
+
     /// Whether a capture is currently in progress
     private var isCapturing = false
 
@@ -88,16 +91,23 @@ actor CaptureManager {
         isCapturing = true
         defer { isCapturing = false }
 
-        // Check permission using async method
-        guard await hasPermission else {
-            throw TransFrameError.permissionDenied
+        let context = PipelineContext()
+        try await pipeline.verifyPermission(context: context) { [weak self] in
+            await self?.hasPermission ?? false
         }
 
-        // Invalidate cache to get fresh display list
-        await screenDetector.invalidateCache()
-
-        // Get the SCDisplay for this display
-        let scDisplay = try await getSCDisplay(for: display)
+        let scDisplay = try await pipeline.lookupDisplay(
+            context: context,
+            refresh: { [screenDetector] in
+                await screenDetector.invalidateCache()
+            },
+            lookup: { [weak self] in
+                guard let self else {
+                    throw TransFrameError.captureError(message: "Capture manager released")
+                }
+                return try await self.getSCDisplay(for: display)
+            }
+        )
 
         // Configure capture
         let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
@@ -109,10 +119,12 @@ actor CaptureManager {
 
         let cgImage: CGImage
         do {
-            cgImage = try await SCScreenshotManager.captureImage(
-                contentFilter: filter,
-                configuration: config
-            )
+            cgImage = try await pipeline.capture(context: context) {
+                try await SCScreenshotManager.captureImage(
+                    contentFilter: filter,
+                    configuration: config
+                )
+            }
         } catch {
             os_signpost(.end, log: Self.performanceLog, name: "FullScreenCapture", signpostID: Self.signpostID)
             throw TransFrameError.captureFailure(underlying: error)
@@ -157,16 +169,23 @@ actor CaptureManager {
         isCapturing = true
         defer { isCapturing = false }
 
-        // Check permission using async method
-        guard await hasPermission else {
-            throw TransFrameError.permissionDenied
+        let context = PipelineContext()
+        try await pipeline.verifyPermission(context: context) { [weak self] in
+            await self?.hasPermission ?? false
         }
 
-        // Invalidate cache to get fresh display list
-        await screenDetector.invalidateCache()
-
-        // Get the SCDisplay for this display
-        let scDisplay = try await getSCDisplay(for: display)
+        let scDisplay = try await pipeline.lookupDisplay(
+            context: context,
+            refresh: { [screenDetector] in
+                await screenDetector.invalidateCache()
+            },
+            lookup: { [weak self] in
+                guard let self else {
+                    throw TransFrameError.captureError(message: "Capture manager released")
+                }
+                return try await self.getSCDisplay(for: display)
+            }
+        )
 
         // Configure capture
         let filter = SCContentFilter(display: scDisplay, excludingWindows: [])
@@ -178,10 +197,12 @@ actor CaptureManager {
 
         let cgImage: CGImage
         do {
-            cgImage = try await SCScreenshotManager.captureImage(
-                contentFilter: filter,
-                configuration: config
-            )
+            cgImage = try await pipeline.capture(context: context) {
+                try await SCScreenshotManager.captureImage(
+                    contentFilter: filter,
+                    configuration: config
+                )
+            }
         } catch {
             os_signpost(.end, log: Self.performanceLog, name: "RegionCapture", signpostID: Self.signpostID)
             throw TransFrameError.captureFailure(underlying: error)
