@@ -42,6 +42,12 @@ actor TranslationRenderPipeline {
                     sceneBindings: config.sceneBindings
                 )
 
+                guard translatedSegments.count == analysisResult.segments.count else {
+                    throw PipelineError.translationFailed(
+                        "Translation segment count mismatch: expected \(analysisResult.segments.count), got \(translatedSegments.count)"
+                    )
+                }
+
                 return zip(analysisResult.segments, translatedSegments).map { original, translated in
                     BilingualSegment(
                         segment: original,

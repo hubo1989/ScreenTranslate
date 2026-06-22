@@ -92,6 +92,40 @@ final class PipelineSmokeTests: XCTestCase {
         XCTAssertEqual(summaries[.render]?.count, 1)
     }
 
+    func testTranslationRenderPipelineThrowsWhenSegmentCountsMismatch() async throws {
+        let segment = TextSegment(text: "Hello", boundingBox: .zero, confidence: 1)
+        let service = MockTranslationServicing(nextResult: [])
+        let pipeline = TranslationRenderPipeline(
+            translationService: service,
+            renderer: { image, _, _ in image },
+            recorder: PerformanceRecorder()
+        )
+        let config = ImageTranslationPipelineConfig(
+            targetLanguage: "zh-Hans",
+            sourceLanguage: "en",
+            preferredEngine: .apple,
+            scene: nil,
+            mode: .primaryWithFallback,
+            fallbackEnabled: true,
+            parallelEngines: [],
+            sceneBindings: [:]
+        )
+
+        do {
+            _ = try await pipeline.translate(
+                analysisResult: ScreenAnalysisResult(
+                    segments: [segment],
+                    imageSize: CGSize(width: 16, height: 16)
+                ),
+                config: config,
+                context: PipelineContext()
+            )
+            XCTFail("Expected translation count mismatch")
+        } catch let error as PipelineError {
+            XCTAssertEqual(error.category, .translation)
+        }
+    }
+
     func testCapturePipelineRefreshesDisplayLookupOnlyWhenStale() async throws {
         let recorder = PerformanceRecorder()
         let pipeline = CapturePipeline(recorder: recorder)

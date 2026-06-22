@@ -75,8 +75,11 @@ final class HistoryStore: ObservableObject {
             existing.translatedText == result.translatedText
         }
 
-        // Add new entry at the beginning
-        entries.insert(entry, at: 0)
+        // Keep history ordered by the translation timestamp even when thumbnail work finishes out of order.
+        let insertionIndex = entries.firstIndex { existing in
+            existing.timestamp <= entry.timestamp
+        } ?? entries.endIndex
+        entries.insert(entry, at: insertionIndex)
 
         // Enforce maximum count
         if entries.count > Self.maxHistoryEntries {

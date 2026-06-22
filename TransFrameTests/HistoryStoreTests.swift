@@ -3,6 +3,33 @@ import XCTest
 @testable import TransFrame
 
 final class HistoryStoreTests: XCTestCase {
+    @MainActor
+    func testEntriesRemainSortedByTranslationTimestamp() {
+        let store = HistoryStore()
+        store.clear()
+
+        let older = TranslationResult(
+            sourceText: "older",
+            translatedText: "旧",
+            sourceLanguage: "English",
+            targetLanguage: "Chinese",
+            timestamp: Date(timeIntervalSince1970: 100)
+        )
+        let newer = TranslationResult(
+            sourceText: "newer",
+            translatedText: "新",
+            sourceLanguage: "English",
+            targetLanguage: "Chinese",
+            timestamp: Date(timeIntervalSince1970: 200)
+        )
+
+        store.add(result: newer)
+        store.add(result: older)
+
+        XCTAssertEqual(store.entries.map(\.sourceText), ["newer", "older"])
+        store.clear()
+    }
+
     func testGenerateThumbnailDataCreatesBoundedJPEG() throws {
         let image = try XCTUnwrap(Self.makeImage(width: 512, height: 256))
 
@@ -30,4 +57,3 @@ final class HistoryStoreTests: XCTestCase {
         return context.makeImage()
     }
 }
-

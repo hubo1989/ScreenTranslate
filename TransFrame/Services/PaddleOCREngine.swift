@@ -512,9 +512,6 @@ actor PaddleOCREngine {
         } catch let error as PaddleOCREngineError {
             throw error
         } catch is CancellationError {
-            if task.isRunning {
-                task.terminate()
-            }
             throw CancellationError()
         } catch {
             Logger.ocr.error("Error: \(error.localizedDescription)")

@@ -214,25 +214,11 @@ actor TextTranslationFlow {
         let context = PipelineContext(startedAt: startTime)
 
         let task = Task<TextTranslationResult, Error> {
-            let effectiveTargetLanguage = config.targetLanguage
-            let effectiveSourceLanguage = config.sourceLanguage
-            let effectiveEngine = config.preferredEngine
+            logger.info("Starting text translation: \(trimmedText.count) chars to \(config.targetLanguage)")
 
-            logger.info("Starting text translation: \(trimmedText.count) chars to \(effectiveTargetLanguage)")
-
-            let pipelineConfig = TextTranslationConfig(
-                targetLanguage: effectiveTargetLanguage,
-                sourceLanguage: effectiveSourceLanguage,
-                preferredEngine: effectiveEngine,
-                scene: config.scene,
-                mode: config.mode,
-                fallbackEnabled: config.fallbackEnabled,
-                parallelEngines: config.parallelEngines,
-                sceneBindings: config.sceneBindings
-            )
             let bundle = try await translationRenderPipeline.translateBundle(
                 text: trimmedText,
-                config: pipelineConfig,
+                config: config,
                 context: context
             )
 
@@ -287,6 +273,19 @@ actor TextTranslationFlow {
             lastError = error
             currentTask = nil
             throw error
+        } catch let error as PipelineError {
+            let textError: TextTranslationError
+            switch error {
+            case .cancelled:
+                textError = .cancelled
+            default:
+                let errorMessage = error.errorDescription ?? error.localizedDescription
+                textError = .translationFailed(errorMessage)
+            }
+            currentPhase = .failed(textError)
+            lastError = textError
+            currentTask = nil
+            throw textError
         } catch {
             let errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             logger.error("Text translation failed: \(errorMessage)")

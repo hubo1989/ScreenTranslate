@@ -22,6 +22,7 @@ enum PipelineError: LocalizedError, Sendable, Equatable {
     case analysisFailed(String)
     case translationFailed(String)
     case renderFailed(String)
+    case historyFailed(String)
     case exportFailed(String)
     case cancelled
 
@@ -35,6 +36,8 @@ enum PipelineError: LocalizedError, Sendable, Equatable {
             return .translation
         case .renderFailed:
             return .render
+        case .historyFailed:
+            return .history
         case .exportFailed:
             return .export
         case .cancelled:
@@ -50,6 +53,7 @@ enum PipelineError: LocalizedError, Sendable, Equatable {
              .analysisFailed(let message),
              .translationFailed(let message),
              .renderFailed(let message),
+             .historyFailed(let message),
              .exportFailed(let message):
             return message
         case .cancelled:
@@ -78,9 +82,11 @@ enum PipelineError: LocalizedError, Sendable, Equatable {
             self = .translationFailed(message)
         case .render:
             self = .renderFailed(message)
+        case .history:
+            self = .historyFailed(message)
         case .export:
             self = .exportFailed(message)
-        default:
+        case .previewHandoff, .textSelection, .textInsertion:
             self = .analysisFailed(message)
         }
     }

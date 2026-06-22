@@ -43,10 +43,9 @@ final class AsyncProcessRunner: @unchecked Sendable {
     private func cancel() {
         lock.withLock {
             isCancelled = true
-        }
-
-        if process.isRunning {
-            process.terminate()
+            if process.isRunning {
+                process.terminate()
+            }
         }
     }
 

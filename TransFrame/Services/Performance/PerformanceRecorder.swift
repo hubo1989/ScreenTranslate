@@ -56,6 +56,7 @@ actor PerformanceRecorder {
         } catch let caughtError {
             let duration = startedAt.duration(to: .now).timeInterval
             os_signpost(.end, log: log, name: "PipelineStage", signpostID: signpostID, "%{public}s", stage.rawValue)
+            let errorCategory = (caughtError as? PipelineError)?.category ?? .unknown
             record(
                 PerformanceMetric(
                     stage: stage,
@@ -63,7 +64,7 @@ actor PerformanceRecorder {
                     duration: duration,
                     memoryDeltaBytes: 0,
                     success: false,
-                    errorCategory: .unknown
+                    errorCategory: errorCategory
                 )
             )
             throw caughtError

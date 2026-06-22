@@ -57,4 +57,18 @@ final class PerformanceRecorderTests: XCTestCase {
         let summaries = await recorder.summaries()
         XCTAssertEqual(summaries[.analysis]?.count, 1)
     }
+
+    func testRecorderRecordsPipelineErrorFailure() async {
+        let recorder = PerformanceRecorder()
+
+        do {
+            try await recorder.measure(stage: .render, operationID: UUID()) {
+                throw PipelineError.renderFailed("render failed")
+            } as Void
+            XCTFail("Expected render failure")
+        } catch {
+            let summaries = await recorder.summaries()
+            XCTAssertEqual(summaries[.render]?.failureCount, 1)
+        }
+    }
 }

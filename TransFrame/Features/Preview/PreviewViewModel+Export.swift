@@ -24,6 +24,8 @@ extension PreviewViewModel {
                 if dismissOnSuccess {
                     dismiss()
                 }
+            } catch is CancellationError {
+                isCopying = false
             } catch {
                 errorMessage = NSLocalizedString("error.clipboard.write.failed", comment: "Failed to copy to clipboard")
                 clearError()

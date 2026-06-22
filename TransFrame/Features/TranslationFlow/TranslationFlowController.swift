@@ -163,10 +163,12 @@ final class TranslationFlowController {
         currentPhase = .analyzing
 
         let analysisResult: ScreenAnalysisResult
+        let filteredAnalysisResult: ScreenAnalysisResult
         do {
             try Task.checkCancellation()
             analysisResult = try await pipeline.analyze(image: image, context: context)
-            if analysisResult.filteredForTranslation().segments.isEmpty {
+            filteredAnalysisResult = analysisResult.filteredForTranslation()
+            if filteredAnalysisResult.segments.isEmpty {
                 throw TranslationFlowError.noTextFound
             }
         } catch is CancellationError {
@@ -192,7 +194,6 @@ final class TranslationFlowController {
         do {
             try Task.checkCancellation()
 
-            let filteredAnalysisResult = analysisResult.filteredForTranslation()
             let config = ImageTranslationPipelineConfig.fromAppSettings(scene: nil)
             bilingualSegments = try await pipeline.translate(
                 analysisResult: filteredAnalysisResult,
@@ -303,6 +304,8 @@ final class TranslationFlowController {
         case .translationFailed(let message):
             return .translationFailure(message)
         case .renderFailed(let message):
+            return .renderingFailure(message)
+        case .historyFailed(let message):
             return .renderingFailure(message)
         case .exportFailed(let message):
             return .renderingFailure(message)
